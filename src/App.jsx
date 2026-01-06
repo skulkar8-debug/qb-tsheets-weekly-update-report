@@ -133,17 +133,20 @@ const StocStaffingDashboard = () => {
   const [selectedTeamMember, setSelectedTeamMember] = useState('all');
   const [selectedProject, setSelectedProject] = useState('all');
   const [expandedProjects, setExpandedProjects] = useState({});
+  const [expandedTeamMembers, setExpandedTeamMembers] = useState({});
   const [showOnlyActive, setShowOnlyActive] = useState(false);
+  const [teamSortConfig, setTeamSortConfig] = useState({ key: 'totalHours', direction: 'desc' });
 
   // Parse data
   const week1Data = useMemo(() => parseCSV(rawData1), []);
   const week2Data = useMemo(() => parseCSV(rawData2), []);
   
-  // Combine data from both weeks
+  // Combine data from both weeks - filtered by selected period
   const allData = useMemo(() => {
-    const combined = [...week1Data, ...week2Data];
-    return combined;
-  }, [week1Data, week2Data]);
+    if (selectedPeriod === 'week1') return week1Data;
+    if (selectedPeriod === 'week2') return week2Data;
+    return [...week1Data, ...week2Data];
+  }, [week1Data, week2Data, selectedPeriod]);
 
   // Process data for analytics
   const processedData = useMemo(() => {
@@ -246,13 +249,12 @@ const StocStaffingDashboard = () => {
     };
   }, [processedData]);
 
-  // Prepare chart data
+  // Prepare chart data - using first names
   const utilizationChartData = useMemo(() => {
     return Object.values(processedData.teamMembers)
       .sort((a, b) => b.utilization - a.utilization)
-      .slice(0, 10)
       .map(member => ({
-        name: member.name.split(' ')[1], // Last name only for chart
+        name: member.name.split(' ')[0], // First name only for chart
         utilization: member.utilization,
         billable: member.billableHours,
         nonBillable: member.nonBillableHours
@@ -289,13 +291,40 @@ const StocStaffingDashboard = () => {
     }));
   };
 
+  const toggleTeamMemberExpansion = (memberName) => {
+    setExpandedTeamMembers(prev => ({
+      ...prev,
+      [memberName]: !prev[memberName]
+    }));
+  };
+
+  const handleTeamSort = (key) => {
+    setTeamSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc'
+    }));
+  };
+
+  const sortedTeamMembers = useMemo(() => {
+    const members = Object.values(processedData.teamMembers);
+    return members.sort((a, b) => {
+      const aValue = a[teamSortConfig.key];
+      const bValue = b[teamSortConfig.key];
+      
+      if (teamSortConfig.direction === 'asc') {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
+  }, [processedData.teamMembers, teamSortConfig]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
       {/* Header */}
       <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-4">
-  <img src="/logo.png" className="h-10 w-auto" />
   <div>
     <h1 className="text-3xl font-bold text-gray-900">STOC Staffing Tool</h1>
     <p className="text-gray-500 mt-1">Real-time visibility into team utilization and project allocation</p>
@@ -426,7 +455,7 @@ const StocStaffingDashboard = () => {
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={projectBurnData}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
+                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={120} interval={0} />
                   <YAxis />
                   <Tooltip />
                   <Bar dataKey="hours" fill="#6366f1" />
@@ -462,21 +491,38 @@ const StocStaffingDashboard = () => {
                 <thead>
                   <tr className="border-b border-gray-200">
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">Name</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Email</th>
-                    <th className="text-center py-3 px-4 font-semibold text-gray-700">Total Hours</th>
-                    <th className="text-center py-3 px-4 font-semibold text-gray-700">Billable</th>
-                    <th className="text-center py-3 px-4 font-semibold text-gray-700">Non-Billable</th>
-                    <th className="text-center py-3 px-4 font-semibold text-gray-700">Utilization</th>
+                    <th 
+                      className="text-center py-3 px-4 font-semibold text-gray-700 cursor-pointer hover:bg-gray-50"
+                      onClick={() => handleTeamSort('totalHours')}
+                    >
+                      Total Hours {teamSortConfig.key === 'totalHours' && (teamSortConfig.direction === 'desc' ? '↓' : '↑')}
+                    </th>
+                    <th 
+                      className="text-center py-3 px-4 font-semibold text-gray-700 cursor-pointer hover:bg-gray-50"
+                      onClick={() => handleTeamSort('billableHours')}
+                    >
+                      Billable {teamSortConfig.key === 'billableHours' && (teamSortConfig.direction === 'desc' ? '↓' : '↑')}
+                    </th>
+                    <th 
+                      className="text-center py-3 px-4 font-semibold text-gray-700 cursor-pointer hover:bg-gray-50"
+                      onClick={() => handleTeamSort('nonBillableHours')}
+                    >
+                      Non-Billable {teamSortConfig.key === 'nonBillableHours' && (teamSortConfig.direction === 'desc' ? '↓' : '↑')}
+                    </th>
+                    <th 
+                      className="text-center py-3 px-4 font-semibold text-gray-700 cursor-pointer hover:bg-gray-50"
+                      onClick={() => handleTeamSort('utilization')}
+                    >
+                      Utilization {teamSortConfig.key === 'utilization' && (teamSortConfig.direction === 'desc' ? '↓' : '↑')}
+                    </th>
                     <th className="text-center py-3 px-4 font-semibold text-gray-700">Projects</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {Object.values(processedData.teamMembers)
-                    .sort((a, b) => b.totalHours - a.totalHours)
-                    .map((member, index) => (
-                      <tr key={index} className="border-b border-gray-100 hover:bg-gray-50 transition">
+                  {sortedTeamMembers.map((member, index) => (
+                    <React.Fragment key={index}>
+                      <tr className="border-b border-gray-100 hover:bg-gray-50 transition">
                         <td className="py-3 px-4 font-medium">{member.name}</td>
-                        <td className="py-3 px-4 text-sm text-gray-600">{member.email}</td>
                         <td className="py-3 px-4 text-center">{member.totalHours.toFixed(1)}</td>
                         <td className="py-3 px-4 text-center text-green-600 font-medium">
                           {member.billableHours.toFixed(1)}
@@ -494,12 +540,46 @@ const StocStaffingDashboard = () => {
                           </span>
                         </td>
                         <td className="py-3 px-4 text-center">
-                          <span className="text-sm text-gray-600">
+                          <button
+                            onClick={() => toggleTeamMemberExpansion(member.name)}
+                            className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1 mx-auto"
+                          >
+                            {expandedTeamMembers[member.name] ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                             {Object.keys(member.projects).length} active
-                          </span>
+                          </button>
                         </td>
                       </tr>
-                    ))}
+                      {expandedTeamMembers[member.name] && (
+                        <tr>
+                          <td colSpan="6" className="py-3 px-4 bg-gray-50">
+                            <div className="pl-8">
+                              <p className="text-sm font-semibold text-gray-700 mb-2">Project Distribution:</p>
+                              <div className="space-y-1">
+                                {Object.entries(member.projects)
+                                  .sort((a, b) => b[1] - a[1])
+                                  .map(([projectName, hours], idx) => (
+                                    <div key={idx} className="flex items-center justify-between text-sm">
+                                      <span className="text-gray-700">{projectName}</span>
+                                      <div className="flex items-center gap-4">
+                                        <div className="w-48 bg-gray-200 rounded-full h-2">
+                                          <div 
+                                            className="bg-blue-500 h-2 rounded-full"
+                                            style={{ width: `${(hours / member.totalHours) * 100}%` }}
+                                          />
+                                        </div>
+                                        <span className="text-gray-600 font-medium w-16 text-right">
+                                          {hours.toFixed(1)}h ({((hours / member.totalHours) * 100).toFixed(0)}%)
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  ))}
                 </tbody>
               </table>
             </div>
