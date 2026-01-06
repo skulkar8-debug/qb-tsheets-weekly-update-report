@@ -132,6 +132,7 @@ const StocStaffingDashboard = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('all');
   const [expandedProjects, setExpandedProjects] = useState({});
   const [expandedTeamMembers, setExpandedTeamMembers] = useState({});
+  const [expandedClients, setExpandedClients] = useState({});
   const [teamSortConfig, setTeamSortConfig] = useState({ key: 'totalHours', direction: 'desc' });
 
   // Parse data
@@ -161,6 +162,34 @@ const StocStaffingDashboard = () => {
     
     // Everything else is billable
     return 'billable';
+  }
+
+  // Helper function to extract client from project name
+  function extractClient(projectName) {
+    // Special cases
+    if (['Holiday', 'Vacation', 'Sick'].some(keyword => projectName.includes(keyword))) {
+      return 'OOO (Out of Office)';
+    }
+    if (projectName === 'Administrative') {
+      return 'Administrative';
+    }
+    if (projectName.includes('Business Development')) {
+      return 'Business Development';
+    }
+    
+    // Extract client from "CLIENT - Project Name" pattern
+    const match = projectName.match(/^([A-Z\s]+)(?:\s*-|$)/);
+    if (match) {
+      const client = match[1].trim();
+      // Normalize SP USA and SPUSA to the same client
+      if (client === 'SP USA' || client === 'SPUSA') {
+        return 'SP USA';
+      }
+      return client;
+    }
+    
+    // If no pattern match, return the project name itself
+    return projectName;
   }
 
   // Process data for analytics
@@ -235,7 +264,25 @@ const StocStaffingDashboard = () => {
         : 0;
     });
 
-    return { teamMembers, projects, categories };
+    // Group projects by client
+    const clientGroups = {};
+    Object.values(projects).forEach(project => {
+      const client = extractClient(project.name);
+      if (!clientGroups[client]) {
+        clientGroups[client] = {
+          name: client,
+          projects: [],
+          totalHours: 0,
+          teamMembers: new Set(),
+          category: project.category
+        };
+      }
+      clientGroups[client].projects.push(project);
+      clientGroups[client].totalHours += project.totalHours;
+      project.teamMembers.forEach(member => clientGroups[client].teamMembers.add(member));
+    });
+
+    return { teamMembers, projects, categories, clientGroups };
   }, [allData]);
 
   // Calculate key metrics
@@ -298,6 +345,13 @@ const StocStaffingDashboard = () => {
     setExpandedProjects(prev => ({
       ...prev,
       [projectName]: !prev[projectName]
+    }));
+  };
+
+  const toggleClientExpansion = (clientName) => {
+    setExpandedClients(prev => ({
+      ...prev,
+      [clientName]: !prev[clientName]
     }));
   };
 
@@ -593,61 +647,107 @@ const StocStaffingDashboard = () => {
         {activeTab === 'projects' && (
           <div className="col-span-12 bg-white rounded-xl shadow-lg p-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">Project Details</h2>
+              <h2 className="text-xl font-bold">Project Allocation by Client</h2>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project Name</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Hours</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Team Size</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {Object.values(processedData.projects)
-                    .sort((a, b) => b.totalHours - a.totalHours)
-                    .map(project => (
-                      <React.Fragment key={project.name}>
-                        <tr className="hover:bg-gray-50">
-                          <td className="px-4 py-3 text-sm font-medium text-gray-900">{project.name}</td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            {getCategoryBadge(project.category)}
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{project.totalHours.toFixed(1)}</td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{project.teamMembers.size}</td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <button 
-                              onClick={() => toggleProjectExpansion(project.name)}
-                              className="text-blue-600 hover:text-blue-800"
-                            >
-                              {expandedProjects[project.name] ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                            </button>
-                          </td>
-                        </tr>
-                        {expandedProjects[project.name] && (
-                          <tr>
-                            <td colSpan="5" className="px-4 py-3 bg-gray-50">
-                              <div className="pl-8">
-                                <h4 className="font-medium mb-2">Team Members:</h4>
-                                <div className="flex flex-wrap gap-2">
-                                  {Array.from(project.teamMembers).map(member => (
-                                    <span key={member} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-                                      {member}
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </React.Fragment>
-                    ))}
-                </tbody>
-              </table>
+            <div className="space-y-3">
+              {Object.values(processedData.clientGroups)
+                .sort((a, b) => {
+                  // Sort order: OOO first, then Admin, then Business Development, then alphabetical
+                  if (a.name === 'OOO (Out of Office)') return -1;
+                  if (b.name === 'OOO (Out of Office)') return 1;
+                  if (a.name === 'Administrative') return -1;
+                  if (b.name === 'Administrative') return 1;
+                  if (a.name === 'Business Development') return -1;
+                  if (b.name === 'Business Development') return 1;
+                  return b.totalHours - a.totalHours;
+                })
+                .map(client => (
+                  <div key={client.name} className="border border-gray-200 rounded-lg overflow-hidden">
+                    {/* Client Header */}
+                    <div 
+                      className="bg-gray-50 p-4 cursor-pointer hover:bg-gray-100 transition"
+                      onClick={() => toggleClientExpansion(client.name)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <button className="text-gray-600">
+                            {expandedClients[client.name] ? 
+                              <ChevronDown className="w-5 h-5" /> : 
+                              <ChevronRight className="w-5 h-5" />
+                            }
+                          </button>
+                          <div>
+                            <h3 className="text-lg font-bold text-gray-900">{client.name}</h3>
+                            <p className="text-sm text-gray-600">
+                              {client.projects.length} project{client.projects.length !== 1 ? 's' : ''} • {client.teamMembers.size} team member{client.teamMembers.size !== 1 ? 's' : ''}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          {getCategoryBadge(client.category)}
+                          <div className="text-right">
+                            <div className="text-2xl font-bold text-gray-900">{client.totalHours.toFixed(1)}h</div>
+                            <div className="text-sm text-gray-500">Total Hours</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Expanded Projects */}
+                    {expandedClients[client.name] && (
+                      <div className="bg-white">
+                        <table className="w-full">
+                          <thead className="bg-gray-100">
+                            <tr>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project Name</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hours</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Team Size</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-200">
+                            {client.projects
+                              .sort((a, b) => b.totalHours - a.totalHours)
+                              .map(project => (
+                                <React.Fragment key={project.name}>
+                                  <tr className="hover:bg-gray-50">
+                                    <td className="px-4 py-3 text-sm text-gray-900">{project.name}</td>
+                                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{project.totalHours.toFixed(1)}h</td>
+                                    <td className="px-4 py-3 text-sm text-gray-600">{project.teamMembers.size} member{project.teamMembers.size !== 1 ? 's' : ''}</td>
+                                    <td className="px-4 py-3">
+                                      <button 
+                                        onClick={() => toggleProjectExpansion(project.name)}
+                                        className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                                      >
+                                        {expandedProjects[project.name] ? 'Hide Team' : 'View Team'}
+                                      </button>
+                                    </td>
+                                  </tr>
+                                  {expandedProjects[project.name] && (
+                                    <tr>
+                                      <td colSpan="4" className="px-4 py-3 bg-gray-50">
+                                        <div className="pl-8">
+                                          <h4 className="font-medium mb-2 text-sm text-gray-700">Team Members:</h4>
+                                          <div className="flex flex-wrap gap-2">
+                                            {Array.from(project.teamMembers).map(member => (
+                                              <span key={member} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                                                {member}
+                                              </span>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  )}
+                                </React.Fragment>
+                              ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                ))}
             </div>
           </div>
         )}
