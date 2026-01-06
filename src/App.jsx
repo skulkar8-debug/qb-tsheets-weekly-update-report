@@ -751,7 +751,6 @@ const StocStaffingDashboard = () => {
                   <p className="font-semibold text-blue-900">Data Quality Score: 78%</p>
                   <p className="text-sm text-blue-700 mt-1">
                     Time entries are mostly complete but could benefit from more specific project allocation. 
-                    Consider implementing project codes for Business Development activities.
                   </p>
                 </div>
               </div>
