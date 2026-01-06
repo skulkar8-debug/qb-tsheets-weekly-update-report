@@ -13,7 +13,12 @@
     "react-dom": "^18.2.0",
     "lucide-react": "^0.344.0"
   },
-  "devDependencies": {
-    "vite": "^5.0.0"
+"dependencies": {
+  "react": "^18.2.0",
+  "react-dom": "^18.2.0",
+  "lucide-react": "^0.344.0",
+  "recharts": "^2.10.4"
+}
+
   }
 }
