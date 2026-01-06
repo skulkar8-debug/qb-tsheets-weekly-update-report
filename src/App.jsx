@@ -294,10 +294,14 @@ const StocStaffingDashboard = () => {
       {/* Header */}
       <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
         <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">STOC Staffing Tool</h1>
-            <p className="text-gray-500 mt-1">Real-time visibility into team utilization and project allocation</p>
-          </div>
+          <div className="flex items-center gap-4">
+  <img src="/logo.png" className="h-10 w-auto" />
+  <div>
+    <h1 className="text-3xl font-bold text-gray-900">STOC Staffing Tool</h1>
+    <p className="text-gray-500 mt-1">Real-time visibility into team utilization and project allocation</p>
+  </div>
+</div>
+
           <div className="flex gap-3">
             <select 
               className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
