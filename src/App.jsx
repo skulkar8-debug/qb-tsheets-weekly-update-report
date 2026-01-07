@@ -134,6 +134,7 @@ const StocStaffingDashboard = () => {
   const [expandedTeamMembers, setExpandedTeamMembers] = useState({});
   const [expandedClients, setExpandedClients] = useState({});
   const [teamSortConfig, setTeamSortConfig] = useState({ key: 'totalHours', direction: 'desc' });
+  const [projectFilter, setProjectFilter] = useState('all');
 
   // Parse data
   const week1Data = useMemo(() => parseCSV(rawData1), []);
@@ -190,6 +191,26 @@ const StocStaffingDashboard = () => {
     
     // If no pattern match, return the project name itself
     return projectName;
+  }
+
+  // Helper function to determine business unit
+  function getBusinessUnit(clientName) {
+    if (clientName === 'OOO (Out of Office)') return 'ooo';
+    if (clientName === 'Administrative') return 'administrative';
+    if (clientName === 'Business Development') return 'business_development';
+    
+    // TAS only: SALT, Riata, SP, Beacon Behavioral
+    const tasOnly = ['SALT', 'Riata', 'SP USA', 'SP', 'SPUSA', 'Beacon Behavioral'];
+    if (tasOnly.some(tas => clientName.includes(tas))) return 'tas';
+    
+    // Both TAS + CDS: AEG, CPC, ADP
+    const tasCds = ['AEG', 'CPC', 'ADP'];
+    if (tasCds.some(tc => clientName.includes(tc))) return 'tas_cds';
+    
+    // CDS: Everything else that's not OOO/Admin/BD
+    if (clientName === 'CDS') return 'cds';
+    
+    return 'other';
   }
 
   // Process data for analytics
@@ -322,10 +343,26 @@ const StocStaffingDashboard = () => {
 
   const categoryPieData = useMemo(() => {
     const { categories } = processedData;
+    const total = categories.billable + categories.internal + categories.ooo;
     return [
-      { name: 'Billable', value: categories.billable, color: '#10b981' },
-      { name: 'Internal/BD', value: categories.internal, color: '#6366f1' },
-      { name: 'OOO', value: categories.ooo, color: '#ef4444' }
+      { 
+        name: 'Billable', 
+        value: categories.billable, 
+        percentage: total > 0 ? Math.round((categories.billable / total) * 100) : 0,
+        color: '#10b981' 
+      },
+      { 
+        name: 'Internal/BD', 
+        value: categories.internal, 
+        percentage: total > 0 ? Math.round((categories.internal / total) * 100) : 0,
+        color: '#6366f1' 
+      },
+      { 
+        name: 'OOO', 
+        value: categories.ooo, 
+        percentage: total > 0 ? Math.round((categories.ooo / total) * 100) : 0,
+        color: '#ef4444' 
+      }
     ].filter(cat => cat.value > 0);
   }, [processedData]);
 
@@ -334,11 +371,32 @@ const StocStaffingDashboard = () => {
       .filter(project => project.category === 'billable')
       .sort((a, b) => b.totalHours - a.totalHours)
       .slice(0, 8)
-      .map(project => ({
-        name: project.name.length > 30 ? project.name.substring(0, 30) + '...' : project.name,
-        hours: project.totalHours,
-        teamSize: project.teamMembers.size
-      }));
+      .map(project => {
+        // Wrap long project names - split at 25 chars and add line break
+        let displayName = project.name;
+        if (displayName.length > 25) {
+          const words = displayName.split(' ');
+          let lines = [''];
+          let currentLine = 0;
+          
+          words.forEach(word => {
+            if ((lines[currentLine] + ' ' + word).length > 25 && lines[currentLine].length > 0) {
+              currentLine++;
+              lines[currentLine] = word;
+            } else {
+              lines[currentLine] = lines[currentLine] ? lines[currentLine] + ' ' + word : word;
+            }
+          });
+          
+          displayName = lines.join('\n');
+        }
+        
+        return {
+          name: displayName,
+          hours: project.totalHours,
+          teamSize: project.teamMembers.size
+        };
+      });
   }, [processedData]);
 
   const toggleProjectExpansion = (projectName) => {
@@ -404,7 +462,7 @@ const StocStaffingDashboard = () => {
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">STOC Staffing Tool</h1>
+              <h1 className="text-3xl font-bold text-gray-900" style={{ fontFamily: 'Georgia, serif' }}>STOC Staffing Tool</h1>
               <p className="text-gray-500 mt-1">Real-time visibility into team utilization and project allocation</p>
             </div>
           </div>
@@ -494,10 +552,10 @@ const StocStaffingDashboard = () => {
       <div className="grid grid-cols-12 gap-6">
         {activeTab === 'overview' && (
           <>
-            {/* Utilization Chart */}
-            <div className="col-span-8 bg-white rounded-xl shadow-lg p-6">
+            {/* Utilization Chart - Full Width */}
+            <div className="col-span-12 bg-white rounded-xl shadow-lg p-6">
               <h2 className="text-xl font-bold mb-4">Team Utilization</h2>
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={400}>
                 <BarChart data={utilizationChartData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
@@ -512,17 +570,17 @@ const StocStaffingDashboard = () => {
             </div>
 
             {/* Category Distribution */}
-            <div className="col-span-4 bg-white rounded-xl shadow-lg p-6">
+            <div className="col-span-12 bg-white rounded-xl shadow-lg p-6">
               <h2 className="text-xl font-bold mb-4">Time Distribution</h2>
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={350}>
                 <RePieChart>
                   <Pie
                     data={categoryPieData}
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={entry => `${entry.name}: ${entry.value.toFixed(0)}h`}
-                    outerRadius={80}
+                    label={entry => `${entry.name}: ${entry.value.toFixed(0)}h (${entry.percentage}%)`}
+                    outerRadius={100}
                     fill="#8884d8"
                     dataKey="value"
                   >
@@ -530,7 +588,7 @@ const StocStaffingDashboard = () => {
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip formatter={(value, name, props) => [`${value.toFixed(0)}h (${props.payload.percentage}%)`, name]} />
                 </RePieChart>
               </ResponsiveContainer>
             </div>
@@ -538,10 +596,17 @@ const StocStaffingDashboard = () => {
             {/* Project Burn */}
             <div className="col-span-12 bg-white rounded-xl shadow-lg p-6">
               <h2 className="text-xl font-bold mb-4">Top Projects by Hours</h2>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={projectBurnData}>
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart data={projectBurnData} margin={{ bottom: 100 }}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={120} interval={0} />
+                  <XAxis 
+                    dataKey="name" 
+                    angle={-45} 
+                    textAnchor="end" 
+                    height={150} 
+                    interval={0}
+                    tick={{ fontSize: 11 }}
+                  />
                   <YAxis />
                   <Tooltip />
                   <Bar dataKey="hours" fill="#6366f1" />
@@ -607,8 +672,9 @@ const StocStaffingDashboard = () => {
                         <td className="px-4 py-3 whitespace-nowrap">
                           <button 
                             onClick={() => toggleTeamMemberExpansion(member.name)}
-                            className="text-blue-600 hover:text-blue-800"
+                            className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
                           >
+                            <span className="text-sm font-medium">{Object.keys(member.projects).length}</span>
                             {expandedTeamMembers[member.name] ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                           </button>
                         </td>
@@ -617,20 +683,34 @@ const StocStaffingDashboard = () => {
                         <tr>
                           <td colSpan="7" className="px-4 py-3 bg-gray-50">
                             <div className="pl-8">
-                              <h4 className="font-medium mb-2">Projects:</h4>
-                              <div className="grid grid-cols-2 gap-2">
-                                {Object.entries(member.projects).map(([project, hours]) => {
-                                  const category = determineCategory(project);
-                                  return (
-                                    <div key={project} className="flex justify-between items-center p-2 bg-white rounded border border-gray-200">
-                                      <div className="flex items-center gap-2">
-                                        <span className="text-sm">{project}</span>
-                                        {getCategoryBadge(category)}
+                              <h4 className="font-medium mb-2">Projects Breakdown:</h4>
+                              <div className="space-y-2">
+                                {Object.entries(member.projects)
+                                  .sort((a, b) => b[1] - a[1])
+                                  .map(([project, hours]) => {
+                                    const category = determineCategory(project);
+                                    const percentage = member.totalHours > 0 ? Math.round((hours / member.totalHours) * 100) : 0;
+                                    return (
+                                      <div key={project} className="flex justify-between items-center p-3 bg-white rounded border border-gray-200">
+                                        <div className="flex items-center gap-2 flex-1">
+                                          <span className="text-sm">{project}</span>
+                                          {getCategoryBadge(category)}
+                                        </div>
+                                        <div className="flex items-center gap-4">
+                                          <div className="flex items-center gap-2">
+                                            <div className="w-24 bg-gray-200 rounded-full h-2">
+                                              <div 
+                                                className="bg-blue-600 h-2 rounded-full" 
+                                                style={{width: `${percentage}%`}}
+                                              ></div>
+                                            </div>
+                                            <span className="text-sm font-medium text-gray-600 w-12">{percentage}%</span>
+                                          </div>
+                                          <span className="text-sm font-bold text-gray-900 w-16 text-right">{hours.toFixed(1)}h</span>
+                                        </div>
                                       </div>
-                                      <span className="text-sm font-medium">{hours.toFixed(1)}h</span>
-                                    </div>
-                                  );
-                                })}
+                                    );
+                                  })}
                               </div>
                             </div>
                           </td>
@@ -648,10 +728,36 @@ const StocStaffingDashboard = () => {
           <div className="col-span-12 bg-white rounded-xl shadow-lg p-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">Project Allocation by Client</h2>
+              <select 
+                className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                value={projectFilter}
+                onChange={(e) => setProjectFilter(e.target.value)}
+              >
+                <option value="all">All</option>
+                <option value="ooo">OOO</option>
+                <option value="administrative">Administrative</option>
+                <option value="business_development">Business Development</option>
+                <option value="cds">CDS</option>
+                <option value="tas">TAS</option>
+                <option value="other">Other</option>
+              </select>
             </div>
 
             <div className="space-y-3">
               {Object.values(processedData.clientGroups)
+                .filter(client => {
+                  if (projectFilter === 'all') return true;
+                  const unit = getBusinessUnit(client.name);
+                  if (projectFilter === 'cds') {
+                    // CDS includes both pure CDS and TAS+CDS clients
+                    return unit === 'cds' || unit === 'tas_cds';
+                  }
+                  if (projectFilter === 'tas') {
+                    // TAS includes both pure TAS and TAS+CDS clients
+                    return unit === 'tas' || unit === 'tas_cds';
+                  }
+                  return unit === projectFilter;
+                })
                 .sort((a, b) => {
                   // Sort order: OOO first, then Admin, then Business Development, then alphabetical
                   if (a.name === 'OOO (Out of Office)') return -1;
@@ -662,92 +768,105 @@ const StocStaffingDashboard = () => {
                   if (b.name === 'Business Development') return 1;
                   return b.totalHours - a.totalHours;
                 })
-                .map(client => (
-                  <div key={client.name} className="border border-gray-200 rounded-lg overflow-hidden">
-                    {/* Client Header */}
-                    <div 
-                      className="bg-gray-50 p-4 cursor-pointer hover:bg-gray-100 transition"
-                      onClick={() => toggleClientExpansion(client.name)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <button className="text-gray-600">
-                            {expandedClients[client.name] ? 
-                              <ChevronDown className="w-5 h-5" /> : 
-                              <ChevronRight className="w-5 h-5" />
-                            }
-                          </button>
-                          <div>
-                            <h3 className="text-lg font-bold text-gray-900">{client.name}</h3>
-                            <p className="text-sm text-gray-600">
-                              {client.projects.length} project{client.projects.length !== 1 ? 's' : ''} • {client.teamMembers.size} team member{client.teamMembers.size !== 1 ? 's' : ''}
-                            </p>
+                .map(client => {
+                  const unit = getBusinessUnit(client.name);
+                  let unitBadge = null;
+                  if (unit === 'tas') {
+                    unitBadge = <span className="px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800">TAS</span>;
+                  } else if (unit === 'tas_cds') {
+                    unitBadge = <span className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">TAS + CDS</span>;
+                  } else if (unit === 'cds') {
+                    unitBadge = <span className="px-2 py-1 rounded text-xs font-medium bg-cyan-100 text-cyan-800">CDS</span>;
+                  }
+                  
+                  return (
+                    <div key={client.name} className="border border-gray-200 rounded-lg overflow-hidden">
+                      {/* Client Header */}
+                      <div 
+                        className="bg-gray-50 p-4 cursor-pointer hover:bg-gray-100 transition"
+                        onClick={() => toggleClientExpansion(client.name)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <button className="text-gray-600">
+                              {expandedClients[client.name] ? 
+                                <ChevronDown className="w-5 h-5" /> : 
+                                <ChevronRight className="w-5 h-5" />
+                              }
+                            </button>
+                            <div>
+                              <h3 className="text-lg font-bold text-gray-900">{client.name}</h3>
+                              <p className="text-sm text-gray-600">
+                                {client.projects.length} project{client.projects.length !== 1 ? 's' : ''} • {client.teamMembers.size} team member{client.teamMembers.size !== 1 ? 's' : ''}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          {getCategoryBadge(client.category)}
-                          <div className="text-right">
-                            <div className="text-2xl font-bold text-gray-900">{client.totalHours.toFixed(1)}h</div>
-                            <div className="text-sm text-gray-500">Total Hours</div>
+                          <div className="flex items-center gap-4">
+                            {unitBadge}
+                            {getCategoryBadge(client.category)}
+                            <div className="text-right">
+                              <div className="text-2xl font-bold text-gray-900">{client.totalHours.toFixed(1)}h</div>
+                              <div className="text-sm text-gray-500">Total Hours</div>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Expanded Projects */}
-                    {expandedClients[client.name] && (
-                      <div className="bg-white">
-                        <table className="w-full">
-                          <thead className="bg-gray-100">
-                            <tr>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project Name</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hours</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Team Size</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-200">
-                            {client.projects
-                              .sort((a, b) => b.totalHours - a.totalHours)
-                              .map(project => (
-                                <React.Fragment key={project.name}>
-                                  <tr className="hover:bg-gray-50">
-                                    <td className="px-4 py-3 text-sm text-gray-900">{project.name}</td>
-                                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{project.totalHours.toFixed(1)}h</td>
-                                    <td className="px-4 py-3 text-sm text-gray-600">{project.teamMembers.size} member{project.teamMembers.size !== 1 ? 's' : ''}</td>
-                                    <td className="px-4 py-3">
-                                      <button 
-                                        onClick={() => toggleProjectExpansion(project.name)}
-                                        className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                                      >
-                                        {expandedProjects[project.name] ? 'Hide Team' : 'View Team'}
-                                      </button>
-                                    </td>
-                                  </tr>
-                                  {expandedProjects[project.name] && (
-                                    <tr>
-                                      <td colSpan="4" className="px-4 py-3 bg-gray-50">
-                                        <div className="pl-8">
-                                          <h4 className="font-medium mb-2 text-sm text-gray-700">Team Members:</h4>
-                                          <div className="flex flex-wrap gap-2">
-                                            {Array.from(project.teamMembers).map(member => (
-                                              <span key={member} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-                                                {member}
-                                              </span>
-                                            ))}
-                                          </div>
-                                        </div>
+                      {/* Expanded Projects */}
+                      {expandedClients[client.name] && (
+                        <div className="bg-white">
+                          <table className="w-full">
+                            <thead className="bg-gray-100">
+                              <tr>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project Name</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hours</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Team Size</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200">
+                              {client.projects
+                                .sort((a, b) => b.totalHours - a.totalHours)
+                                .map(project => (
+                                  <React.Fragment key={project.name}>
+                                    <tr className="hover:bg-gray-50">
+                                      <td className="px-4 py-3 text-sm text-gray-900">{project.name}</td>
+                                      <td className="px-4 py-3 text-sm font-medium text-gray-900">{project.totalHours.toFixed(1)}h</td>
+                                      <td className="px-4 py-3 text-sm text-gray-600">{project.teamMembers.size} member{project.teamMembers.size !== 1 ? 's' : ''}</td>
+                                      <td className="px-4 py-3">
+                                        <button 
+                                          onClick={() => toggleProjectExpansion(project.name)}
+                                          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                                        >
+                                          {expandedProjects[project.name] ? 'Hide Team' : 'View Team'}
+                                        </button>
                                       </td>
                                     </tr>
-                                  )}
-                                </React.Fragment>
-                              ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                                    {expandedProjects[project.name] && (
+                                      <tr>
+                                        <td colSpan="4" className="px-4 py-3 bg-gray-50">
+                                          <div className="pl-8">
+                                            <h4 className="font-medium mb-2 text-sm text-gray-700">Team Members:</h4>
+                                            <div className="flex flex-wrap gap-2">
+                                              {Array.from(project.teamMembers).map(member => (
+                                                <span key={member} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                                                  {member}
+                                                </span>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    )}
+                                  </React.Fragment>
+                                ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
             </div>
           </div>
         )}
@@ -758,7 +877,7 @@ const StocStaffingDashboard = () => {
               <h2 className="text-xl font-bold mb-4">Team Capacity Analysis</h2>
               
               {/* Capacity Overview Cards */}
-              <div className="grid grid-cols-3 gap-4 mb-6">
+              <div className="grid grid-cols-4 gap-4 mb-6">
                 <div className="bg-green-50 rounded-lg p-4 border border-green-200">
                   <h3 className="text-sm font-medium text-green-800 mb-2">Billable Capacity</h3>
                   <div className="text-2xl font-bold text-green-900">{metrics.billableHours}h</div>
@@ -774,6 +893,21 @@ const StocStaffingDashboard = () => {
                   <div className="text-2xl font-bold text-red-900">{metrics.oooHours}h</div>
                   <div className="text-sm text-red-600 mt-1">{Math.round((parseFloat(metrics.oooHours) / parseFloat(metrics.totalHours)) * 100)}% of total hours</div>
                 </div>
+                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                  <h3 className="text-sm font-medium text-blue-800 mb-2">Available Bandwidth</h3>
+                  <div className="text-2xl font-bold text-blue-900">
+                    {(() => {
+                      const weekCount = selectedPeriod === 'all' ? 2 : 1;
+                      const totalCapacity = metrics.teamCount * 40 * weekCount;
+                      const utilized = parseFloat(metrics.utilizedHours);
+                      const available = Math.max(0, totalCapacity - utilized);
+                      return available.toFixed(1);
+                    })()}h
+                  </div>
+                  <div className="text-sm text-blue-600 mt-1">
+                    Based on {selectedPeriod === 'all' ? '2 weeks' : '1 week'} @ 40h/week
+                  </div>
+                </div>
               </div>
 
               {/* Detailed Capacity Breakdown */}
@@ -787,27 +921,60 @@ const StocStaffingDashboard = () => {
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">OOO</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Utilization</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Available</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {sortedTeamMembers.map(member => (
-                      <tr key={member.name} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{member.name}</td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-green-600 font-medium">{member.billableHours.toFixed(1)}h</td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-indigo-600 font-medium">{member.internalHours.toFixed(1)}h</td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-red-600 font-medium">{member.oooHours.toFixed(1)}h</td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 font-medium">{member.totalHours.toFixed(1)}h</td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            <div className="w-24 bg-gray-200 rounded-full h-2">
-                              <div className="bg-blue-600 h-2 rounded-full" style={{width: `${member.utilization}%`}}></div>
+                    {sortedTeamMembers.map(member => {
+                      const weekCount = selectedPeriod === 'all' ? 2 : 1;
+                      const standardCapacity = 40 * weekCount;
+                      const utilizedHours = member.billableHours + member.internalHours;
+                      const availableBandwidth = Math.max(0, standardCapacity - utilizedHours);
+                      const capacityUtilization = standardCapacity > 0 ? Math.round((utilizedHours / standardCapacity) * 100) : 0;
+                      
+                      return (
+                        <tr key={member.name} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{member.name}</td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-green-600 font-medium">{member.billableHours.toFixed(1)}h</td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-indigo-600 font-medium">{member.internalHours.toFixed(1)}h</td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-red-600 font-medium">{member.oooHours.toFixed(1)}h</td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 font-medium">{member.totalHours.toFixed(1)}h</td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              <div className="w-24 bg-gray-200 rounded-full h-2">
+                                <div className="bg-blue-600 h-2 rounded-full" style={{width: `${Math.min(capacityUtilization, 100)}%`}}></div>
+                              </div>
+                              <span className="text-sm font-medium">{capacityUtilization}%</span>
                             </div>
-                            <span className="text-sm font-medium">{member.utilization}%</span>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <span className={`text-sm font-bold ${availableBandwidth > 10 ? 'text-green-600' : availableBandwidth > 0 ? 'text-yellow-600' : 'text-red-600'}`}>
+                              {availableBandwidth.toFixed(1)}h
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
+                  <tfoot className="bg-gray-100 font-bold">
+                    <tr>
+                      <td className="px-4 py-3 text-sm text-gray-900">TOTAL</td>
+                      <td className="px-4 py-3 text-sm text-green-600">{metrics.billableHours}h</td>
+                      <td className="px-4 py-3 text-sm text-indigo-600">{metrics.internalHours}h</td>
+                      <td className="px-4 py-3 text-sm text-red-600">{metrics.oooHours}h</td>
+                      <td className="px-4 py-3 text-sm text-gray-900">{metrics.totalHours}h</td>
+                      <td className="px-4 py-3 text-sm text-gray-900">{metrics.avgUtilization}%</td>
+                      <td className="px-4 py-3 text-sm text-blue-600">
+                        {(() => {
+                          const weekCount = selectedPeriod === 'all' ? 2 : 1;
+                          const totalCapacity = metrics.teamCount * 40 * weekCount;
+                          const utilized = parseFloat(metrics.utilizedHours);
+                          const available = Math.max(0, totalCapacity - utilized);
+                          return available.toFixed(1);
+                        })()}h
+                      </td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             </div>
