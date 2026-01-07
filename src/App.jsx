@@ -456,10 +456,14 @@ const StocStaffingDashboard = () => {
       <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900" style={{ fontFamily: 'Georgia, serif' }}>STOC Staffing Tool</h1>
-              <p className="text-gray-500 mt-1">Real-time visibility into team utilization and project allocation</p>
-            </div>
+<div className="flex items-center gap-4">
+  <img src="/logo.png" className="h-10 w-auto" />
+  <div>
+    <h1 className="text-3xl font-bold text-gray-900">STOC Staffing Tool</h1>
+    <p className="text-gray-500 mt-1">Real-time visibility into team utilization and project allocation</p>
+  </div>
+</div>
+
           </div>
 
           <div className="flex gap-3">
