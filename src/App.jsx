@@ -59,7 +59,6 @@ Joseph,Stefan,sjoseph@stocadvisory.com,Business Development,42
 Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Bergen Optometry,40
 Jadhav,Pravin,pjadhav@stocadvisory.com,AEG - Bright Family Eye Care,45`;
 
-
 //////////////////////////////////////////////////////////////////////////////////
 // END OF DATA SECTION - Rest of code handles all functionality
 //////////////////////////////////////////////////////////////////////////////////
@@ -118,8 +117,24 @@ const StocStaffingDashboard = () => {
     else if (selectedPeriod === 'week13') data = week13Data;
     else if (selectedPeriod === 'week14') data = week14Data;
     else if (selectedPeriod === 'week15') data = week15Data;
+    
+    // Apply business unit filter
+    if (businessUnitFilter !== 'all') {
+      data = data.filter(entry => {
+        const fullName = `${entry.fname} ${entry.lname}`;
+        const isCDS = teamMembersByUnit.cds.includes(fullName);
+        
+        if (businessUnitFilter === 'cds') {
+          return isCDS;
+        } else if (businessUnitFilter === 'tas') {
+          return !isCDS;
+        }
+        return true;
+      });
+    }
+    
     return data;
-  }, [week12Data, week13Data, week14Data, week15Data, selectedPeriod, selectedWeeks]);
+  }, [week12Data, week13Data, week14Data, week15Data, selectedPeriod, selectedWeeks, businessUnitFilter, teamMembersByUnit]);
 
   const determineCategory = (jobCode) => {
     if (jobCode.includes('Holiday') || jobCode.includes('Vacation') || jobCode.includes('Sick')) return 'OOO';
@@ -146,7 +161,8 @@ const StocStaffingDashboard = () => {
       teamMembers[name].projects[entry.job_code] += hours;
     });
 
-    const weekCount = selectedWeeks.length > 0 ? selectedWeeks.length : (selectedPeriod === 'all' ? 4 : 1);
+    // Calculate week count: if specific weeks selected, use that count; otherwise use 4 for "all"
+    const weekCount = selectedWeeks.length > 0 ? selectedWeeks.length : 4;
     Object.keys(teamMembers).forEach(name => {
       const member = teamMembers[name];
       const utilizedHours = member.billableHours + member.internalHours;
@@ -158,7 +174,8 @@ const StocStaffingDashboard = () => {
   }, [allData, selectedPeriod, selectedWeeks]);
 
   const riskData = useMemo(() => {
-    const weekCount = selectedWeeks.length > 0 ? selectedWeeks.length : (selectedPeriod === 'all' ? 4 : 1);
+    // Calculate week count: if specific weeks selected, use that count; otherwise use 4 for "all"
+    const weekCount = selectedWeeks.length > 0 ? selectedWeeks.length : 4;
     const standardCapacity = 40 * weekCount;
     
     const teamRiskData = Object.values(processedData.teamMembers)
@@ -232,9 +249,9 @@ const StocStaffingDashboard = () => {
             <div className="relative" ref={weekSelectorRef}>
               <button onClick={() => setShowWeekSelector(!showWeekSelector)} className="px-4 py-2 border rounded-lg bg-white hover:bg-gray-50 flex items-center gap-2 min-w-[200px] justify-between">
                 <span className="text-sm">
-                  {selectedWeeks.length === 0 ? 'All Periods (4 weeks)' : 
-                   selectedWeeks.length === 4 ? 'All Periods (4 weeks)' :
-                   `${selectedWeeks.length} week${selectedWeeks.length !== 1 ? 's' : ''} selected`}
+                  {selectedWeeks.length === 0 || selectedWeeks.length === 4 ? 
+                    'All Periods (4 weeks)' : 
+                    `${selectedWeeks.length} week${selectedWeeks.length !== 1 ? 's' : ''} selected`}
                 </span>
                 <ChevronDown className={`w-4 h-4 transition-transform ${showWeekSelector ? 'rotate-180' : ''}`} />
               </button>
@@ -338,7 +355,12 @@ const StocStaffingDashboard = () => {
               </div>
 
               <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-xl font-bold mb-2">Utilization Risk Matrix</h2>
+                <div className="flex justify-between items-center mb-2">
+                  <h2 className="text-xl font-bold">Utilization Risk Matrix</h2>
+                  <span className="text-sm text-gray-600">
+                    Showing {riskData.teamRiskData.length} team member{riskData.teamRiskData.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
                 <p className="text-sm text-gray-600 mb-4">
                   X-axis: Total Hours Used | Y-axis: Utilization % | Instantly see who is overloaded and who has capacity
                 </p>
@@ -394,7 +416,7 @@ const StocStaffingDashboard = () => {
                       const y = 480 - ((member.utilizationPct / 100) * 460);
                       
                       return (
-                        <g key={idx} style={{ cursor: 'pointer' }} onClick={() => setSelectedRiskPerson(member)}>
+                        <g key={idx}>
                           <circle
                             cx={x}
                             cy={y}
@@ -402,7 +424,14 @@ const StocStaffingDashboard = () => {
                             fill={member.riskColor}
                             stroke="white"
                             strokeWidth="2.5"
-                            className="hover:r-10 transition-all"
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => setSelectedRiskPerson(member)}
+                            onMouseEnter={(e) => {
+                              e.target.setAttribute('r', '12');
+                            }}
+                            onMouseLeave={(e) => {
+                              e.target.setAttribute('r', '8');
+                            }}
                           />
                           <text 
                             x={x} 
@@ -526,6 +555,14 @@ Classification: {member.riskLevel}
                         <div className="flex justify-between pt-2 border-t font-semibold">
                           <span>Total Used:</span>
                           <span>{selectedRiskPerson.totalUsedHours.toFixed(1)}h</span>
+                        </div>
+                        <div className="flex justify-between text-green-600">
+                          <span>Available:</span>
+                          <span className="font-semibold">{(selectedRiskPerson.standardCapacity - selectedRiskPerson.totalUsedHours).toFixed(1)}h</span>
+                        </div>
+                        <div className="flex justify-between text-gray-500">
+                          <span>Standard Capacity:</span>
+                          <span>{selectedRiskPerson.standardCapacity}h</span>
                         </div>
                       </div>
                     </div>
