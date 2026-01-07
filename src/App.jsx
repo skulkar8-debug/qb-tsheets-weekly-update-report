@@ -8,38 +8,57 @@ import { BarChart, Bar, LineChart, Line, PieChart as RePieChart, Pie, Cell, XAxi
 //////////////////////////////////////////////////////////////////////////////////
 
 const rawData12 = `lname,fname,username,job_code,hours
-Sharma,Mohit,msharma@stocadvisory.com,Business Development,35
-Nayak,Rakesh,rnayak@stocadvisory.com,Business Development,28
+Egan,Sean,segan@stocadvisory.com,ADP - Emma Wu and Associates,3
+Sheehy,Aidan,asheehy@stocadvisory.com,ADP - Tearsheet,9
+Jadhav,Pravin,pjadhav@stocadvisory.com,AEG - Alta Loma Optometric (Dr. Morton),46.78
+Thamsir,Thomson,tthamsir@stocadvisory.com,AEG - Alta Loma Optometric (Dr. Morton),15
+McFadden,Brandon,bmcfadden@stocadvisory.com,AEG - Canby Eyecare,15
+Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Child and Family Eye Care Center,3
 Pandey,Sharvan,spandey@stocadvisory.com,CDS - Tableau,32
 Joseph,Stefan,sjoseph@stocadvisory.com,Business Development,40
+Sharma,Mohit,msharma@stocadvisory.com,Business Development,35
+Govind,Vaishnav,vgovind@stocadvisory.com,Business Development,38
 Singh,Jogendra,jsingh@stocadvisory.com,Administrative,22
 D,Ramya,rdamani@stocadvisory.com,CDS - Tableau,25
-Govind,Vaishnav,vgovind@stocadvisory.com,Business Development,38
-Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Bergen Optometry,45
-Jadhav,Pravin,pjadhav@stocadvisory.com,AEG - Bright Family Eye Care,48
 Earp,Ryan,rearp@stocadvisory.com,Vacation,8
 Sundar,Barath,bsundar@stocadvisory.com,SPUSA - Atlanta Endodontics,42
 Nguyen,Hung,hnguyen@stocadvisory.com,SPUSA - Atlanta Endodontics,38`;
 
+
 const rawData13 = `lname,fname,username,job_code,hours
-Sharma,Mohit,msharma@stocadvisory.com,Business Development,32
-Nayak,Rakesh,rnayak@stocadvisory.com,CDS - Tableau,30
+Sheehy,Aidan,asheehy@stocadvisory.com,ADP - Tearsheet,19
+Sundar,Barath,bsundar@stocadvisory.com,ADP - Tearsheet,16
+Egan,Sean,segan@stocadvisory.com,ADP - Tearsheet,2
+Garg,Vishal,vgarg@stocadvisory.com,ADP - Tearsheet,16
+Pandey,Sharvan,spandey@stocadvisory.com,CDS - Tableau,30
 Joseph,Stefan,sjoseph@stocadvisory.com,Business Development,38
 Govind,Vaishnav,vgovind@stocadvisory.com,Business Development,35
 Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Bergen Optometry,42
 Jadhav,Pravin,pjadhav@stocadvisory.com,AEG - Bright Family Eye Care,40`;
 
+
 const rawData14 = `lname,fname,username,job_code,hours
+Hariram,Pradeep,phariram@stocadvisory.com,ADP - Corp Dev Support (Tearsheet),21
+Hariram,Pradeep,phariram@stocadvisory.com,ADP - Emma Wu and Associates,2
+Sheehy,Aidan,asheehy@stocadvisory.com,ADP - Tearsheet,32
+Egan,Sean,segan@stocadvisory.com,ADP - Tearsheet,2
 Sharma,Mohit,msharma@stocadvisory.com,Business Development,28
 Joseph,Stefan,sjoseph@stocadvisory.com,Business Development,36
 Luetgers,Sam,sluetgers@stocadvisory.com,Holiday,8
 Jadhav,Pravin,pjadhav@stocadvisory.com,AEG - Bright Family Eye Care,44`;
 
+
 const rawData15 = `lname,fname,username,job_code,hours
+Sheehy,Aidan,asheehy@stocadvisory.com,ADP - Tearsheet,27
+Hariram,Pradeep,phariram@stocadvisory.com,ADP - Tearsheet,16
+Jadhav,Pravin,pjadhav@stocadvisory.com,AEG - Alta Loma Optometric (Dr. Morton),1.98
+McFadden,Brandon,bmcfadden@stocadvisory.com,AEG - Child and Family Eye Care Center,4.5
+Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Child and Family Eye Care Center,3
 Sharma,Mohit,msharma@stocadvisory.com,Business Development,40
 Joseph,Stefan,sjoseph@stocadvisory.com,Business Development,42
 Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Bergen Optometry,40
 Jadhav,Pravin,pjadhav@stocadvisory.com,AEG - Bright Family Eye Care,45`;
+
 
 //////////////////////////////////////////////////////////////////////////////////
 // END OF DATA SECTION - Rest of code handles all functionality
@@ -99,24 +118,8 @@ const StocStaffingDashboard = () => {
     else if (selectedPeriod === 'week13') data = week13Data;
     else if (selectedPeriod === 'week14') data = week14Data;
     else if (selectedPeriod === 'week15') data = week15Data;
-    
-    // Apply business unit filter
-    if (businessUnitFilter !== 'all') {
-      data = data.filter(entry => {
-        const fullName = `${entry.fname} ${entry.lname}`;
-        const isCDS = teamMembersByUnit.cds.includes(fullName);
-        
-        if (businessUnitFilter === 'cds') {
-          return isCDS;
-        } else if (businessUnitFilter === 'tas') {
-          return !isCDS;
-        }
-        return true;
-      });
-    }
-    
     return data;
-  }, [week12Data, week13Data, week14Data, week15Data, selectedPeriod, selectedWeeks, businessUnitFilter, teamMembersByUnit]);
+  }, [week12Data, week13Data, week14Data, week15Data, selectedPeriod, selectedWeeks]);
 
   const determineCategory = (jobCode) => {
     if (jobCode.includes('Holiday') || jobCode.includes('Vacation') || jobCode.includes('Sick')) return 'OOO';
@@ -143,8 +146,7 @@ const StocStaffingDashboard = () => {
       teamMembers[name].projects[entry.job_code] += hours;
     });
 
-    // Calculate week count: if specific weeks selected, use that count; otherwise use 4 for "all"
-    const weekCount = selectedWeeks.length > 0 ? selectedWeeks.length : 4;
+    const weekCount = selectedWeeks.length > 0 ? selectedWeeks.length : (selectedPeriod === 'all' ? 4 : 1);
     Object.keys(teamMembers).forEach(name => {
       const member = teamMembers[name];
       const utilizedHours = member.billableHours + member.internalHours;
@@ -156,8 +158,7 @@ const StocStaffingDashboard = () => {
   }, [allData, selectedPeriod, selectedWeeks]);
 
   const riskData = useMemo(() => {
-    // Calculate week count: if specific weeks selected, use that count; otherwise use 4 for "all"
-    const weekCount = selectedWeeks.length > 0 ? selectedWeeks.length : 4;
+    const weekCount = selectedWeeks.length > 0 ? selectedWeeks.length : (selectedPeriod === 'all' ? 4 : 1);
     const standardCapacity = 40 * weekCount;
     
     const teamRiskData = Object.values(processedData.teamMembers)
@@ -212,7 +213,7 @@ const StocStaffingDashboard = () => {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
       <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
         <div className="flex justify-between items-center">
-     <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4">
   <img src="/logo.png" className="h-9 w-auto" />
   <div>
     <h1 className="text-3xl font-bold text-gray-900">STOC Staffing Tool</h1>
@@ -231,9 +232,9 @@ const StocStaffingDashboard = () => {
             <div className="relative" ref={weekSelectorRef}>
               <button onClick={() => setShowWeekSelector(!showWeekSelector)} className="px-4 py-2 border rounded-lg bg-white hover:bg-gray-50 flex items-center gap-2 min-w-[200px] justify-between">
                 <span className="text-sm">
-                  {selectedWeeks.length === 0 || selectedWeeks.length === 4 ? 
-                    'All Periods (4 weeks)' : 
-                    `${selectedWeeks.length} week${selectedWeeks.length !== 1 ? 's' : ''} selected`}
+                  {selectedWeeks.length === 0 ? 'All Periods (4 weeks)' : 
+                   selectedWeeks.length === 4 ? 'All Periods (4 weeks)' :
+                   `${selectedWeeks.length} week${selectedWeeks.length !== 1 ? 's' : ''} selected`}
                 </span>
                 <ChevronDown className={`w-4 h-4 transition-transform ${showWeekSelector ? 'rotate-180' : ''}`} />
               </button>
@@ -337,12 +338,7 @@ const StocStaffingDashboard = () => {
               </div>
 
               <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex justify-between items-center mb-2">
-                  <h2 className="text-xl font-bold">Utilization Risk Matrix</h2>
-                  <span className="text-sm text-gray-600">
-                    Showing {riskData.teamRiskData.length} team member{riskData.teamRiskData.length !== 1 ? 's' : ''}
-                  </span>
-                </div>
+                <h2 className="text-xl font-bold mb-2">Utilization Risk Matrix</h2>
                 <p className="text-sm text-gray-600 mb-4">
                   X-axis: Total Hours Used | Y-axis: Utilization % | Instantly see who is overloaded and who has capacity
                 </p>
@@ -530,14 +526,6 @@ Classification: {member.riskLevel}
                         <div className="flex justify-between pt-2 border-t font-semibold">
                           <span>Total Used:</span>
                           <span>{selectedRiskPerson.totalUsedHours.toFixed(1)}h</span>
-                        </div>
-                        <div className="flex justify-between text-green-600">
-                          <span>Available:</span>
-                          <span className="font-semibold">{(selectedRiskPerson.standardCapacity - selectedRiskPerson.totalUsedHours).toFixed(1)}h</span>
-                        </div>
-                        <div className="flex justify-between text-gray-500">
-                          <span>Standard Capacity:</span>
-                          <span>{selectedRiskPerson.standardCapacity}h</span>
                         </div>
                       </div>
                     </div>
