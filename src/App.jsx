@@ -135,6 +135,8 @@ const StocStaffingDashboard = () => {
   const [expandedClients, setExpandedClients] = useState({});
   const [teamSortConfig, setTeamSortConfig] = useState({ key: 'totalHours', direction: 'desc' });
   const [projectFilter, setProjectFilter] = useState('all');
+  const [projectSortConfig, setProjectSortConfig] = useState({ key: 'totalHours', direction: 'desc' });
+  const [capacitySortConfig, setCapacitySortConfig] = useState({ key: 'name', direction: 'asc' });
 
   // Parse data
   const week1Data = useMemo(() => parseCSV(rawData1), []);
@@ -195,9 +197,9 @@ const StocStaffingDashboard = () => {
 
   // Helper function to determine business unit
   function getBusinessUnit(clientName) {
-    if (clientName === 'OOO (Out of Office)') return 'ooo';
+    if (clientName === 'OOO (Out of Office)') return 'administrative'; // OOO shows under Administrative filter
     if (clientName === 'Administrative') return 'administrative';
-    if (clientName === 'Business Development') return 'business_development';
+    if (clientName === 'Business Development') return 'cds'; // Business Development in CDS filter
     
     // TAS only: SALT, Riata, SP, Beacon Behavioral
     const tasOnly = ['SALT', 'Riata', 'SP USA', 'SP', 'SPUSA', 'Beacon Behavioral'];
@@ -349,19 +351,19 @@ const StocStaffingDashboard = () => {
         name: 'Billable', 
         value: categories.billable, 
         percentage: total > 0 ? Math.round((categories.billable / total) * 100) : 0,
-        color: '#10b981' 
+        color: '#059669' // Emerald 600 - professional green
       },
       { 
         name: 'Internal/BD', 
         value: categories.internal, 
         percentage: total > 0 ? Math.round((categories.internal / total) * 100) : 0,
-        color: '#6366f1' 
+        color: '#7C3AED' // Violet 600 - distinct purple
       },
       { 
         name: 'OOO', 
         value: categories.ooo, 
         percentage: total > 0 ? Math.round((categories.ooo / total) * 100) : 0,
-        color: '#ef4444' 
+        color: '#DC2626' // Red 600 - clear time off indicator
       }
     ].filter(cat => cat.value > 0);
   }, [processedData]);
@@ -371,32 +373,11 @@ const StocStaffingDashboard = () => {
       .filter(project => project.category === 'billable')
       .sort((a, b) => b.totalHours - a.totalHours)
       .slice(0, 8)
-      .map(project => {
-        // Wrap long project names - split at 25 chars and add line break
-        let displayName = project.name;
-        if (displayName.length > 25) {
-          const words = displayName.split(' ');
-          let lines = [''];
-          let currentLine = 0;
-          
-          words.forEach(word => {
-            if ((lines[currentLine] + ' ' + word).length > 25 && lines[currentLine].length > 0) {
-              currentLine++;
-              lines[currentLine] = word;
-            } else {
-              lines[currentLine] = lines[currentLine] ? lines[currentLine] + ' ' + word : word;
-            }
-          });
-          
-          displayName = lines.join('\n');
-        }
-        
-        return {
-          name: displayName,
-          hours: project.totalHours,
-          teamSize: project.teamMembers.size
-        };
-      });
+      .map(project => ({
+        name: project.name,
+        hours: project.totalHours,
+        teamSize: project.teamMembers.size
+      }));
   }, [processedData]);
 
   const toggleProjectExpansion = (projectName) => {
@@ -427,6 +408,20 @@ const StocStaffingDashboard = () => {
     }));
   };
 
+  const handleProjectSort = (key) => {
+    setProjectSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc'
+    }));
+  };
+
+  const handleCapacitySort = (key) => {
+    setCapacitySortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc'
+    }));
+  };
+
   const sortedTeamMembers = useMemo(() => {
     const members = Object.values(processedData.teamMembers);
     return members.sort((a, b) => {
@@ -443,13 +438,13 @@ const StocStaffingDashboard = () => {
 
   const getCategoryBadge = (category) => {
     const badges = {
-      billable: { color: 'bg-green-100 text-green-800', label: 'Billable' },
-      internal: { color: 'bg-indigo-100 text-indigo-800', label: 'Internal/BD' },
-      ooo: { color: 'bg-red-100 text-red-800', label: 'OOO' }
+      billable: { color: 'bg-emerald-50 text-emerald-700 border-emerald-200', label: 'Billable' },
+      internal: { color: 'bg-violet-50 text-violet-700 border-violet-200', label: 'Internal/BD' },
+      ooo: { color: 'bg-red-50 text-red-700 border-red-200', label: 'OOO' }
     };
     const badge = badges[category];
     return (
-      <span className={`px-2 py-1 rounded text-xs font-medium ${badge.color}`}>
+      <span className={`px-2 py-1 rounded text-xs font-medium border ${badge.color}`}>
         {badge.label}
       </span>
     );
@@ -486,43 +481,43 @@ const StocStaffingDashboard = () => {
         
         {/* Key Metrics */}
         <div className="grid grid-cols-6 gap-4 mt-6">
-          <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-4">
-            <div className="flex items-center gap-2 text-blue-600 mb-2">
+          <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+            <div className="flex items-center gap-2 text-gray-700 mb-2">
               <Users className="w-5 h-5" />
               <span className="text-sm font-medium">Team Members</span>
             </div>
             <div className="text-2xl font-bold text-gray-900">{metrics.teamCount}</div>
           </div>
-          <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-lg p-4">
-            <div className="flex items-center gap-2 text-green-600 mb-2">
+          <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+            <div className="flex items-center gap-2 text-gray-700 mb-2">
               <Clock className="w-5 h-5" />
               <span className="text-sm font-medium">Total Hours</span>
             </div>
             <div className="text-2xl font-bold text-gray-900">{metrics.totalHours}</div>
           </div>
-          <div className="bg-gradient-to-r from-indigo-50 to-indigo-100 rounded-lg p-4">
-            <div className="flex items-center gap-2 text-indigo-600 mb-2">
-              <Coffee className="w-5 h-5" />
+          <div className="bg-white rounded-lg p-4 border-l-4 border-violet-500 shadow-sm">
+            <div className="flex items-center gap-2 text-gray-700 mb-2">
+              <Coffee className="w-5 h-5 text-violet-600" />
               <span className="text-sm font-medium">Internal/BD</span>
             </div>
             <div className="text-2xl font-bold text-gray-900">{metrics.internalHours}</div>
           </div>
-          <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-lg p-4">
-            <div className="flex items-center gap-2 text-emerald-600 mb-2">
-              <DollarSign className="w-5 h-5" />
+          <div className="bg-white rounded-lg p-4 border-l-4 border-emerald-500 shadow-sm">
+            <div className="flex items-center gap-2 text-gray-700 mb-2">
+              <DollarSign className="w-5 h-5 text-emerald-600" />
               <span className="text-sm font-medium">Billable Hours</span>
             </div>
             <div className="text-2xl font-bold text-gray-900">{metrics.billableHours}</div>
           </div>
-          <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg p-4">
-            <div className="flex items-center gap-2 text-purple-600 mb-2">
+          <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+            <div className="flex items-center gap-2 text-gray-700 mb-2">
               <TrendingUp className="w-5 h-5" />
               <span className="text-sm font-medium">Avg Utilization</span>
             </div>
             <div className="text-2xl font-bold text-gray-900">{metrics.avgUtilization}%</div>
           </div>
-          <div className="bg-gradient-to-r from-orange-50 to-orange-100 rounded-lg p-4">
-            <div className="flex items-center gap-2 text-orange-600 mb-2">
+          <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+            <div className="flex items-center gap-2 text-gray-700 mb-2">
               <Target className="w-5 h-5" />
               <span className="text-sm font-medium">Billable %</span>
             </div>
@@ -557,20 +552,20 @@ const StocStaffingDashboard = () => {
               <h2 className="text-xl font-bold mb-4">Team Utilization</h2>
               <ResponsiveContainer width="100%" height={400}>
                 <BarChart data={utilizationChartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
                   <XAxis dataKey="name" />
                   <YAxis />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="billable" stackId="a" fill="#10b981" name="Billable Hours" />
-                  <Bar dataKey="internal" stackId="a" fill="#6366f1" name="Internal/BD Hours" />
-                  <Bar dataKey="ooo" stackId="a" fill="#ef4444" name="OOO Hours" />
+                  <Bar dataKey="billable" stackId="a" fill="#059669" name="Billable Hours" />
+                  <Bar dataKey="internal" stackId="a" fill="#7C3AED" name="Internal/BD Hours" />
+                  <Bar dataKey="ooo" stackId="a" fill="#DC2626" name="OOO Hours" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
 
-            {/* Category Distribution */}
-            <div className="col-span-12 bg-white rounded-xl shadow-lg p-6">
+            {/* Time Distribution & Top Projects Side by Side */}
+            <div className="col-span-5 bg-white rounded-xl shadow-lg p-6">
               <h2 className="text-xl font-bold mb-4">Time Distribution</h2>
               <ResponsiveContainer width="100%" height={350}>
                 <RePieChart>
@@ -593,25 +588,28 @@ const StocStaffingDashboard = () => {
               </ResponsiveContainer>
             </div>
 
-            {/* Project Burn */}
-            <div className="col-span-12 bg-white rounded-xl shadow-lg p-6">
+            <div className="col-span-7 bg-white rounded-xl shadow-lg p-6">
               <h2 className="text-xl font-bold mb-4">Top Projects by Hours</h2>
-              <ResponsiveContainer width="100%" height={400}>
-                <BarChart data={projectBurnData} margin={{ bottom: 100 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis 
-                    dataKey="name" 
-                    angle={-45} 
-                    textAnchor="end" 
-                    height={150} 
-                    interval={0}
-                    tick={{ fontSize: 11 }}
-                  />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="hours" fill="#6366f1" />
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Project</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">Hours</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">Team Size</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {projectBurnData.map((project, index) => (
+                      <tr key={index} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 text-sm text-gray-900">{project.name}</td>
+                        <td className="px-4 py-3 text-sm font-semibold text-right text-gray-900">{project.hours.toFixed(1)}</td>
+                        <td className="px-4 py-3 text-sm text-right text-gray-600">{project.teamSize}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </>
         )}
@@ -645,26 +643,26 @@ const StocStaffingDashboard = () => {
                       Utilization {teamSortConfig.key === 'utilization' && (teamSortConfig.direction === 'asc' ? '↑' : '↓')}
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Active Projects
+                      Actions
                     </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {sortedTeamMembers.map(member => (
                     <React.Fragment key={member.name}>
-                      <tr className="hover:bg-gray-50">
+                      <tr className="hover:bg-blue-50/20 even:bg-gray-50/50">
                         <td className="px-4 py-3 whitespace-nowrap">
                           <div className="font-medium text-gray-900">{member.name}</div>
                           <div className="text-sm text-gray-500">{member.email}</div>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{member.totalHours.toFixed(1)}</td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-green-600 font-medium">{member.billableHours.toFixed(1)}</td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-indigo-600 font-medium">{member.internalHours.toFixed(1)}</td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-red-600 font-medium">{member.oooHours.toFixed(1)}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-emerald-700">{member.billableHours.toFixed(1)}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-violet-700">{member.internalHours.toFixed(1)}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-red-700">{member.oooHours.toFixed(1)}</td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           <div className="flex items-center gap-2">
                             <div className="w-16 bg-gray-200 rounded-full h-2">
-                              <div className="bg-blue-600 h-2 rounded-full" style={{width: `${member.utilization}%`}}></div>
+                              <div className="bg-indigo-600 h-2 rounded-full" style={{width: `${member.utilization}%`}}></div>
                             </div>
                             <span className="text-sm font-medium">{member.utilization}%</span>
                           </div>
@@ -672,7 +670,7 @@ const StocStaffingDashboard = () => {
                         <td className="px-4 py-3 whitespace-nowrap">
                           <button 
                             onClick={() => toggleTeamMemberExpansion(member.name)}
-                            className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                            className="text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
                           >
                             <span className="text-sm font-medium">{Object.keys(member.projects).length}</span>
                             {expandedTeamMembers[member.name] ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
@@ -700,7 +698,7 @@ const StocStaffingDashboard = () => {
                                           <div className="flex items-center gap-2">
                                             <div className="w-24 bg-gray-200 rounded-full h-2">
                                               <div 
-                                                className="bg-blue-600 h-2 rounded-full" 
+                                                className="bg-indigo-600 h-2 rounded-full" 
                                                 style={{width: `${percentage}%`}}
                                               ></div>
                                             </div>
@@ -729,14 +727,12 @@ const StocStaffingDashboard = () => {
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">Project Allocation by Client</h2>
               <select 
-                className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white"
                 value={projectFilter}
                 onChange={(e) => setProjectFilter(e.target.value)}
               >
                 <option value="all">All</option>
-                <option value="ooo">OOO</option>
-                <option value="administrative">Administrative</option>
-                <option value="business_development">Business Development</option>
+                <option value="administrative">Administrative & OOO</option>
                 <option value="cds">CDS</option>
                 <option value="tas">TAS</option>
                 <option value="other">Other</option>
@@ -759,24 +755,39 @@ const StocStaffingDashboard = () => {
                   return unit === projectFilter;
                 })
                 .sort((a, b) => {
-                  // Sort order: OOO first, then Admin, then Business Development, then alphabetical
+                  // First apply special sorting
                   if (a.name === 'OOO (Out of Office)') return -1;
                   if (b.name === 'OOO (Out of Office)') return 1;
                   if (a.name === 'Administrative') return -1;
                   if (b.name === 'Administrative') return 1;
                   if (a.name === 'Business Development') return -1;
                   if (b.name === 'Business Development') return 1;
-                  return b.totalHours - a.totalHours;
+                  
+                  // Then apply user's sort preference
+                  const aValue = projectSortConfig.key === 'name' ? a.name : 
+                                 projectSortConfig.key === 'projects' ? a.projects.length :
+                                 projectSortConfig.key === 'teamSize' ? a.teamMembers.size :
+                                 a.totalHours;
+                  const bValue = projectSortConfig.key === 'name' ? b.name :
+                                 projectSortConfig.key === 'projects' ? b.projects.length :
+                                 projectSortConfig.key === 'teamSize' ? b.teamMembers.size :
+                                 b.totalHours;
+                  
+                  if (projectSortConfig.direction === 'asc') {
+                    return aValue > bValue ? 1 : -1;
+                  } else {
+                    return aValue < bValue ? 1 : -1;
+                  }
                 })
                 .map(client => {
                   const unit = getBusinessUnit(client.name);
                   let unitBadge = null;
                   if (unit === 'tas') {
-                    unitBadge = <span className="px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800">TAS</span>;
+                    unitBadge = <span className="px-2 py-1 rounded text-xs font-medium bg-purple-50 text-purple-700 border border-purple-300">TAS</span>;
                   } else if (unit === 'tas_cds') {
-                    unitBadge = <span className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">TAS + CDS</span>;
+                    unitBadge = <span className="px-2 py-1 rounded text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-300">TAS + CDS</span>;
                   } else if (unit === 'cds') {
-                    unitBadge = <span className="px-2 py-1 rounded text-xs font-medium bg-cyan-100 text-cyan-800">CDS</span>;
+                    unitBadge = <span className="px-2 py-1 rounded text-xs font-medium bg-cyan-50 text-cyan-700 border border-cyan-300">CDS</span>;
                   }
                   
                   return (
@@ -795,15 +806,16 @@ const StocStaffingDashboard = () => {
                               }
                             </button>
                             <div>
-                              <h3 className="text-lg font-bold text-gray-900">{client.name}</h3>
+                              <div className="flex items-center gap-2">
+                                <h3 className="text-lg font-bold text-gray-900">{client.name}</h3>
+                                {unitBadge}
+                              </div>
                               <p className="text-sm text-gray-600">
                                 {client.projects.length} project{client.projects.length !== 1 ? 's' : ''} • {client.teamMembers.size} team member{client.teamMembers.size !== 1 ? 's' : ''}
                               </p>
                             </div>
                           </div>
                           <div className="flex items-center gap-4">
-                            {unitBadge}
-                            {getCategoryBadge(client.category)}
                             <div className="text-right">
                               <div className="text-2xl font-bold text-gray-900">{client.totalHours.toFixed(1)}h</div>
                               <div className="text-sm text-gray-500">Total Hours</div>
@@ -816,12 +828,26 @@ const StocStaffingDashboard = () => {
                       {expandedClients[client.name] && (
                         <div className="bg-white">
                           <table className="w-full">
-                            <thead className="bg-gray-100">
+                            <thead className="bg-gray-50">
                               <tr>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project Name</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hours</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Team Size</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                                  Project Name
+                                </th>
+                                <th 
+                                  className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                                  onClick={() => handleProjectSort('totalHours')}
+                                >
+                                  Hours {projectSortConfig.key === 'totalHours' && (projectSortConfig.direction === 'asc' ? '↑' : '↓')}
+                                </th>
+                                <th 
+                                  className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                                  onClick={() => handleProjectSort('teamSize')}
+                                >
+                                  Team Size {projectSortConfig.key === 'teamSize' && (projectSortConfig.direction === 'asc' ? '↑' : '↓')}
+                                </th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                                  Details
+                                </th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
@@ -829,14 +855,14 @@ const StocStaffingDashboard = () => {
                                 .sort((a, b) => b.totalHours - a.totalHours)
                                 .map(project => (
                                   <React.Fragment key={project.name}>
-                                    <tr className="hover:bg-gray-50">
+                                    <tr className="hover:bg-blue-50/20 even:bg-gray-50/50">
                                       <td className="px-4 py-3 text-sm text-gray-900">{project.name}</td>
                                       <td className="px-4 py-3 text-sm font-medium text-gray-900">{project.totalHours.toFixed(1)}h</td>
                                       <td className="px-4 py-3 text-sm text-gray-600">{project.teamMembers.size} member{project.teamMembers.size !== 1 ? 's' : ''}</td>
                                       <td className="px-4 py-3">
                                         <button 
                                           onClick={() => toggleProjectExpansion(project.name)}
-                                          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                                          className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
                                         >
                                           {expandedProjects[project.name] ? 'Hide Team' : 'View Team'}
                                         </button>
@@ -849,7 +875,7 @@ const StocStaffingDashboard = () => {
                                             <h4 className="font-medium mb-2 text-sm text-gray-700">Team Members:</h4>
                                             <div className="flex flex-wrap gap-2">
                                               {Array.from(project.teamMembers).map(member => (
-                                                <span key={member} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                                                <span key={member} className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-sm border border-indigo-200">
                                                   {member}
                                                 </span>
                                               ))}
@@ -878,24 +904,24 @@ const StocStaffingDashboard = () => {
               
               {/* Capacity Overview Cards */}
               <div className="grid grid-cols-4 gap-4 mb-6">
-                <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-                  <h3 className="text-sm font-medium text-green-800 mb-2">Billable Capacity</h3>
-                  <div className="text-2xl font-bold text-green-900">{metrics.billableHours}h</div>
-                  <div className="text-sm text-green-600 mt-1">{metrics.billablePercentage}% of utilized hours</div>
+                <div className="bg-white rounded-lg p-4 border-l-4 border-emerald-500 shadow-sm">
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">Billable Capacity</h3>
+                  <div className="text-2xl font-bold text-gray-900">{metrics.billableHours}h</div>
+                  <div className="text-sm text-gray-600 mt-1">{metrics.billablePercentage}% of utilized hours</div>
                 </div>
-                <div className="bg-indigo-50 rounded-lg p-4 border border-indigo-200">
-                  <h3 className="text-sm font-medium text-indigo-800 mb-2">Internal/BD Capacity</h3>
-                  <div className="text-2xl font-bold text-indigo-900">{metrics.internalHours}h</div>
-                  <div className="text-sm text-indigo-600 mt-1">{Math.round((parseFloat(metrics.internalHours) / parseFloat(metrics.utilizedHours)) * 100)}% of utilized hours</div>
+                <div className="bg-white rounded-lg p-4 border-l-4 border-violet-500 shadow-sm">
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">Internal/BD Capacity</h3>
+                  <div className="text-2xl font-bold text-gray-900">{metrics.internalHours}h</div>
+                  <div className="text-sm text-gray-600 mt-1">{Math.round((parseFloat(metrics.internalHours) / parseFloat(metrics.utilizedHours)) * 100)}% of utilized hours</div>
                 </div>
-                <div className="bg-red-50 rounded-lg p-4 border border-red-200">
-                  <h3 className="text-sm font-medium text-red-800 mb-2">OOO Hours</h3>
-                  <div className="text-2xl font-bold text-red-900">{metrics.oooHours}h</div>
-                  <div className="text-sm text-red-600 mt-1">{Math.round((parseFloat(metrics.oooHours) / parseFloat(metrics.totalHours)) * 100)}% of total hours</div>
+                <div className="bg-white rounded-lg p-4 border-l-4 border-red-500 shadow-sm">
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">OOO Hours</h3>
+                  <div className="text-2xl font-bold text-gray-900">{metrics.oooHours}h</div>
+                  <div className="text-sm text-gray-600 mt-1">{Math.round((parseFloat(metrics.oooHours) / parseFloat(metrics.totalHours)) * 100)}% of total hours</div>
                 </div>
-                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                  <h3 className="text-sm font-medium text-blue-800 mb-2">Available Bandwidth</h3>
-                  <div className="text-2xl font-bold text-blue-900">
+                <div className="bg-white rounded-lg p-4 border-l-4 border-indigo-500 shadow-sm">
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">Available Bandwidth</h3>
+                  <div className="text-2xl font-bold text-gray-900">
                     {(() => {
                       const weekCount = selectedPeriod === 'all' ? 2 : 1;
                       const totalCapacity = metrics.teamCount * 40 * weekCount;
@@ -904,7 +930,7 @@ const StocStaffingDashboard = () => {
                       return available.toFixed(1);
                     })()}h
                   </div>
-                  <div className="text-sm text-blue-600 mt-1">
+                  <div className="text-sm text-gray-600 mt-1">
                     Based on {selectedPeriod === 'all' ? '2 weeks' : '1 week'} @ 40h/week
                   </div>
                 </div>
@@ -915,40 +941,99 @@ const StocStaffingDashboard = () => {
                 <table className="w-full">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Team Member</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Billable</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Internal/BD</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">OOO</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Utilization</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Available</th>
+                      <th 
+                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        onClick={() => handleCapacitySort('name')}
+                      >
+                        Team Member {capacitySortConfig.key === 'name' && (capacitySortConfig.direction === 'asc' ? '↑' : '↓')}
+                      </th>
+                      <th 
+                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        onClick={() => handleCapacitySort('billableHours')}
+                      >
+                        Billable {capacitySortConfig.key === 'billableHours' && (capacitySortConfig.direction === 'asc' ? '↑' : '↓')}
+                      </th>
+                      <th 
+                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        onClick={() => handleCapacitySort('internalHours')}
+                      >
+                        Internal/BD {capacitySortConfig.key === 'internalHours' && (capacitySortConfig.direction === 'asc' ? '↑' : '↓')}
+                      </th>
+                      <th 
+                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        onClick={() => handleCapacitySort('oooHours')}
+                      >
+                        OOO {capacitySortConfig.key === 'oooHours' && (capacitySortConfig.direction === 'asc' ? '↑' : '↓')}
+                      </th>
+                      <th 
+                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        onClick={() => handleCapacitySort('totalHours')}
+                      >
+                        Total {capacitySortConfig.key === 'totalHours' && (capacitySortConfig.direction === 'asc' ? '↑' : '↓')}
+                      </th>
+                      <th 
+                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        onClick={() => handleCapacitySort('utilization')}
+                      >
+                        Utilization {capacitySortConfig.key === 'utilization' && (capacitySortConfig.direction === 'asc' ? '↑' : '↓')}
+                      </th>
+                      <th 
+                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        onClick={() => handleCapacitySort('available')}
+                      >
+                        Available {capacitySortConfig.key === 'available' && (capacitySortConfig.direction === 'asc' ? '↑' : '↓')}
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {sortedTeamMembers.map(member => {
-                      const weekCount = selectedPeriod === 'all' ? 2 : 1;
-                      const standardCapacity = 40 * weekCount;
-                      const utilizedHours = member.billableHours + member.internalHours;
-                      const availableBandwidth = Math.max(0, standardCapacity - utilizedHours);
-                      const capacityUtilization = standardCapacity > 0 ? Math.round((utilizedHours / standardCapacity) * 100) : 0;
-                      
+                    {sortedTeamMembers
+                      .map(member => {
+                        const weekCount = selectedPeriod === 'all' ? 2 : 1;
+                        const standardCapacity = 40 * weekCount;
+                        const utilizedHours = member.billableHours + member.internalHours;
+                        const availableBandwidth = Math.max(0, standardCapacity - utilizedHours);
+                        const capacityUtilization = standardCapacity > 0 ? Math.round((utilizedHours / standardCapacity) * 100) : 0;
+                        
+                        return { ...member, availableBandwidth, capacityUtilization };
+                      })
+                      .sort((a, b) => {
+                        let aValue, bValue;
+                        
+                        if (capacitySortConfig.key === 'available') {
+                          aValue = a.availableBandwidth;
+                          bValue = b.availableBandwidth;
+                        } else if (capacitySortConfig.key === 'utilization') {
+                          aValue = a.capacityUtilization;
+                          bValue = b.capacityUtilization;
+                        } else {
+                          aValue = a[capacitySortConfig.key];
+                          bValue = b[capacitySortConfig.key];
+                        }
+                        
+                        if (capacitySortConfig.direction === 'asc') {
+                          return aValue > bValue ? 1 : -1;
+                        } else {
+                          return aValue < bValue ? 1 : -1;
+                        }
+                      })
+                      .map(({ availableBandwidth, capacityUtilization, ...member }) => {
                       return (
                         <tr key={member.name} className="hover:bg-gray-50">
                           <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{member.name}</td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-green-600 font-medium">{member.billableHours.toFixed(1)}h</td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-indigo-600 font-medium">{member.internalHours.toFixed(1)}h</td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-red-600 font-medium">{member.oooHours.toFixed(1)}h</td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-emerald-700">{member.billableHours.toFixed(1)}h</td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-violet-700">{member.internalHours.toFixed(1)}h</td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-red-700">{member.oooHours.toFixed(1)}h</td>
                           <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 font-medium">{member.totalHours.toFixed(1)}h</td>
                           <td className="px-4 py-3 whitespace-nowrap">
                             <div className="flex items-center gap-2">
                               <div className="w-24 bg-gray-200 rounded-full h-2">
-                                <div className="bg-blue-600 h-2 rounded-full" style={{width: `${Math.min(capacityUtilization, 100)}%`}}></div>
+                                <div className="bg-indigo-600 h-2 rounded-full" style={{width: `${Math.min(capacityUtilization, 100)}%`}}></div>
                               </div>
                               <span className="text-sm font-medium">{capacityUtilization}%</span>
                             </div>
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap">
-                            <span className={`text-sm font-bold ${availableBandwidth > 10 ? 'text-green-600' : availableBandwidth > 0 ? 'text-yellow-600' : 'text-red-600'}`}>
+                            <span className={`text-sm font-bold ${availableBandwidth > 10 ? 'text-emerald-600' : availableBandwidth > 0 ? 'text-amber-600' : 'text-gray-900'}`}>
                               {availableBandwidth.toFixed(1)}h
                             </span>
                           </td>
@@ -959,9 +1044,9 @@ const StocStaffingDashboard = () => {
                   <tfoot className="bg-gray-100 font-bold">
                     <tr>
                       <td className="px-4 py-3 text-sm text-gray-900">TOTAL</td>
-                      <td className="px-4 py-3 text-sm text-green-600">{metrics.billableHours}h</td>
-                      <td className="px-4 py-3 text-sm text-indigo-600">{metrics.internalHours}h</td>
-                      <td className="px-4 py-3 text-sm text-red-600">{metrics.oooHours}h</td>
+                      <td className="px-4 py-3 text-sm font-medium text-emerald-700">{metrics.billableHours}h</td>
+                      <td className="px-4 py-3 text-sm font-medium text-violet-700">{metrics.internalHours}h</td>
+                      <td className="px-4 py-3 text-sm font-medium text-red-700">{metrics.oooHours}h</td>
                       <td className="px-4 py-3 text-sm text-gray-900">{metrics.totalHours}h</td>
                       <td className="px-4 py-3 text-sm text-gray-900">{metrics.avgUtilization}%</td>
                       <td className="px-4 py-3 text-sm text-blue-600">
@@ -989,19 +1074,19 @@ const StocStaffingDashboard = () => {
               {/* Low Utilization Alerts */}
               <div className="mb-6">
                 <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5 text-yellow-500" />
+                  <AlertTriangle className="w-5 h-5 text-amber-500" />
                   Low Utilization (&lt;70%)
                 </h3>
                 <div className="space-y-2">
                   {sortedTeamMembers
                     .filter(member => member.utilization < 70)
                     .map(member => (
-                      <div key={member.name} className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                      <div key={member.name} className="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-200">
                         <div>
                           <div className="font-medium text-gray-900">{member.name}</div>
                           <div className="text-sm text-gray-600">{member.utilization}% utilized ({member.billableHours.toFixed(1)}h billable, {member.internalHours.toFixed(1)}h internal)</div>
                         </div>
-                        <span className="text-yellow-600 font-medium">{member.utilization}%</span>
+                        <span className="text-amber-600 font-medium">{member.utilization}%</span>
                       </div>
                     ))}
                   {sortedTeamMembers.filter(member => member.utilization < 70).length === 0 && (
@@ -1013,19 +1098,19 @@ const StocStaffingDashboard = () => {
               {/* High OOO Hours */}
               <div className="mb-6">
                 <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                  <AlertCircle className="w-5 h-5 text-red-500" />
+                  <AlertCircle className="w-5 h-5 text-gray-500" />
                   High OOO Hours (&gt;20h)
                 </h3>
                 <div className="space-y-2">
                   {sortedTeamMembers
                     .filter(member => member.oooHours > 20)
                     .map(member => (
-                      <div key={member.name} className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-200">
+                      <div key={member.name} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-300">
                         <div>
                           <div className="font-medium text-gray-900">{member.name}</div>
                           <div className="text-sm text-gray-600">{member.oooHours.toFixed(1)}h out of office</div>
                         </div>
-                        <span className="text-red-600 font-medium">{member.oooHours.toFixed(1)}h</span>
+                        <span className="font-medium text-gray-700">{member.oooHours.toFixed(1)}h</span>
                       </div>
                     ))}
                   {sortedTeamMembers.filter(member => member.oooHours > 20).length === 0 && (
@@ -1037,19 +1122,19 @@ const StocStaffingDashboard = () => {
               {/* High Billable Load */}
               <div>
                 <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                  <Activity className="w-5 h-5 text-green-500" />
+                  <Activity className="w-5 h-5 text-emerald-500" />
                   High Billable Load (&gt;40h)
                 </h3>
                 <div className="space-y-2">
                   {sortedTeamMembers
                     .filter(member => member.billableHours > 40)
                     .map(member => (
-                      <div key={member.name} className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
+                      <div key={member.name} className="flex items-center justify-between p-3 bg-emerald-50 rounded-lg border border-emerald-200">
                         <div>
                           <div className="font-medium text-gray-900">{member.name}</div>
                           <div className="text-sm text-gray-600">{member.billableHours.toFixed(1)}h billable hours</div>
                         </div>
-                        <span className="text-green-600 font-medium">{member.billableHours.toFixed(1)}h</span>
+                        <span className="font-medium text-gray-900">{member.billableHours.toFixed(1)}h</span>
                       </div>
                     ))}
                   {sortedTeamMembers.filter(member => member.billableHours > 40).length === 0 && (
