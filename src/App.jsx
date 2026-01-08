@@ -252,8 +252,7 @@ const SCHEDULE_DATA_BY_WEEK = {
 
     { week: "Jan 4 – Jan 10, 2026", date: "2026-01-10", end_date: "2026-01-10", day: "Sat", customer: "Internal - Ops", employee: "Sean Egan", start_time: "12:00a", end_time: "2:00a", hours: 2, details: "", start_datetime: "2026-01-10 12:00a", end_datetime: "2026-01-10 2:00a" },
   ],
-};
-,
+  
   "Dec 28, 2025 – Jan 3, 2026": [],
   "Dec 21 – Dec 27, 2025": [],
   "Dec 14 – Dec 20, 2025": []
