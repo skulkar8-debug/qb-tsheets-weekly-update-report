@@ -2,8 +2,13 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Calendar, Users, TrendingUp, AlertCircle, Clock, Briefcase, DollarSign, Activity, ChevronRight, ChevronDown, Filter, BarChart3, PieChart, Target, UserCheck, AlertTriangle, Search } from 'lucide-react';
 import { BarChart, Bar, LineChart, Line, PieChart as RePieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ScatterChart, Scatter, ZAxis, Label, LabelList } from 'recharts';
 
-// Raw data embedded (parsed from CSVs)
-const rawData1 = `lname,fname,username,job_code,hours
+// ============================================================================
+// WEEKLY DATA - SINGLE SOURCE OF TRUTH
+// Add new week's CSV data here. Weeks are in descending order (latest first).
+// ============================================================================
+
+const WEEK_DATA = {
+  "Jan 4 – Jan 10, 2026": `lname,fname,username,job_code,hours
 Chiramkara,Jishnu,jchiramkara@stocadvisory.com,Administrative,2
 Chiramkara,Jishnu,jchiramkara@stocadvisory.com,Business Development,1
 Chiramkara,Jishnu,jchiramkara@stocadvisory.com,Holiday,8
@@ -82,9 +87,9 @@ Siddiqui,Saqib,ssiddiqui@stocadvisory.com,Administrative,12
 Singh,Jogendra,jrathore@stocadvisory.com,Business Development,44.88
 Singh,Jogendra,jrathore@stocadvisory.com,Holiday,10
 Sundar,Barath,bsundar@stocadvisory.com,SP USA - Practice Analysis (Pre-LOI),25
-Tuli,Rahul,rtuli@stocadvisory.com,Vacation,32`;
+Tuli,Rahul,rtuli@stocadvisory.com,Vacation,32`,
 
-const rawData2 = `lname,fname,username,job_code,hours
+  "Dec 28, 2025 – Jan 3, 2026": `lname,fname,username,job_code,hours
 D,Ramya,ramya@stocadvisory.com,Business Development,22.05
 Egan,Sean,segan@stocadvisory.com,Holiday,16
 Govind,Vaishnav,vgovind@stocadvisory.com,Business Development,11.56
@@ -112,7 +117,18 @@ Singh,Jogendra,jrathore@stocadvisory.com,Business Development,10.78
 Sundar,Barath,bsundar@stocadvisory.com,Holiday,24
 Tuli,Rahul,rtuli@stocadvisory.com,Administrative,1.55
 Tuli,Rahul,rtuli@stocadvisory.com,Riata - Government Window,6.98
-Tuli,Rahul,rtuli@stocadvisory.com,SALT - Suffolk Pedo Dentistry & Ortho,10.53`;
+Tuli,Rahul,rtuli@stocadvisory.com,SALT - Suffolk Pedo Dentistry & Ortho,10.53`,
+
+  "Dec 21 – Dec 27, 2025": `lname,fname,username,job_code,hours
+`,
+
+  "Dec 14 – Dec 20, 2025": `lname,fname,username,job_code,hours
+`
+};
+
+// Backward compatibility: Keep rawData1 and rawData2 for any code that still references them
+const rawData1 = WEEK_DATA["Jan 4 – Jan 10, 2026"];
+const rawData2 = WEEK_DATA["Dec 28, 2025 – Jan 3, 2026"];
 
 // Parse CSV data
 const parseCSV = (csvText) => {
@@ -140,7 +156,7 @@ const CDS_TEAM_MEMBERS = [
 
 const StocStaffingDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
-  const [selectedPeriods, setSelectedPeriods] = useState(['2026-01-04']); // Array for multiselect, default to latest
+  const [selectedPeriods, setSelectedPeriods] = useState(['Jan 4 – Jan 10, 2026']); // Array for multiselect, default to latest
   const [selectedTeamMember, setSelectedTeamMember] = useState('all');
   const [selectedProject, setSelectedProject] = useState('all');
   const [expandedProjects, setExpandedProjects] = useState({});
@@ -167,11 +183,14 @@ const StocStaffingDashboard = () => {
   const week1Data = useMemo(() => parseCSV(rawData1), []);
   const week2Data = useMemo(() => parseCSV(rawData2), []);
   
-  // Time periods configuration (sorted descending - latest first)
-  const timePeriods = [
-    { id: '2026-01-04', label: 'Jan 4 – Jan 10, 2026', data: week1Data },
-    { id: '2025-12-28', label: 'Dec 28, 2025 – Jan 3, 2026', data: week2Data }
-  ];
+  // Time periods configuration (automatically generated from WEEK_DATA, sorted descending - latest first)
+  const timePeriods = useMemo(() => {
+    return Object.keys(WEEK_DATA).map(weekLabel => ({
+      id: weekLabel, // Use the week label as the ID
+      label: weekLabel,
+      data: parseCSV(WEEK_DATA[weekLabel])
+    }));
+  }, []);
   
   // Combine data from selected periods
   const allData = useMemo(() => {
@@ -179,12 +198,12 @@ const StocStaffingDashboard = () => {
     timePeriods.forEach(period => {
       if (selectedPeriods.includes(period.id)) {
         period.data.forEach(entry => {
-          combined.push({ ...entry, period: period.id });
+          combined.push({ ...entry, period: period.id, weekLabel: period.label });
         });
       }
     });
     return combined;
-  }, [selectedPeriods]);
+  }, [selectedPeriods, timePeriods]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -521,7 +540,7 @@ const StocStaffingDashboard = () => {
           .sort(([,a], [,b]) => b - a)[0]?.[0] || 'Multiple';
         
         // Role assignment (simplified - can be enhanced)
-        const role = member.isCDS ? 'CDS Analyst' : 'TAS Analyst';
+        const role = member.isCDS ? 'CDS' : 'TAS';
         
         return {
           name: member.name,
@@ -746,10 +765,13 @@ const StocStaffingDashboard = () => {
         {/* Header */}
         <div className="mb-6">
           <div className="flex justify-between items-start mb-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">STOC Staffing Dashboard</h1>
-              <p className="text-gray-600 mt-1">Resource allocation & capacity planning</p>
-            </div>
+<div className="flex items-center gap-4">
+  <img src="/logo.png" className="h-10 w-auto" />
+  <div>
+    <h1 className="text-3xl font-bold text-gray-900">STOC Staffing Tool</h1>
+    <p className="text-gray-500 mt-1">Real-time visibility into team utilization and project allocation</p>
+  </div>
+</div>
             <div className="flex items-center gap-4">
               {/* Global Team Filter */}
               <div className="bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200">
