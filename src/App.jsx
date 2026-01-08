@@ -2219,7 +2219,7 @@ const StocStaffingDashboard = () => {
                 const todayDateObj = new Date(`${goForwardToday}T00:00:00`);
                 todayDateObj.setHours(0, 0, 0, 0);
 
-                // Filter for remaining days (strictly after today)
+                // Filter for remaining days (including today and after)
                 const filteredRows = scheduleData.filter(row => {
                   if (!row.date || !row.employee || !row.customer) return false;
                   
@@ -2227,8 +2227,11 @@ const StocStaffingDashboard = () => {
                     const rowDate = new Date(`${row.date}T00:00:00`);
                     rowDate.setHours(0, 0, 0, 0);
                     
-                    // Only include dates strictly AFTER today
-                    if (rowDate <= todayDateObj) return false;
+                    const rowEndDate = new Date(`${row.end_date || row.date}T00:00:00`);
+                    rowEndDate.setHours(0, 0, 0, 0);
+                    
+                    // Include if either start date OR end date is from today onwards
+                    if (rowDate < todayDateObj && rowEndDate < todayDateObj) return false;
                     
                     // Apply search filter if exists
                     if (goForwardProjectSearch && goForwardProjectSearch.trim()) {
