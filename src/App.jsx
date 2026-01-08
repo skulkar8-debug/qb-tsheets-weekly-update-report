@@ -160,6 +160,7 @@ const StocStaffingDashboard = () => {
   const [riskRoleFilter, setRiskRoleFilter] = useState('all');
   const [riskClientFilter, setRiskClientFilter] = useState('all');
   const [riskLevelFilter, setRiskLevelFilter] = useState('all');
+  const [riskTableSortConfig, setRiskTableSortConfig] = useState({ key: 'utilization', direction: 'desc' });
 
   // Parse data
   const week1Data = useMemo(() => parseCSV(rawData1), []);
@@ -632,6 +633,13 @@ const StocStaffingDashboard = () => {
     }));
   };
 
+  const handleRiskTableSort = (key) => {
+    setRiskTableSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc'
+    }));
+  };
+
   // Sorted data
   const sortedTeamMembers = useMemo(() => {
     const members = Object.values(processedData.teamMembers);
@@ -656,6 +664,17 @@ const StocStaffingDashboard = () => {
       return aVal > bVal ? -1 : 1;
     });
   }, [processedData.teamMembers, capacitySortConfig]);
+
+  const sortedRiskTableData = useMemo(() => {
+    return [...riskDashboardData.members].sort((a, b) => {
+      const aVal = a[riskTableSortConfig.key];
+      const bVal = b[riskTableSortConfig.key];
+      if (riskTableSortConfig.direction === 'asc') {
+        return aVal > bVal ? 1 : -1;
+      }
+      return aVal > bVal ? -1 : 1;
+    });
+  }, [riskDashboardData.members, riskTableSortConfig]);
 
   // Handle period selection toggle
   const togglePeriodSelection = (periodId) => {
@@ -921,8 +940,8 @@ const StocStaffingDashboard = () => {
 
                 {/* Scatter Chart */}
                 <div className="mb-4">
-                  <ResponsiveContainer width="100%" height={400}>
-                    <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                  <ResponsiveContainer width="100%" height={450}>
+                    <ScatterChart margin={{ top: 20, right: 60, bottom: 20, left: 20 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
                       <XAxis 
                         type="number" 
@@ -945,6 +964,40 @@ const StocStaffingDashboard = () => {
                         fill="#8884d8"
                         onClick={(data) => setSelectedRiskMember(data)}
                         style={{ cursor: 'pointer' }}
+                        shape={(props) => {
+                          const { cx, cy, fill, payload } = props;
+                          const firstName = payload.name.split(' ')[0] || payload.name.split(' ')[1]?.charAt(0) + payload.name.split(' ')[0]?.charAt(0) || payload.name;
+                          const isSelected = selectedRiskMember?.name === payload.name;
+                          const isTopUtilization = riskDashboardData.members
+                            .sort((a, b) => b.utilization - a.utilization)
+                            .slice(0, 12)
+                            .includes(payload);
+                          
+                          return (
+                            <g>
+                              <circle 
+                                cx={cx} 
+                                cy={cy} 
+                                r={6} 
+                                fill={fill}
+                                stroke={isSelected ? '#000' : 'none'}
+                                strokeWidth={isSelected ? 2 : 0}
+                              />
+                              {(isTopUtilization || isSelected) && (
+                                <text
+                                  x={cx + 10}
+                                  y={cy + 4}
+                                  textAnchor="start"
+                                  fill="#374151"
+                                  fontSize="11"
+                                  fontWeight={isSelected ? "600" : "400"}
+                                >
+                                  {firstName}
+                                </text>
+                              )}
+                            </g>
+                          );
+                        }}
                       >
                         {riskDashboardData.members.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={getRiskColor(entry.riskLevel)} />
@@ -1077,6 +1130,152 @@ const StocStaffingDashboard = () => {
                   </div>
                 </div>
               )}
+
+              {/* Utilization Risk Table - Always Visible */}
+              <div className="col-span-12 bg-white rounded-xl shadow-lg p-6">
+                <h3 className="text-xl font-bold mb-4">Utilization Risk Table</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 border-b-2 border-gray-200">
+                      <tr>
+                        <th 
+                          className="text-left py-3 px-4 font-semibold text-gray-700 cursor-pointer hover:bg-gray-100"
+                          onClick={() => handleRiskTableSort('name')}
+                        >
+                          <div className="flex items-center gap-1">
+                            Name
+                            {riskTableSortConfig.key === 'name' && (
+                              <span className="text-xs">{riskTableSortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                            )}
+                          </div>
+                        </th>
+                        <th 
+                          className="text-left py-3 px-4 font-semibold text-gray-700 cursor-pointer hover:bg-gray-100"
+                          onClick={() => handleRiskTableSort('riskLevel')}
+                        >
+                          <div className="flex items-center gap-1">
+                            Risk Label
+                            {riskTableSortConfig.key === 'riskLevel' && (
+                              <span className="text-xs">{riskTableSortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                            )}
+                          </div>
+                        </th>
+                        <th 
+                          className="text-right py-3 px-4 font-semibold text-gray-700 cursor-pointer hover:bg-gray-100"
+                          onClick={() => handleRiskTableSort('utilization')}
+                        >
+                          <div className="flex items-center justify-end gap-1">
+                            Utilization %
+                            {riskTableSortConfig.key === 'utilization' && (
+                              <span className="text-xs">{riskTableSortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                            )}
+                          </div>
+                        </th>
+                        <th 
+                          className="text-right py-3 px-4 font-semibold text-gray-700 cursor-pointer hover:bg-gray-100"
+                          onClick={() => handleRiskTableSort('usedHours')}
+                        >
+                          <div className="flex items-center justify-end gap-1">
+                            Used Hours
+                            {riskTableSortConfig.key === 'usedHours' && (
+                              <span className="text-xs">{riskTableSortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                            )}
+                          </div>
+                        </th>
+                        <th 
+                          className="text-right py-3 px-4 font-semibold text-gray-700 cursor-pointer hover:bg-gray-100"
+                          onClick={() => handleRiskTableSort('availableHours')}
+                        >
+                          <div className="flex items-center justify-end gap-1">
+                            Available Hours
+                            {riskTableSortConfig.key === 'availableHours' && (
+                              <span className="text-xs">{riskTableSortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                            )}
+                          </div>
+                        </th>
+                        <th 
+                          className="text-right py-3 px-4 font-semibold text-gray-700 cursor-pointer hover:bg-gray-100"
+                          onClick={() => handleRiskTableSort('billableHours')}
+                        >
+                          <div className="flex items-center justify-end gap-1">
+                            Billable Hours
+                            {riskTableSortConfig.key === 'billableHours' && (
+                              <span className="text-xs">{riskTableSortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                            )}
+                          </div>
+                        </th>
+                        <th 
+                          className="text-right py-3 px-4 font-semibold text-gray-700 cursor-pointer hover:bg-gray-100"
+                          onClick={() => handleRiskTableSort('internalHours')}
+                        >
+                          <div className="flex items-center justify-end gap-1">
+                            Internal/BD Hours
+                            {riskTableSortConfig.key === 'internalHours' && (
+                              <span className="text-xs">{riskTableSortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                            )}
+                          </div>
+                        </th>
+                        <th 
+                          className="text-right py-3 px-4 font-semibold text-gray-700 cursor-pointer hover:bg-gray-100"
+                          onClick={() => handleRiskTableSort('oooHours')}
+                        >
+                          <div className="flex items-center justify-end gap-1">
+                            OOO Hours
+                            {riskTableSortConfig.key === 'oooHours' && (
+                              <span className="text-xs">{riskTableSortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                            )}
+                          </div>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sortedRiskTableData.map((member, index) => (
+                        <tr 
+                          key={index}
+                          className={`border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${
+                            selectedRiskMember?.name === member.name ? 'bg-blue-50' : ''
+                          }`}
+                          onClick={() => setSelectedRiskMember(member)}
+                        >
+                          <td className="py-3 px-4 text-sm text-gray-900 font-medium">{member.name}</td>
+                          <td className="py-3 px-4">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              member.riskLevel === 'Burnout Risk' ? 'bg-red-100 text-red-700' :
+                              member.riskLevel === 'Underutilized' ? 'bg-blue-100 text-blue-700' :
+                              'bg-green-100 text-green-700'
+                            }`}>
+                              {member.riskLevel}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-sm text-gray-900 text-right font-semibold">
+                            {member.utilization.toFixed(1)}%
+                          </td>
+                          <td className="py-3 px-4 text-sm text-gray-700 text-right">
+                            {member.usedHours.toFixed(1)}
+                          </td>
+                          <td className="py-3 px-4 text-sm text-gray-700 text-right">
+                            {member.availableHours.toFixed(1)}
+                          </td>
+                          <td className="py-3 px-4 text-sm text-gray-700 text-right">
+                            {member.billableHours.toFixed(1)}
+                          </td>
+                          <td className="py-3 px-4 text-sm text-gray-700 text-right">
+                            {member.internalHours.toFixed(1)}
+                          </td>
+                          <td className="py-3 px-4 text-sm text-gray-700 text-right">
+                            {member.oooHours.toFixed(1)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {sortedRiskTableData.length === 0 && (
+                    <div className="text-center py-8 text-gray-500">
+                      No team members match the current filters
+                    </div>
+                  )}
+                </div>
+              </div>
 
               {/* Existing Overview Content Below */}
               {/* Utilization Chart */}
