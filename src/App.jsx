@@ -201,45 +201,75 @@ Tuli,Rahul,rtuli@stocadvisory.com,Vacation,32`
 };
 
 // ============================================================================
-// SCHEDULE DATA - DAY-LEVEL ASSIGNMENTS
-// Schedule data by week showing daily assignments with times and customers
+// SCHEDULE DATA - DAY-LEVEL ASSIGNMENTS (CLEANED)
+// - Holidays removed (customer === "Holiday")
+// - Overnight shifts split into TWO single-day rows (end_date forced = date)
+// - Removed "(overnight)" text from details
+// NOTE: Formatting preserved (same object shape/keys, one row per line).
 // ============================================================================
+
 const SCHEDULE_DATA_BY_WEEK = {
   "Jan 4 – Jan 10, 2026": [
     { week: "Jan 4 – Jan 10, 2026", date: "2026-01-06", end_date: "2026-01-06", day: "Tue", customer: "Lake Worth and Town & Country", employee: "Brandon McFadden", start_time: "8:30a", end_time: "10:30a", hours: 2, details: "(customer inferred from cell text; row label not visible)", start_datetime: "2026-01-06 8:30a", end_datetime: "2026-01-06 10:30a" },
     { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-07", day: "Wed", customer: "SP - Southern Smiles", employee: "Hung Nguyen", start_time: "9:00a", end_time: "11:00a", hours: 2, details: "", start_datetime: "2026-01-07 9:00a", end_datetime: "2026-01-07 11:00a" },
     { week: "Jan 4 – Jan 10, 2026", date: "2026-01-05", end_date: "2026-01-05", day: "Mon", customer: "AEG - Child and Family Eye Care Center", employee: "Brandon McFadden", start_time: "8:30a", end_time: "1:30p", hours: 5, details: "", start_datetime: "2026-01-05 8:30a", end_datetime: "2026-01-05 1:30p" },
     { week: "Jan 4 – Jan 10, 2026", date: "2026-01-09", end_date: "2026-01-09", day: "Fri", customer: "AEG - Metropolitan Vision", employee: "Brandon McFadden", start_time: "8:30a", end_time: "12:30p", hours: 4, details: "", start_datetime: "2026-01-09 8:30a", end_datetime: "2026-01-09 12:30p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-05", end_date: "2026-01-06", day: "Mon", customer: "AEG - Sandy & Draper Vision", employee: "Pravin Jadhav", start_time: "10:30p", end_time: "3:30a", hours: 5, details: "Lake Worth and Town & Country (overnight)", start_datetime: "2026-01-05 10:30p", end_datetime: "2026-01-06 3:30a" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-06", end_date: "2026-01-07", day: "Tue", customer: "AEG - Sandy & Draper Vision", employee: "Pravin Jadhav", start_time: "10:30p", end_time: "3:30a", hours: 5, details: "Lake Worth and Town & Country (overnight)", start_datetime: "2026-01-06 10:30p", end_datetime: "2026-01-07 3:30a" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-08", day: "Wed", customer: "AEG - Sandy & Draper Vision", employee: "Pravin Jadhav", start_time: "10:30p", end_time: "3:30a", hours: 5, details: "AEG - Pascarella Eye Care and Contact Lenses (Dr. Pascarella) (overnight)", start_datetime: "2026-01-07 10:30p", end_datetime: "2026-01-08 3:30a" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-09", day: "Thu", customer: "AEG - Sandy & Draper Vision", employee: "Pravin Jadhav", start_time: "10:30p", end_time: "3:30a", hours: 5, details: "AEG - Pascarella Eye Care and Contact Lenses (Dr. Pascarella) (overnight)", start_datetime: "2026-01-08 10:30p", end_datetime: "2026-01-09 3:30a" },
+
+    // SPLIT: 2026-01-05 10:30p → 2026-01-06 3:30a (5 hrs total)
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-05", end_date: "2026-01-05", day: "Mon", customer: "AEG - Sandy & Draper Vision", employee: "Pravin Jadhav", start_time: "10:30p", end_time: "12:00a", hours: 1.5, details: "Lake Worth and Town & Country", start_datetime: "2026-01-05 10:30p", end_datetime: "2026-01-05 12:00a" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-06", end_date: "2026-01-06", day: "Tue", customer: "AEG - Sandy & Draper Vision", employee: "Pravin Jadhav", start_time: "12:00a", end_time: "3:30a", hours: 3.5, details: "Lake Worth and Town & Country", start_datetime: "2026-01-06 12:00a", end_datetime: "2026-01-06 3:30a" },
+
+    // SPLIT: 2026-01-06 10:30p → 2026-01-07 3:30a (5 hrs total)
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-06", end_date: "2026-01-06", day: "Tue", customer: "AEG - Sandy & Draper Vision", employee: "Pravin Jadhav", start_time: "10:30p", end_time: "12:00a", hours: 1.5, details: "Lake Worth and Town & Country", start_datetime: "2026-01-06 10:30p", end_datetime: "2026-01-06 12:00a" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-07", day: "Wed", customer: "AEG - Sandy & Draper Vision", employee: "Pravin Jadhav", start_time: "12:00a", end_time: "3:30a", hours: 3.5, details: "Lake Worth and Town & Country", start_datetime: "2026-01-07 12:00a", end_datetime: "2026-01-07 3:30a" },
+
+    // SPLIT: 2026-01-07 10:30p → 2026-01-08 3:30a (5 hrs total)
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-07", day: "Wed", customer: "AEG - Sandy & Draper Vision", employee: "Pravin Jadhav", start_time: "10:30p", end_time: "12:00a", hours: 1.5, details: "AEG - Pascarella Eye Care and Contact Lenses (Dr. Pascarella)", start_datetime: "2026-01-07 10:30p", end_datetime: "2026-01-07 12:00a" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-08", day: "Thu", customer: "AEG - Sandy & Draper Vision", employee: "Pravin Jadhav", start_time: "12:00a", end_time: "3:30a", hours: 3.5, details: "AEG - Pascarella Eye Care and Contact Lenses (Dr. Pascarella)", start_datetime: "2026-01-08 12:00a", end_datetime: "2026-01-08 3:30a" },
+
+    // SPLIT: 2026-01-08 10:30p → 2026-01-09 3:30a (5 hrs total)
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-08", day: "Thu", customer: "AEG - Sandy & Draper Vision", employee: "Pravin Jadhav", start_time: "10:30p", end_time: "12:00a", hours: 1.5, details: "AEG - Pascarella Eye Care and Contact Lenses (Dr. Pascarella)", start_datetime: "2026-01-08 10:30p", end_datetime: "2026-01-08 12:00a" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-09", end_date: "2026-01-09", day: "Fri", customer: "AEG - Sandy & Draper Vision", employee: "Pravin Jadhav", start_time: "12:00a", end_time: "3:30a", hours: 3.5, details: "AEG - Pascarella Eye Care and Contact Lenses (Dr. Pascarella)", start_datetime: "2026-01-09 12:00a", end_datetime: "2026-01-09 3:30a" },
+
     { week: "Jan 4 – Jan 10, 2026", date: "2026-01-05", end_date: "2026-01-05", day: "Mon", customer: "AEG - South Shore Eye Center", employee: "Brandon McFadden", start_time: "1:30p", end_time: "4:30p", hours: 3, details: "", start_datetime: "2026-01-05 1:30p", end_datetime: "2026-01-05 4:30p" },
     { week: "Jan 4 – Jan 10, 2026", date: "2026-01-06", end_date: "2026-01-06", day: "Tue", customer: "AEG - South Shore Eye Center", employee: "Brandon McFadden", start_time: "12:30p", end_time: "4:30p", hours: 4, details: "", start_datetime: "2026-01-06 12:30p", end_datetime: "2026-01-06 4:30p" },
     { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-07", day: "Wed", customer: "AEG - South Shore Eye Center", employee: "Brandon McFadden", start_time: "8:30a", end_time: "12:30p", hours: 4, details: "", start_datetime: "2026-01-07 8:30a", end_datetime: "2026-01-07 12:30p" },
     { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-08", day: "Thu", customer: "AEG - South Shore Eye Center", employee: "Brandon McFadden", start_time: "12:30p", end_time: "4:30p", hours: 4, details: "", start_datetime: "2026-01-08 12:30p", end_datetime: "2026-01-08 4:30p" },
+
     { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-07", day: "Wed", customer: "Archway - Connecticut Dental (Archway - DP)", employee: "Leah Hudson", start_time: "8:30a", end_time: "5:00p", hours: 8.5, details: "Archway - DP", start_datetime: "2026-01-07 8:30a", end_datetime: "2026-01-07 5:00p" },
     { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-08", day: "Thu", customer: "Archway - Connecticut Dental (Archway - DP)", employee: "Leah Hudson", start_time: "8:30a", end_time: "5:00p", hours: 8.5, details: "Archway - DP", start_datetime: "2026-01-08 8:30a", end_datetime: "2026-01-08 5:00p" },
     { week: "Jan 4 – Jan 10, 2026", date: "2026-01-09", end_date: "2026-01-09", day: "Fri", customer: "Archway - Connecticut Dental (Archway - DP)", employee: "Leah Hudson", start_time: "8:30a", end_time: "5:00p", hours: 8.5, details: "Archway - DP", start_datetime: "2026-01-09 8:30a", end_datetime: "2026-01-09 5:00p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-05", end_date: "2026-01-05", day: "Mon", customer: "Holiday", employee: "Sean Egan", start_time: "", end_time: "", hours: 8, details: "8hrs", start_datetime: "2026-01-05", end_datetime: "2026-01-05" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-06", end_date: "2026-01-06", day: "Tue", customer: "Holiday", employee: "Sean Egan", start_time: "", end_time: "", hours: 8, details: "8hrs", start_datetime: "2026-01-06", end_datetime: "2026-01-06" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-07", day: "Wed", customer: "Holiday", employee: "Barath Sundar", start_time: "", end_time: "", hours: 8, details: "8hrs", start_datetime: "2026-01-07", end_datetime: "2026-01-07" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-08", day: "Thu", customer: "Holiday", employee: "Barath Sundar", start_time: "", end_time: "", hours: 8, details: "8hrs", start_datetime: "2026-01-08", end_datetime: "2026-01-08" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-09", end_date: "2026-01-09", day: "Fri", customer: "Holiday", employee: "Barath Sundar", start_time: "", end_time: "", hours: 8, details: "8hrs", start_datetime: "2026-01-09", end_datetime: "2026-01-09" },
+
     { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-07", day: "Wed", customer: "Budget - FP&A", employee: "Jishnu Chiramkara", start_time: "9:00a", end_time: "5:00p", hours: 8, details: "", start_datetime: "2026-01-07 9:00a", end_datetime: "2026-01-07 5:00p" },
     { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-08", day: "Thu", customer: "Budget - FP&A", employee: "Jishnu Chiramkara", start_time: "9:00a", end_time: "5:00p", hours: 8, details: "", start_datetime: "2026-01-08 9:00a", end_datetime: "2026-01-08 5:00p" },
     { week: "Jan 4 – Jan 10, 2026", date: "2026-01-09", end_date: "2026-01-09", day: "Fri", customer: "Budget - FP&A", employee: "Jishnu Chiramkara", start_time: "9:00a", end_time: "5:00p", hours: 8, details: "", start_datetime: "2026-01-09 9:00a", end_datetime: "2026-01-09 5:00p" },
+
     { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-07", day: "Wed", customer: "SALT - Alden Bridge Pediatric", employee: "Brandon McFadden", start_time: "1:00p", end_time: "4:30p", hours: 3.5, details: "", start_datetime: "2026-01-07 1:00p", end_datetime: "2026-01-07 4:30p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-09", day: "Thu", customer: "SALT - Alden Bridge Pediatric", employee: "Arjit Saxena", start_time: "10:30p", end_time: "7:30a", hours: 9, details: "Alden bridge (overnight)", start_datetime: "2026-01-08 10:30p", end_datetime: "2026-01-09 7:30a" },
+
+    // SPLIT: 2026-01-08 10:30p → 2026-01-09 7:30a (9 hrs total)
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-08", day: "Thu", customer: "SALT - Alden Bridge Pediatric", employee: "Arjit Saxena", start_time: "10:30p", end_time: "12:00a", hours: 1.5, details: "Alden bridge", start_datetime: "2026-01-08 10:30p", end_datetime: "2026-01-08 12:00a" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-09", end_date: "2026-01-09", day: "Fri", customer: "SALT - Alden Bridge Pediatric", employee: "Arjit Saxena", start_time: "12:00a", end_time: "7:30a", hours: 7.5, details: "Alden bridge", start_datetime: "2026-01-09 12:00a", end_datetime: "2026-01-09 7:30a" },
+
     { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-08", day: "Thu", customer: "SALT - Chesapeake Pediatric", employee: "Matthew Hottman", start_time: "8:30a", end_time: "4:30p", hours: 8, details: "", start_datetime: "2026-01-08 8:30a", end_datetime: "2026-01-08 4:30p" },
+
     { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-07", day: "Wed", customer: "SALT - Haeger Orthodontics", employee: "Matthew Hottman", start_time: "8:30a", end_time: "4:30p", hours: 8, details: "", start_datetime: "2026-01-07 8:30a", end_datetime: "2026-01-07 4:30p" },
     { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-08", day: "Thu", customer: "SALT - Haeger Orthodontics", employee: "Brandon McFadden", start_time: "8:30a", end_time: "12:30p", hours: 4, details: "", start_datetime: "2026-01-08 8:30a", end_datetime: "2026-01-08 12:30p" },
     { week: "Jan 4 – Jan 10, 2026", date: "2026-01-09", end_date: "2026-01-09", day: "Fri", customer: "SALT - Haeger Orthodontics", employee: "Brandon McFadden", start_time: "8:30a", end_time: "12:30p", hours: 4, details: "", start_datetime: "2026-01-09 8:30a", end_datetime: "2026-01-09 12:30p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-08", day: "Wed", customer: "SALT - Haeger Orthodontics", employee: "Arjit Saxena", start_time: "10:30p", end_time: "7:30a", hours: 9, details: "Myortho and Haeger Ortho (overnight)", start_datetime: "2026-01-07 10:30p", end_datetime: "2026-01-08 7:30a" },
+
+    // SPLIT: 2026-01-07 10:30p → 2026-01-08 7:30a (9 hrs total)
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-07", day: "Wed", customer: "SALT - Haeger Orthodontics", employee: "Arjit Saxena", start_time: "10:30p", end_time: "12:00a", hours: 1.5, details: "Myortho and Haeger Ortho", start_datetime: "2026-01-07 10:30p", end_datetime: "2026-01-07 12:00a" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-08", day: "Thu", customer: "SALT - Haeger Orthodontics", employee: "Arjit Saxena", start_time: "12:00a", end_time: "7:30a", hours: 7.5, details: "Myortho and Haeger Ortho", start_datetime: "2026-01-08 12:00a", end_datetime: "2026-01-08 7:30a" },
+
     { week: "Jan 4 – Jan 10, 2026", date: "2026-01-06", end_date: "2026-01-06", day: "Tue", customer: "SALT - Houston OMS", employee: "Matthew Hottman", start_time: "8:30a", end_time: "4:30p", hours: 8, details: "", start_datetime: "2026-01-06 8:30a", end_datetime: "2026-01-06 4:30p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-09", day: "Thu", customer: "SALT - Houston OMS", employee: "Rahul Tuli", start_time: "10:30p", end_time: "7:30a", hours: 9, details: "(overnight)", start_datetime: "2026-01-08 10:30p", end_datetime: "2026-01-09 7:30a" },
+
+    // SPLIT: 2026-01-08 10:30p → 2026-01-09 7:30a (9 hrs total)
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-08", day: "Thu", customer: "SALT - Houston OMS", employee: "Rahul Tuli", start_time: "10:30p", end_time: "12:00a", hours: 1.5, details: "", start_datetime: "2026-01-08 10:30p", end_datetime: "2026-01-08 12:00a" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-09", end_date: "2026-01-09", day: "Fri", customer: "SALT - Houston OMS", employee: "Rahul Tuli", start_time: "12:00a", end_time: "7:30a", hours: 7.5, details: "", start_datetime: "2026-01-09 12:00a", end_datetime: "2026-01-09 7:30a" },
+
     { week: "Jan 4 – Jan 10, 2026", date: "2026-01-09", end_date: "2026-01-09", day: "Fri", customer: "SALT - MyOrthodontist", employee: "Matthew Hottman", start_time: "8:30a", end_time: "4:30p", hours: 8, details: "", start_datetime: "2026-01-09 8:30a", end_datetime: "2026-01-09 4:30p" }
-  ],
+  ]
+};
+,
   "Dec 28, 2025 – Jan 3, 2026": [],
   "Dec 21 – Dec 27, 2025": [],
   "Dec 14 – Dec 20, 2025": []
