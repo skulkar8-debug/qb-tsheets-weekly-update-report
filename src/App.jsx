@@ -146,6 +146,7 @@ const StocStaffingDashboard = () => {
   const [expandedProjects, setExpandedProjects] = useState({});
   const [expandedTeamMembers, setExpandedTeamMembers] = useState({});
   const [teamMemberProjectSearch, setTeamMemberProjectSearch] = useState({}); // Search per team member
+  const [teamMemberSearch, setTeamMemberSearch] = useState(''); // Search for team members by name
   const [projectsSearch, setProjectsSearch] = useState(''); // Global projects search
   const [showOnlyActive, setShowOnlyActive] = useState(false);
   const [teamFilter, setTeamFilter] = useState('all'); // Global filter: all, tas, cds
@@ -642,7 +643,18 @@ const StocStaffingDashboard = () => {
 
   // Sorted data
   const sortedTeamMembers = useMemo(() => {
-    const members = Object.values(processedData.teamMembers);
+    let members = Object.values(processedData.teamMembers);
+    
+    // Apply search filter
+    if (teamMemberSearch.trim()) {
+      const searchLower = teamMemberSearch.toLowerCase();
+      members = members.filter(member => {
+        const nameLower = member.name.toLowerCase();
+        return nameLower.includes(searchLower);
+      });
+    }
+    
+    // Sort the filtered members
     return members.sort((a, b) => {
       const aVal = a[teamsSortConfig.key];
       const bVal = b[teamsSortConfig.key];
@@ -651,7 +663,7 @@ const StocStaffingDashboard = () => {
       }
       return aVal > bVal ? -1 : 1;
     });
-  }, [processedData.teamMembers, teamsSortConfig]);
+  }, [processedData.teamMembers, teamsSortConfig, teamMemberSearch]);
 
   const sortedCapacityMembers = useMemo(() => {
     const members = Object.values(processedData.teamMembers);
@@ -675,6 +687,16 @@ const StocStaffingDashboard = () => {
       return aVal > bVal ? -1 : 1;
     });
   }, [riskDashboardData.members, riskTableSortConfig]);
+
+  // Clear selected team member if they get filtered out by search
+  useEffect(() => {
+    if (selectedTeamMember !== 'all') {
+      const isStillVisible = sortedTeamMembers.some(member => member.name === selectedTeamMember);
+      if (!isStillVisible) {
+        setSelectedTeamMember('all');
+      }
+    }
+  }, [sortedTeamMembers, selectedTeamMember]);
 
   // Handle period selection toggle
   const togglePeriodSelection = (periodId) => {
@@ -1053,7 +1075,7 @@ const StocStaffingDashboard = () => {
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-6">
+                  <div className="grid grid-cols-2 gap-6">
                     {/* Metrics Summary */}
                     <div className="bg-white rounded-lg p-4 border border-gray-200">
                       <h4 className="font-semibold text-gray-900 mb-3">Utilization Metrics</h4>
@@ -1086,14 +1108,6 @@ const StocStaffingDashboard = () => {
                       <h4 className="font-semibold text-gray-900 mb-3">Analysis</h4>
                       <p className="text-sm text-gray-700 leading-relaxed">
                         {getRiskExplanation(selectedRiskMember)}
-                      </p>
-                    </div>
-
-                    {/* Recommended Action */}
-                    <div className="bg-white rounded-lg p-4 border border-gray-200">
-                      <h4 className="font-semibold text-gray-900 mb-3">Suggested Action</h4>
-                      <p className="text-sm text-gray-700 leading-relaxed">
-                        {getRiskAction(selectedRiskMember.riskLevel)}
                       </p>
                     </div>
                   </div>
@@ -1396,7 +1410,30 @@ const StocStaffingDashboard = () => {
 
           {activeTab === 'teams' && (
             <div className="col-span-12 bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-xl font-bold mb-4">Team Member Details</h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">Team Member Details</h2>
+                
+                {/* Search Bar */}
+                <div className="relative w-64">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search team members..."
+                    value={teamMemberSearch}
+                    onChange={(e) => setTeamMemberSearch(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  />
+                  {teamMemberSearch && (
+                    <button
+                      onClick={() => setTeamMemberSearch('')}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              </div>
+              
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b border-gray-200">
