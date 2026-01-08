@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Calendar, Users, TrendingUp, AlertCircle, Clock, Briefcase, DollarSign, Activity, ChevronRight, ChevronDown, Filter, BarChart3, PieChart, Target, UserCheck, AlertTriangle, Search } from 'lucide-react';
-import { BarChart, Bar, LineChart, Line, PieChart as RePieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ScatterChart, Scatter, ZAxis } from 'recharts';
+import { BarChart, Bar, LineChart, Line, PieChart as RePieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ScatterChart, Scatter, ZAxis, Label, LabelList } from 'recharts';
 
 // Raw data embedded (parsed from CSVs)
 const rawData1 = `lname,fname,username,job_code,hours
@@ -963,7 +963,7 @@ const StocStaffingDashboard = () => {
                 {/* Scatter Chart */}
                 <div className="mb-4">
                   <ResponsiveContainer width="100%" height={450}>
-                    <ScatterChart margin={{ top: 20, right: 60, bottom: 20, left: 20 }}>
+                    <ScatterChart margin={{ top: 20, right: 80, bottom: 20, left: 20 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
                       <XAxis 
                         type="number" 
@@ -986,44 +986,40 @@ const StocStaffingDashboard = () => {
                         fill="#8884d8"
                         onClick={(data) => setSelectedRiskMember(data)}
                         style={{ cursor: 'pointer' }}
-                        shape={(props) => {
-                          const { cx, cy, fill, payload } = props;
-                          const firstName = payload.name.split(' ')[0] || payload.name.split(' ')[1]?.charAt(0) + payload.name.split(' ')[0]?.charAt(0) || payload.name;
-                          const isSelected = selectedRiskMember?.name === payload.name;
-                          const isTopUtilization = riskDashboardData.members
-                            .sort((a, b) => b.utilization - a.utilization)
-                            .slice(0, 12)
-                            .includes(payload);
-                          
-                          return (
-                            <g>
-                              <circle 
-                                cx={cx} 
-                                cy={cy} 
-                                r={6} 
-                                fill={fill}
-                                stroke={isSelected ? '#000' : 'none'}
-                                strokeWidth={isSelected ? 2 : 0}
-                              />
-                              {(isTopUtilization || isSelected) && (
-                                <text
-                                  x={cx + 10}
-                                  y={cy + 4}
-                                  textAnchor="start"
-                                  fill="#374151"
-                                  fontSize="11"
-                                  fontWeight={isSelected ? "600" : "400"}
-                                >
-                                  {firstName}
-                                </text>
-                              )}
-                            </g>
-                          );
-                        }}
                       >
                         {riskDashboardData.members.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={getRiskColor(entry.riskLevel)} />
                         ))}
+                        <LabelList 
+                          dataKey="name" 
+                          position="right"
+                          content={(props) => {
+                            const { x, y, value, index } = props;
+                            const entry = riskDashboardData.members[index];
+                            const firstName = value.split(' ')[0] || value.split(' ')[1]?.charAt(0) + value.split(' ')[0]?.charAt(0) || value;
+                            const isSelected = selectedRiskMember?.name === entry.name;
+                            const topMembers = riskDashboardData.members
+                              .sort((a, b) => b.utilization - a.utilization)
+                              .slice(0, 12)
+                              .map(m => m.name);
+                            const isTopUtilization = topMembers.includes(entry.name);
+                            
+                            if (!isTopUtilization && !isSelected) return null;
+                            
+                            return (
+                              <text
+                                x={x + 12}
+                                y={y + 4}
+                                textAnchor="start"
+                                fill="#374151"
+                                fontSize="11"
+                                fontWeight={isSelected ? "600" : "400"}
+                              >
+                                {firstName}
+                              </text>
+                            );
+                          }}
+                        />
                       </Scatter>
                       {/* Reference lines for risk zones */}
                       <line x1="60%" y1="0" x2="60%" y2="100%" stroke="#6B7280" strokeDasharray="5 5" />
