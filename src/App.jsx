@@ -1,390 +1,625 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Calendar, Users, TrendingUp, AlertCircle, Clock, Briefcase, DollarSign, Activity, ChevronRight, ChevronDown, Filter, BarChart3, PieChart, Target, UserCheck, AlertTriangle, Coffee } from 'lucide-react';
-import { BarChart, Bar, LineChart, Line, PieChart as RePieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ReferenceLine } from 'recharts';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Calendar, Users, TrendingUp, AlertCircle, Clock, Briefcase, DollarSign, Activity, ChevronRight, ChevronDown, Filter, BarChart3, PieChart, Target, UserCheck, AlertTriangle, Search } from 'lucide-react';
+import { BarChart, Bar, LineChart, Line, PieChart as RePieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ScatterChart, Scatter, ZAxis } from 'recharts';
 
-//////////////////////////////////////////////////////////////////////////////////
-// DATA SECTION - Last 4 weeks (12-15) for demo
-// REPLACE with your full 15 weeks of CSV data (weeks 1-15)
-//////////////////////////////////////////////////////////////////////////////////
+// Raw data embedded (parsed from CSVs)
+const rawData1 = `lname,fname,username,job_code,hours
+Chiramkara,Jishnu,jchiramkara@stocadvisory.com,Administrative,2
+Chiramkara,Jishnu,jchiramkara@stocadvisory.com,Business Development,1
+Chiramkara,Jishnu,jchiramkara@stocadvisory.com,Holiday,8
+Chiramkara,Jishnu,jchiramkara@stocadvisory.com,Riata - Government Window,30
+D,Ramya,ramya@stocadvisory.com,Business Development,32.85
+D,Ramya,ramya@stocadvisory.com,Holiday,8
+Egan,Sean,segan@stocadvisory.com,ADP - Tearsheet,2
+Egan,Sean,segan@stocadvisory.com,CPC - Canine Country Club,4.5
+Egan,Sean,segan@stocadvisory.com,CPC - Home Away From Home,4.5
+Egan,Sean,segan@stocadvisory.com,SP USA - Sage Import & Closing Recon,5
+Egan,Sean,segan@stocadvisory.com,SPUSA - Holly Dental,2
+Garg,Vishal,vgarg@stocadvisory.com,ADP - Tearsheet,19.5
+Garg,Vishal,vgarg@stocadvisory.com,AEG - Child and Family Eye Care Center,8
+Garg,Vishal,vgarg@stocadvisory.com,Holiday,8
+Govind,Vaishnav,vgovind@stocadvisory.com,Business Development,44.46
+Govind,Vaishnav,vgovind@stocadvisory.com,Holiday,11
+Gupta,Kirti,kirti.g@bpsanalytics.co.in,SALT - Suffolk Pedo Dentistry & Ortho,7
+Hariram,Pradeep,phariram@stocadvisory.com,ADP - Corp Dev Support (Tearsheet),21
+Hariram,Pradeep,phariram@stocadvisory.com,ADP - Emma Wu and Associates,2
+Hariram,Pradeep,phariram@stocadvisory.com,ADP - Valhalla,1
+Hariram,Pradeep,phariram@stocadvisory.com,CPC - Home Away From Home,8
+Hottman,Matthew,mhottman@stocadvisory.com,Administrative,3.5
+Hottman,Matthew,mhottman@stocadvisory.com,Holiday,8
+Hottman,Matthew,mhottman@stocadvisory.com,Riata - Government Window,9
+Hottman,Matthew,mhottman@stocadvisory.com,SALT - Alden Bridge Pediatric Dentistry,0.5
+Hottman,Matthew,mhottman@stocadvisory.com,SALT - Chesapeake Pediatric Dental Group,1
+Hottman,Matthew,mhottman@stocadvisory.com,SALT - Haeger Orthodontics,2
+Hottman,Matthew,mhottman@stocadvisory.com,SALT - Houston OMS,5.5
+Hottman,Matthew,mhottman@stocadvisory.com,SALT - Suffolk Pedo Dentistry & Ortho,7.5
+Hottman,Matthew,mhottman@stocadvisory.com,Vacation,3
+Jadhav,Pravin,pjadhav@stocadvisory.com,Vacation,32
+Jhingan,Siddharth,siddharth.j@bpsanalytics.co.in,Business Development - STOC,10.5
+Jhingan,Siddharth,siddharth.j@bpsanalytics.co.in,CPC - Home Away From Home,6.5
+Jhingan,Siddharth,siddharth.j@bpsanalytics.co.in,SALT - Suffolk Pedo Dentistry & Ortho,0.5
+Jhingan,Siddharth,siddharth.j@bpsanalytics.co.in,SP USA - Weekly Sales Dashboard,0.5
+Joseph,Stefan,sjoseph@stocadvisory.com,Business Development,46.57
+Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Alta Loma Optometric,1
+Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Child and Family Eye Care Center,1.5
+Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Federal Hill Eye Care,1
+Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Lifetime Vision Source,1
+Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Manhattan Vision & Queens Eye Associates,0.5
+Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Metropolitan Vision,0.5
+Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Optometric Images Vision Center (Drs. Ramsey & Ozaki),1
+Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Sandy & Draper Vision Care Center,1
+Luetgers,Sam,sluetgers@stocadvisory.com,AEG - TSO - Capital Plaza (Dr. Amin),2
+Luetgers,Sam,sluetgers@stocadvisory.com,Administrative,3.5
+Luetgers,Sam,sluetgers@stocadvisory.com,Beacon Behavioral - Hawkins Psychiatry,5
+Luetgers,Sam,sluetgers@stocadvisory.com,Sick,4
+Luetgers,Sam,sluetgers@stocadvisory.com,Vacation,8
+McFadden,Brandon,bmcfadden@stocadvisory.com,AEG - Canby Eyecare,1
+McFadden,Brandon,bmcfadden@stocadvisory.com,AEG - Child and Family Eye Care Center,6
+McFadden,Brandon,bmcfadden@stocadvisory.com,Administrative,6
+McFadden,Brandon,bmcfadden@stocadvisory.com,Holiday,8
+McFadden,Brandon,bmcfadden@stocadvisory.com,SALT - Houston OMS,3
+McFadden,Brandon,bmcfadden@stocadvisory.com,Vacation,16
+Nayak,Rakesh,rnayak@stocadvisory.com,Business Development,43.26
+Nayak,Rakesh,rnayak@stocadvisory.com,Holiday,10
+Nguyen,Hung,hnguyen@stocadvisory.com,Administrative,8
+Nguyen,Hung,hnguyen@stocadvisory.com,CPC - Home Away From Home,2.5
+Nguyen,Hung,hnguyen@stocadvisory.com,SP USA - Practice Analysis (Pre-LOI),21
+Pandey,Sharvan,spandey@stocadvisory.com,CDS - Tableau,41.6
+Pandey,Sharvan,spandey@stocadvisory.com,Holiday,8
+Saxena,Arjit,asaxena@stocadvisory.com,Administrative,3.5
+Saxena,Arjit,asaxena@stocadvisory.com,SALT - Alden Bridge Pediatric Dentistry,2.5
+Saxena,Arjit,asaxena@stocadvisory.com,SALT - Haeger Orthodontics,3
+Saxena,Arjit,asaxena@stocadvisory.com,SALT - Houston OMS,4
+Saxena,Arjit,asaxena@stocadvisory.com,SALT - MyOrthodontist,5
+Saxena,Arjit,asaxena@stocadvisory.com,SALT - Suffolk Pedo Dentistry & Ortho,30
+Sharma,Mohit,msharma@stocadvisory.com,Business Development,44.28
+Sharma,Mohit,msharma@stocadvisory.com,Holiday,10
+Sheehy,Aidan,asheehy@stocadvisory.com,ADP - Tearsheet,32
+Sheehy,Aidan,asheehy@stocadvisory.com,Administrative,5
+Sheehy,Aidan,asheehy@stocadvisory.com,Holiday,9
+Siddiqui,Saqib,ssiddiqui@stocadvisory.com,AEG - Chicago Eye Care Center,12
+Siddiqui,Saqib,ssiddiqui@stocadvisory.com,Administrative,12
+Singh,Jogendra,jrathore@stocadvisory.com,Business Development,44.88
+Singh,Jogendra,jrathore@stocadvisory.com,Holiday,10
+Sundar,Barath,bsundar@stocadvisory.com,SP USA - Practice Analysis (Pre-LOI),25
+Tuli,Rahul,rtuli@stocadvisory.com,Vacation,32`;
 
-const rawData12 = `lname,fname,username,job_code,hours
-Sharma,Mohit,msharma@stocadvisory.com,Business Development,35
-Nayak,Rakesh,rnayak@stocadvisory.com,Business Development,28
-Pandey,Sharvan,spandey@stocadvisory.com,CDS - Tableau,32
-Joseph,Stefan,sjoseph@stocadvisory.com,Business Development,38
-Singh,Jogendra,jsingh@stocadvisory.com,Administrative,15
-D,Ramya,rdamani@stocadvisory.com,CDS - Tableau,25
-Govind,Vaishnav,vgovind@stocadvisory.com,Business Development,42
-Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Bergen Optometry,45
-Jadhav,Pravin,pjadhav@stocadvisory.com,AEG - Bright Family Eye Care,20
-Thamsir,Thomson,tthamsir@stocadvisory.com,AEG - Weekly Sales Dashboard,35
-Earp,Ryan,rearp@stocadvisory.com,SPUSA - Town Dentistry,40
-Siddiqui,Saqib,ssiddiqui@stocadvisory.com,AEG - DeBoer Family Eye Care,38
-Sundar,Barath,bsundar@stocadvisory.com,SPUSA - Atlanta Endodontics,42
-Nguyen,Hung,hnguyen@stocadvisory.com,SPUSA - Atlanta Endodontics,38
-Gliniecki,John,jgliniecki@stocadvisory.com,SPUSA - Town Dentistry,40
-Egan,Sean,segan@stocadvisory.com,SPUSA - Buckhead Family Dentistry,38
-Garg,Vishal,vgarg@stocadvisory.com,SPUSA - Town Dentistry,42
-Hariram,Pradeep,phariram@stocadvisory.com,SPUSA - Buckhead Family Dentistry,40`;
+const rawData2 = `lname,fname,username,job_code,hours
+D,Ramya,ramya@stocadvisory.com,Business Development,22.05
+Egan,Sean,segan@stocadvisory.com,Holiday,16
+Govind,Vaishnav,vgovind@stocadvisory.com,Business Development,11.56
+Hottman,Matthew,mhottman@stocadvisory.com,Riata - Government Window,3
+Hottman,Matthew,mhottman@stocadvisory.com,SALT - Berkeley & Orinda Orthodontics,1.5
+Hottman,Matthew,mhottman@stocadvisory.com,SALT - Chesapeake Pediatric Dental Group,0.5
+Hottman,Matthew,mhottman@stocadvisory.com,SALT - Haeger Orthodontics,0.5
+Hottman,Matthew,mhottman@stocadvisory.com,SALT - Houston OMS,2
+Hottman,Matthew,mhottman@stocadvisory.com,SALT - Suffolk Pedo Dentistry & Ortho,1.5
+Jadhav,Pravin,pjadhav@stocadvisory.com,AEG - Alta Loma Optometric (Dr. Morton),1.98
+Jadhav,Pravin,pjadhav@stocadvisory.com,AEG - Sandy & Draper Vision Care Center,18.91
+Joseph,Stefan,sjoseph@stocadvisory.com,Business Development,25.36
+Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Child and Family Eye Care Center,3
+Luetgers,Sam,sluetgers@stocadvisory.com,Administrative,1
+McFadden,Brandon,bmcfadden@stocadvisory.com,AEG - Child and Family Eye Care Center,4.5
+McFadden,Brandon,bmcfadden@stocadvisory.com,AEG - South Shore Eye Center,2.5
+Nayak,Rakesh,rnayak@stocadvisory.com,Business Development,22.15
+Pandey,Sharvan,spandey@stocadvisory.com,CDS - Tableau,21.69
+Saxena,Arjit,asaxena@stocadvisory.com,Administrative,2
+Saxena,Arjit,asaxena@stocadvisory.com,SALT - Alden Bridge Pediatric Dentistry,1
+Saxena,Arjit,asaxena@stocadvisory.com,SALT - Spokane Pediatric,5
+Sharma,Mohit,msharma@stocadvisory.com,Business Development,23.37
+Sheehy,Aidan,asheehy@stocadvisory.com,ADP - Tearsheet,27
+Singh,Jogendra,jrathore@stocadvisory.com,Business Development,10.78
+Sundar,Barath,bsundar@stocadvisory.com,Holiday,24
+Tuli,Rahul,rtuli@stocadvisory.com,Administrative,1.55
+Tuli,Rahul,rtuli@stocadvisory.com,Riata - Government Window,6.98
+Tuli,Rahul,rtuli@stocadvisory.com,SALT - Suffolk Pedo Dentistry & Ortho,10.53`;
 
-const rawData13 = `lname,fname,username,job_code,hours
-Sharma,Mohit,msharma@stocadvisory.com,Business Development,32
-Nayak,Rakesh,rnayak@stocadvisory.com,CDS - Tableau,30
-Joseph,Stefan,sjoseph@stocadvisory.com,Business Development,40
-Govind,Vaishnav,vgovind@stocadvisory.com,Administrative,8
-Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Bergen Optometry,38
-Jadhav,Pravin,pjadhav@stocadvisory.com,AEG - Bright Family Eye Care,18
-Thamsir,Thomson,tthamsir@stocadvisory.com,AEG - Weekly Sales Dashboard,30
-Earp,Ryan,rearp@stocadvisory.com,SPUSA - Town Dentistry,35
-Sundar,Barath,bsundar@stocadvisory.com,SPUSA - Atlanta Endodontics,40
-Nguyen,Hung,hnguyen@stocadvisory.com,SPUSA - Atlanta Endodontics,36
-Gliniecki,John,jgliniecki@stocadvisory.com,SPUSA - Town Dentistry,38
-Egan,Sean,segan@stocadvisory.com,SPUSA - Buckhead Family Dentistry,40
-Garg,Vishal,vgarg@stocadvisory.com,Administrative,12`;
-
-const rawData14 = `lname,fname,username,job_code,hours
-Sharma,Mohit,msharma@stocadvisory.com,Business Development,28
-Joseph,Stefan,sjoseph@stocadvisory.com,Business Development,36
-Singh,Jogendra,jsingh@stocadvisory.com,Administrative,12
-Luetgers,Sam,sluetgers@stocadvisory.com,Holiday,8
-Jadhav,Pravin,pjadhav@stocadvisory.com,AEG - Bright Family Eye Care,22
-Thamsir,Thomson,tthamsir@stocadvisory.com,AEG - Weekly Sales Dashboard,28
-Earp,Ryan,rearp@stocadvisory.com,SPUSA - Town Dentistry,42
-Sundar,Barath,bsundar@stocadvisory.com,SPUSA - Atlanta Endodontics,38
-Gliniecki,John,jgliniecki@stocadvisory.com,SPUSA - Town Dentistry,40
-Egan,Sean,segan@stocadvisory.com,SPUSA - Buckhead Family Dentistry,35`;
-
-const rawData15 = `lname,fname,username,job_code,hours
-Sharma,Mohit,msharma@stocadvisory.com,Business Development,40
-Joseph,Stefan,sjoseph@stocadvisory.com,Business Development,42
-Govind,Vaishnav,vgovind@stocadvisory.com,Business Development,40
-Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Bergen Optometry,40
-Jadhav,Pravin,pjadhav@stocadvisory.com,AEG - Bright Family Eye Care,25
-Thamsir,Thomson,tthamsir@stocadvisory.com,AEG - Weekly Sales Dashboard,32
-Earp,Ryan,rearp@stocadvisory.com,SPUSA - Town Dentistry,38
-Sundar,Barath,bsundar@stocadvisory.com,SPUSA - Atlanta Endodontics,40
-Nguyen,Hung,hnguyen@stocadvisory.com,SPUSA - Atlanta Endodontics,35
-Gliniecki,John,jgliniecki@stocadvisory.com,SPUSA - Town Dentistry,42
-Egan,Sean,segan@stocadvisory.com,SPUSA - Buckhead Family Dentistry,40
-Garg,Vishal,vgarg@stocadvisory.com,SPUSA - Town Dentistry,38`;
-
-//////////////////////////////////////////////////////////////////////////////////
-// END OF DATA SECTION
-//////////////////////////////////////////////////////////////////////////////////
-
+// Parse CSV data
 const parseCSV = (csvText) => {
   const lines = csvText.trim().split('\n');
   const headers = lines[0].split(',');
   return lines.slice(1).map(line => {
     const values = line.split(',');
-    const entry = {};
-    headers.forEach((header, index) => {
-      entry[header] = values[index];
-    });
-    return entry;
+    return headers.reduce((obj, header, index) => {
+      obj[header] = values[index];
+      return obj;
+    }, {});
   });
 };
 
+// CDS Team Members (final reconciled roster)
+const CDS_TEAM_MEMBERS = [
+  'Mohit Sharma',
+  'Rakesh Nayak',
+  'Sharvan Pandey',
+  'Stefan Joseph',
+  'Jogendra Singh',
+  'Ramya D',
+  'Vaishnav Govind'
+];
+
 const StocStaffingDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
-  const [selectedPeriod, setSelectedPeriod] = useState('all');
-  const [selectedWeeks, setSelectedWeeks] = useState([]);
-  const [showWeekSelector, setShowWeekSelector] = useState(false);
-  const [businessUnitFilter, setBusinessUnitFilter] = useState('all');
+  const [selectedPeriods, setSelectedPeriods] = useState(['2026-01-04']); // Array for multiselect, default to latest
+  const [selectedTeamMember, setSelectedTeamMember] = useState('all');
+  const [selectedProject, setSelectedProject] = useState('all');
   const [expandedProjects, setExpandedProjects] = useState({});
   const [expandedTeamMembers, setExpandedTeamMembers] = useState({});
-  const [expandedClients, setExpandedClients] = useState({});
-  const [teamSortConfig, setTeamSortConfig] = useState({ key: 'totalHours', direction: 'desc' });
-  const [projectFilter, setProjectFilter] = useState('all');
-  const [projectSortConfig, setProjectSortConfig] = useState({ key: 'totalHours', direction: 'desc' });
-  const [capacitySortConfig, setCapacitySortConfig] = useState({ key: 'name', direction: 'asc' });
-  const [selectedRiskPerson, setSelectedRiskPerson] = useState(null);
+  const [teamMemberProjectSearch, setTeamMemberProjectSearch] = useState({}); // Search per team member
+  const [projectsSearch, setProjectsSearch] = useState(''); // Global projects search
+  const [showOnlyActive, setShowOnlyActive] = useState(false);
+  const [teamFilter, setTeamFilter] = useState('all'); // Global filter: all, tas, cds
+  const [projectsFilter, setProjectsFilter] = useState('all'); // Projects section filter
+  const [teamsSortConfig, setTeamsSortConfig] = useState({ key: 'utilized', direction: 'desc' });
+  const [projectsSortConfig, setProjectsSortConfig] = useState({ key: 'totalHours', direction: 'desc' });
+  const [capacitySortConfig, setCapacitySortConfig] = useState({ key: 'availableBandwidth', direction: 'desc' });
+  const [showPeriodDropdown, setShowPeriodDropdown] = useState(false);
+  
+  // Utilization Risk Dashboard state
+  const [selectedRiskMember, setSelectedRiskMember] = useState(null);
+  const [riskRoleFilter, setRiskRoleFilter] = useState('all');
+  const [riskClientFilter, setRiskClientFilter] = useState('all');
+  const [riskLevelFilter, setRiskLevelFilter] = useState('all');
 
-  const weekSelectorRef = useRef(null);
+  // Parse data
+  const week1Data = useMemo(() => parseCSV(rawData1), []);
+  const week2Data = useMemo(() => parseCSV(rawData2), []);
+  
+  // Time periods configuration (sorted descending - latest first)
+  const timePeriods = [
+    { id: '2026-01-04', label: 'Jan 4 – Jan 10, 2026', data: week1Data },
+    { id: '2025-12-28', label: 'Dec 28, 2025 – Jan 3, 2026', data: week2Data }
+  ];
+  
+  // Combine data from selected periods
+  const allData = useMemo(() => {
+    const combined = [];
+    timePeriods.forEach(period => {
+      if (selectedPeriods.includes(period.id)) {
+        period.data.forEach(entry => {
+          combined.push({ ...entry, period: period.id });
+        });
+      }
+    });
+    return combined;
+  }, [selectedPeriods]);
 
+  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (weekSelectorRef.current && !weekSelectorRef.current.contains(event.target)) {
-        setShowWeekSelector(false);
+      if (showPeriodDropdown && !event.target.closest('.period-dropdown-container')) {
+        setShowPeriodDropdown(false);
       }
     };
+    
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [showPeriodDropdown]);
 
-  const teamMembersByUnit = {
-    cds: ['Mohit Sharma', 'Rakesh Nayak', 'Sharvan Pandey', 'Stefan Joseph', 'Jogendra Singh', 'Ramya D', 'Vaishnav Govind']
-  };
-
-  const week12Data = useMemo(() => parseCSV(rawData12), []);
-  const week13Data = useMemo(() => parseCSV(rawData13), []);
-  const week14Data = useMemo(() => parseCSV(rawData14), []);
-  const week15Data = useMemo(() => parseCSV(rawData15), []);
-
-  const allData = useMemo(() => {
-    let data = [];
-    if (selectedWeeks.length > 0) {
-      const weekDataMap = { 12: week12Data, 13: week13Data, 14: week14Data, 15: week15Data };
-      selectedWeeks.forEach(weekNum => {
-        if (weekDataMap[weekNum]) data = [...data, ...weekDataMap[weekNum]];
-      });
-    } else {
-      data = [...week12Data, ...week13Data, ...week14Data, ...week15Data];
+  // Categorization function - STEP 1: Standardize project categorization
+  const categorizeEntry = (jobCode) => {
+    // A. OOO
+    if (jobCode === 'Holiday' || jobCode === 'Vacation' || jobCode === 'Sick') {
+      return 'OOO';
     }
     
-    if (businessUnitFilter !== 'all') {
-      data = data.filter(entry => {
-        const fullName = `${entry.fname} ${entry.lname}`;
-        const isCDS = teamMembersByUnit.cds.includes(fullName);
-        if (businessUnitFilter === 'cds') return isCDS;
-        else if (businessUnitFilter === 'tas') return !isCDS;
-        return true;
-      });
+    // B. Internal/BD
+    if (jobCode === 'Administrative' || jobCode === 'Business Development' || 
+        jobCode === 'Business Development - STOC' || jobCode === 'CDS - Tableau') {
+      return 'Internal/BD';
     }
     
-    return data;
-  }, [week12Data, week13Data, week14Data, week15Data, selectedPeriod, selectedWeeks, businessUnitFilter, teamMembersByUnit]);
-
-  const determineCategory = (jobCode) => {
-    if (jobCode.includes('Holiday') || jobCode.includes('Vacation') || jobCode.includes('Sick')) return 'OOO';
-    if (jobCode.includes('Administrative') || jobCode.includes('Business Development') || jobCode === 'CDS - Tableau') return 'Internal/BD';
+    // C. Billable - everything else
     return 'Billable';
   };
 
-  const getBusinessUnit = (jobCode) => {
-    if (jobCode.includes('Holiday') || jobCode.includes('Vacation') || jobCode.includes('Sick') || jobCode.includes('Administrative')) return 'Administrative';
-    if (jobCode.includes('Business Development') || jobCode.startsWith('CDS')) return 'CDS';
-    if (jobCode.includes('SALT') || jobCode.includes('Riata') || jobCode.includes('SPUSA') || jobCode.includes('SP USA') || jobCode.includes('Beacon Behavioral')) return 'TAS';
-    if (jobCode.includes('AEG') || jobCode.includes('CPC') || jobCode.includes('ADP')) return 'TAS+CDS';
-    return 'Other';
+  // Get client from job code
+  const getClient = (jobCode) => {
+    // Special buckets
+    if (jobCode === 'Holiday' || jobCode === 'Vacation' || jobCode === 'Sick') {
+      return 'OOO';
+    }
+    if (jobCode === 'Administrative') {
+      return 'Administrative';
+    }
+    if (jobCode === 'Business Development' || jobCode === 'Business Development - STOC') {
+      return 'Business Development';
+    }
+    if (jobCode === 'CDS - Tableau') {
+      return 'CDS';
+    }
+    
+    // Standard client extraction
+    const parts = jobCode.split(' - ');
+    return parts[0] || 'Other';
   };
 
+  // Check if a person is in CDS team
+  const isCDSMember = (name) => {
+    return CDS_TEAM_MEMBERS.includes(name);
+  };
+
+  // Process data with proper categorization
   const processedData = useMemo(() => {
     const teamMembers = {};
     const projects = {};
-    const clients = {};
-
-    allData.forEach(entry => {
-      const name = `${entry.fname} ${entry.lname}`;
+    const periodData = {};
+    
+    allData.forEach((entry) => {
       const hours = parseFloat(entry.hours) || 0;
-      const category = determineCategory(entry.job_code);
-      const businessUnit = getBusinessUnit(entry.job_code);
-
+      const name = `${entry.fname} ${entry.lname}`;
+      const jobCode = entry.job_code;
+      const category = categorizeEntry(jobCode);
+      const client = getClient(jobCode);
+      const isCDS = isCDSMember(name);
+      
+      // Apply global team filter
+      if (teamFilter === 'cds' && !isCDS) return;
+      if (teamFilter === 'tas' && isCDS) return;
+      
+      // Initialize team member
       if (!teamMembers[name]) {
         teamMembers[name] = {
           name,
+          isCDS,
           totalHours: 0,
           billableHours: 0,
-          internalHours: 0,
           oooHours: 0,
+          internalHours: 0,
+          utilized: 0,
           projects: {},
-          utilization: 0
+          entries: []
         };
       }
-
-      teamMembers[name].totalHours += hours;
-      if (category === 'Billable') teamMembers[name].billableHours += hours;
-      else if (category === 'Internal/BD') teamMembers[name].internalHours += hours;
-      else if (category === 'OOO') teamMembers[name].oooHours += hours;
       
-      if (!teamMembers[name].projects[entry.job_code]) {
-        teamMembers[name].projects[entry.job_code] = 0;
+      // Update team member data
+      teamMembers[name].totalHours += hours;
+      teamMembers[name].entries.push({ jobCode, hours, category, client });
+      
+      if (category === 'OOO') {
+        teamMembers[name].oooHours += hours;
+      } else if (category === 'Internal/BD') {
+        teamMembers[name].internalHours += hours;
+        teamMembers[name].utilized += hours;
+      } else if (category === 'Billable') {
+        teamMembers[name].billableHours += hours;
+        teamMembers[name].utilized += hours;
       }
-      teamMembers[name].projects[entry.job_code] += hours;
-
-      if (!projects[entry.job_code]) {
-        projects[entry.job_code] = {
-          name: entry.job_code,
-          totalHours: 0,
+      
+      if (!teamMembers[name].projects[jobCode]) {
+        teamMembers[name].projects[jobCode] = 0;
+      }
+      teamMembers[name].projects[jobCode] += hours;
+      
+      // Initialize project
+      if (!projects[jobCode]) {
+        projects[jobCode] = {
+          name: jobCode,
           category,
-          businessUnit,
+          client,
+          totalHours: 0,
           teamMembers: {}
         };
       }
-      projects[entry.job_code].totalHours += hours;
-      if (!projects[entry.job_code].teamMembers[name]) {
-        projects[entry.job_code].teamMembers[name] = 0;
+      
+      // Update project data
+      projects[jobCode].totalHours += hours;
+      if (!projects[jobCode].teamMembers[name]) {
+        projects[jobCode].teamMembers[name] = 0;
       }
-      projects[entry.job_code].teamMembers[name] += hours;
-
-      const clientMatch = entry.job_code.match(/^([A-Z]+)\s*-/);
-      if (clientMatch) {
-        const clientName = clientMatch[1];
-        if (!clients[clientName]) {
-          clients[clientName] = {
-            name: clientName,
-            totalHours: 0,
-            projects: {}
-          };
-        }
-        clients[clientName].totalHours += hours;
-        if (!clients[clientName].projects[entry.job_code]) {
-          clients[clientName].projects[entry.job_code] = 0;
-        }
-        clients[clientName].projects[entry.job_code] += hours;
-      }
+      projects[jobCode].teamMembers[name] += hours;
     });
 
-    const weekCount = selectedWeeks.length > 0 ? selectedWeeks.length : 4;
-    Object.keys(teamMembers).forEach(name => {
-      const member = teamMembers[name];
-      const utilizedHours = member.billableHours + member.internalHours;
-      const standardCapacity = 40 * weekCount;
-      member.utilization = standardCapacity > 0 ? ((utilizedHours / standardCapacity) * 100) : 0;
+    // Calculate capacity metrics for each team member
+    Object.values(teamMembers).forEach(member => {
+      const weeklyTargetHours = 40;
+      member.effectiveCapacity = weeklyTargetHours - member.oooHours;
+      member.availableBandwidth = member.effectiveCapacity - member.utilized;
+      member.utilizationRate = member.effectiveCapacity > 0 
+        ? (member.utilized / member.effectiveCapacity) * 100 
+        : 0;
     });
 
-    return { teamMembers, projects, clients };
-  }, [allData, selectedPeriod, selectedWeeks]);
+    return { teamMembers, projects, periodData };
+  }, [allData, teamFilter]);
 
-  const metrics = useMemo(() => {
-    const teamCount = Object.keys(processedData.teamMembers).length;
-    const totalHours = Object.values(processedData.teamMembers).reduce((sum, m) => sum + m.totalHours, 0);
-    const billableHours = Object.values(processedData.teamMembers).reduce((sum, m) => sum + m.billableHours, 0);
-    const internalHours = Object.values(processedData.teamMembers).reduce((sum, m) => sum + m.internalHours, 0);
-    const oooHours = Object.values(processedData.teamMembers).reduce((sum, m) => sum + m.oooHours, 0);
-    const avgUtilization = teamCount > 0 ? Object.values(processedData.teamMembers).reduce((sum, m) => sum + m.utilization, 0) / teamCount : 0;
-    const billablePercentage = totalHours > 0 ? ((billableHours / totalHours) * 100) : 0;
+  // Group projects by client for Project Allocation section
+  const projectsByClient = useMemo(() => {
+    const grouped = {};
     
-    return {
-      teamCount,
-      totalHours: totalHours.toFixed(1),
-      billableHours: billableHours.toFixed(1),
-      internalHours: internalHours.toFixed(1),
-      oooHours: oooHours.toFixed(1),
-      avgUtilization: avgUtilization.toFixed(1),
-      billablePercentage: billablePercentage.toFixed(1)
-    };
-  }, [processedData]);
-
-  const riskData = useMemo(() => {
-    const weekCount = selectedWeeks.length > 0 ? selectedWeeks.length : 4;
-    const standardCapacity = 40 * weekCount;
-    
-    const teamRiskData = Object.values(processedData.teamMembers)
-      .map(member => {
-        const totalUsedHours = member.billableHours + member.internalHours + member.oooHours;
-        const utilizationPct = standardCapacity > 0 ? (totalUsedHours / standardCapacity) * 100 : 0;
-        const billableMixPct = totalUsedHours > 0 ? (member.billableHours / totalUsedHours) * 100 : 0;
-        const isCDS = teamMembersByUnit.cds.includes(member.name);
-        
-        let riskLevel = 'Healthy / Balanced';
-        let riskColor = '#10B981';
-        
-        if (utilizationPct >= 95) {
-          riskLevel = 'Burnout Risk';
-          riskColor = '#EF4444';
-        } else if (utilizationPct < 60) {
-          riskLevel = 'Available Capacity';
-          riskColor = '#F59E0B';
-        } else if (isCDS && billableMixPct < 70) {
-          riskLevel = 'Strategic Internal Allocation';
-          riskColor = '#8B5CF6';
-        }
-        
-        return {
-          ...member,
-          totalUsedHours,
-          utilizationPct,
-          billableMixPct,
-          riskLevel,
-          riskColor,
-          standardCapacity
+    Object.values(processedData.projects).forEach(project => {
+      // Apply projects filter
+      if (projectsFilter === 'ooo' && project.category !== 'OOO') return;
+      if (projectsFilter === 'administrative') {
+        // Include both Administrative and OOO when Administrative is selected
+        if (project.client !== 'Administrative' && project.category !== 'OOO') return;
+      }
+      if (projectsFilter === 'internal-bd' && project.category !== 'Internal/BD') return;
+      if (projectsFilter === 'billable' && project.category !== 'Billable') return;
+      
+      // Apply search filter
+      if (projectsSearch && !project.name.toLowerCase().includes(projectsSearch.toLowerCase())) {
+        return;
+      }
+      
+      const client = project.client;
+      if (!grouped[client]) {
+        grouped[client] = {
+          client,
+          projects: [],
+          totalHours: 0
         };
-      })
-      .filter(member => member.totalUsedHours > 0)
-      .sort((a, b) => b.utilizationPct - a.utilizationPct);
-    
-    const avgUtilization = teamRiskData.length > 0 ? teamRiskData.reduce((sum, m) => sum + m.utilizationPct, 0) / teamRiskData.length : 0;
-    
-    return {
-      teamRiskData,
-      kpis: {
-        avgUtilization: avgUtilization.toFixed(1),
-        burnoutCount: teamRiskData.filter(m => m.riskLevel === 'Burnout Risk').length,
-        availableCapacityCount: teamRiskData.filter(m => m.riskLevel === 'Available Capacity').length,
-        strategicCount: teamRiskData.filter(m => m.riskLevel === 'Strategic Internal Allocation').length,
-        healthyCount: teamRiskData.filter(m => m.riskLevel === 'Healthy / Balanced').length
       }
-    };
-  }, [processedData, selectedPeriod, selectedWeeks, teamMembersByUnit]);
-
-  const sortedTeamMembers = useMemo(() => {
-    const members = Object.values(processedData.teamMembers);
-    return members.sort((a, b) => {
-      const aValue = a[teamSortConfig.key];
-      const bValue = b[teamSortConfig.key];
-      if (teamSortConfig.direction === 'asc') {
-        return aValue > bValue ? 1 : -1;
-      } else {
-        return aValue < bValue ? 1 : -1;
-      }
-    });
-  }, [processedData.teamMembers, teamSortConfig]);
-
-  const filteredProjects = useMemo(() => {
-    let projects = Object.values(processedData.projects);
-    if (projectFilter !== 'all') {
-      projects = projects.filter(p => p.category === projectFilter);
-    }
-    return projects.sort((a, b) => {
-      const aValue = a[projectSortConfig.key];
-      const bValue = b[projectSortConfig.key];
-      if (projectSortConfig.direction === 'asc') {
-        return aValue > bValue ? 1 : -1;
-      } else {
-        return aValue < bValue ? 1 : -1;
-      }
-    });
-  }, [processedData.projects, projectFilter, projectSortConfig]);
-
-  const sortedCapacityMembers = useMemo(() => {
-    const weekCount = selectedWeeks.length > 0 ? selectedWeeks.length : 4;
-    const standardCapacity = 40 * weekCount;
-    
-    const members = Object.values(processedData.teamMembers).map(member => {
-      const utilizedHours = member.billableHours + member.internalHours;
-      const availableHours = Math.max(0, standardCapacity - utilizedHours);
-      return {
-        ...member,
-        availableHours,
-        standardCapacity
-      };
+      
+      grouped[client].projects.push(project);
+      grouped[client].totalHours += project.totalHours;
     });
     
-    return members.sort((a, b) => {
-      const aValue = a[capacitySortConfig.key];
-      const bValue = b[capacitySortConfig.key];
-      if (capacitySortConfig.direction === 'asc') {
-        return aValue > bValue ? 1 : -1;
-      } else {
-        return aValue < bValue ? 1 : -1;
-      }
-    });
-  }, [processedData.teamMembers, capacitySortConfig, selectedWeeks]);
+    return Object.values(grouped).sort((a, b) => b.totalHours - a.totalHours);
+  }, [processedData.projects, projectsFilter, projectsSearch]);
 
-  const getCategoryBadge = (category) => {
-    const badges = {
-      'Billable': { color: 'bg-cyan-100 text-cyan-800 border-cyan-200', label: 'Billable' },
-      'Internal/BD': { color: 'bg-purple-100 text-purple-800 border-purple-200', label: 'Internal/BD' },
-      'OOO': { color: 'bg-amber-100 text-amber-800 border-amber-200', label: 'OOO' }
-    };
-    const badge = badges[category] || { color: 'bg-gray-100 text-gray-800 border-gray-200', label: category };
+  // Helper function to highlight search matches
+  const highlightText = (text, search) => {
+    if (!search) return text;
+    
+    const parts = text.split(new RegExp(`(${search})`, 'gi'));
     return (
-      <span className={`px-2 py-1 rounded text-xs font-medium border ${badge.color}`}>
-        {badge.label}
-      </span>
+      <>
+        {parts.map((part, i) => 
+          part.toLowerCase() === search.toLowerCase() ? (
+            <mark key={i} className="bg-yellow-200 text-gray-900 px-0.5">{part}</mark>
+          ) : (
+            part
+          )
+        )}
+      </>
     );
   };
 
-  const handleTeamSort = (key) => {
-    setTeamSortConfig(prev => ({
+  // Risk dashboard helpers
+  const getRiskColor = (riskLevel) => {
+    switch (riskLevel) {
+      case 'Burnout Risk':
+        return '#DC2626'; // muted red
+      case 'Underutilized':
+        return '#2563EB'; // muted blue
+      case 'Healthy':
+        return '#059669'; // muted green
+      default:
+        return '#6B7280';
+    }
+  };
+
+  const getRiskExplanation = (member) => {
+    if (member.riskLevel === 'Burnout Risk') {
+      return `${member.name} is at burnout risk with ${member.utilization.toFixed(0)}% utilization. They are working ${member.usedHours.toFixed(0)} hours against ${member.availableHours.toFixed(0)} available hours, exceeding healthy capacity thresholds.`;
+    } else if (member.riskLevel === 'Underutilized') {
+      return `${member.name} is underutilized with ${member.utilization.toFixed(0)}% utilization. They have logged ${member.usedHours.toFixed(0)} hours against ${member.availableHours.toFixed(0)} available hours, indicating capacity for additional work.`;
+    } else {
+      return `${member.name} has healthy utilization at ${member.utilization.toFixed(0)}%. They are working ${member.usedHours.toFixed(0)} hours against ${member.availableHours.toFixed(0)} available hours, which is within optimal range.`;
+    }
+  };
+
+  const getRiskAction = (riskLevel) => {
+    switch (riskLevel) {
+      case 'Burnout Risk':
+        return 'Rebalance workload: shift tasks to underutilized team members or extend timelines to protect capacity.';
+      case 'Underutilized':
+        return 'Assign additional work: pull into active projects or allocate to upcoming initiatives.';
+      case 'Healthy':
+        return 'Maintain current allocation and monitor for changes in upcoming periods.';
+      default:
+        return 'Review allocation.';
+    }
+  };
+
+  // Custom scatter chart tooltip
+  const CustomScatterTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div className="bg-white p-4 rounded-lg shadow-lg border border-gray-200 text-sm">
+          <div className="font-semibold text-gray-900 mb-2">{data.name}</div>
+          <div className="space-y-1">
+            <div className="flex justify-between gap-4">
+              <span className="text-gray-600">Used Hours:</span>
+              <span className="font-medium text-gray-900">{data.usedHours.toFixed(1)}</span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span className="text-gray-600">Billable:</span>
+              <span className="text-gray-700">{data.billableHours.toFixed(1)}</span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span className="text-gray-600">Internal/BD:</span>
+              <span className="text-gray-700">{data.internalHours.toFixed(1)}</span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span className="text-gray-600">OOO:</span>
+              <span className="text-gray-700">{data.oooHours.toFixed(1)}</span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span className="text-gray-600">Available:</span>
+              <span className="text-gray-700">{data.availableHours.toFixed(1)}</span>
+            </div>
+            <div className="flex justify-between gap-4 pt-2 border-t border-gray-200">
+              <span className="text-gray-600">Utilization:</span>
+              <span className="font-semibold text-gray-900">{data.utilization.toFixed(1)}%</span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span className="text-gray-600">Risk Level:</span>
+              <span className={`font-medium ${
+                data.riskLevel === 'Burnout Risk' ? 'text-red-600' :
+                data.riskLevel === 'Underutilized' ? 'text-blue-600' :
+                'text-green-600'
+              }`}>
+                {data.riskLevel}
+              </span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  // Calculate summary statistics
+  const summaryStats = useMemo(() => {
+    const members = Object.values(processedData.teamMembers);
+    const totalBillable = members.reduce((sum, m) => sum + m.billableHours, 0);
+    const totalInternal = members.reduce((sum, m) => sum + m.internalHours, 0);
+    const totalOOO = members.reduce((sum, m) => sum + m.oooHours, 0);
+    const totalUtilized = members.reduce((sum, m) => sum + m.utilized, 0);
+    const totalAvailable = members.reduce((sum, m) => sum + m.availableBandwidth, 0);
+    const totalCapacity = members.reduce((sum, m) => sum + m.effectiveCapacity, 0);
+    
+    return {
+      totalTeamMembers: members.length,
+      totalBillableHours: totalBillable,
+      totalInternalHours: totalInternal,
+      totalOOOHours: totalOOO,
+      totalUtilized: totalUtilized,
+      totalAvailable: totalAvailable,
+      totalCapacity: totalCapacity,
+      avgUtilization: totalCapacity > 0 ? (totalUtilized / totalCapacity) * 100 : 0
+    };
+  }, [processedData.teamMembers]);
+
+  // Utilization Risk Dashboard calculations
+  const riskDashboardData = useMemo(() => {
+    const weeklyTargetHours = 40;
+    const numPeriods = selectedPeriods.length;
+    
+    const riskMembers = Object.values(processedData.teamMembers)
+      .map(member => {
+        // Used Hours = Billable + Internal/BD
+        const usedHours = member.billableHours + member.internalHours;
+        
+        // Available Hours = (WeeklyTargetHours × number_of_selected_periods) − OOO Hours
+        const targetHours = weeklyTargetHours * numPeriods;
+        const availableHours = targetHours - member.oooHours;
+        
+        // Utilization % = Used / Available
+        const utilization = availableHours > 0 ? (usedHours / availableHours) * 100 : 0;
+        
+        // Risk category
+        let riskLevel = 'Healthy';
+        if (utilization >= 95) {
+          riskLevel = 'Burnout Risk';
+        } else if (utilization < 60) {
+          riskLevel = 'Underutilized';
+        }
+        
+        // Get client from projects (most common client)
+        const clientCounts = {};
+        member.entries.forEach(entry => {
+          const client = getClient(entry.jobCode);
+          clientCounts[client] = (clientCounts[client] || 0) + entry.hours;
+        });
+        const primaryClient = Object.entries(clientCounts)
+          .sort(([,a], [,b]) => b - a)[0]?.[0] || 'Multiple';
+        
+        // Role assignment (simplified - can be enhanced)
+        const role = member.isCDS ? 'CDS Analyst' : 'TAS Analyst';
+        
+        return {
+          name: member.name,
+          isCDS: member.isCDS,
+          usedHours,
+          billableHours: member.billableHours,
+          internalHours: member.internalHours,
+          oooHours: member.oooHours,
+          availableHours,
+          targetHours,
+          utilization,
+          riskLevel,
+          primaryClient,
+          role,
+          entries: member.entries
+        };
+      })
+      .filter(m => m.usedHours > 0); // Hide people with 0 Used Hours
+    
+    // Apply filters
+    let filteredMembers = riskMembers;
+    
+    if (riskRoleFilter !== 'all') {
+      filteredMembers = filteredMembers.filter(m => m.role === riskRoleFilter);
+    }
+    
+    if (riskClientFilter !== 'all') {
+      filteredMembers = filteredMembers.filter(m => m.primaryClient === riskClientFilter);
+    }
+    
+    if (riskLevelFilter !== 'all') {
+      filteredMembers = filteredMembers.filter(m => m.riskLevel === riskLevelFilter);
+    }
+    
+    // Calculate KPIs
+    const avgUtilization = filteredMembers.length > 0 
+      ? filteredMembers.reduce((sum, m) => sum + m.utilization, 0) / filteredMembers.length 
+      : 0;
+    
+    const burnoutCount = filteredMembers.filter(m => m.riskLevel === 'Burnout Risk').length;
+    const underutilizedCount = filteredMembers.filter(m => m.riskLevel === 'Underutilized').length;
+    const healthyCount = filteredMembers.filter(m => m.riskLevel === 'Healthy').length;
+    
+    // Get unique roles and clients for filters
+    const roles = [...new Set(riskMembers.map(m => m.role))].sort();
+    const clients = [...new Set(riskMembers.map(m => m.primaryClient))].sort();
+    
+    return {
+      members: filteredMembers,
+      avgUtilization,
+      burnoutCount,
+      underutilizedCount,
+      healthyCount,
+      roles,
+      clients
+    };
+  }, [processedData.teamMembers, selectedPeriods, teamFilter, riskRoleFilter, riskClientFilter, riskLevelFilter]);
+
+  // Chart data
+  const utilizationData = useMemo(() => {
+    return Object.values(processedData.teamMembers)
+      .filter(member => member.totalHours > 0) // Hide team members with 0 logged hours
+      .sort((a, b) => b.utilized - a.utilized)
+      .slice(0, 10)
+      .map(member => ({
+        name: member.name.split(' ')[0],
+        fullName: member.name,
+        billable: member.billableHours,
+        internal: member.internalHours,
+        available: member.availableBandwidth
+      }));
+  }, [processedData.teamMembers]);
+
+  const projectDistributionData = useMemo(() => {
+    const categoryTotals = {};
+    Object.values(processedData.projects).forEach(project => {
+      const cat = project.category;
+      categoryTotals[cat] = (categoryTotals[cat] || 0) + project.totalHours;
+    });
+    
+    return Object.entries(categoryTotals).map(([name, value]) => ({ name, value }));
+  }, [processedData.projects]);
+
+  // Top projects table data
+  const topProjectsData = useMemo(() => {
+    return Object.values(processedData.projects)
+      .sort((a, b) => b.totalHours - a.totalHours)
+      .slice(0, 10);
+  }, [processedData.projects]);
+
+  // Sorting handlers
+  const handleTeamsSort = (key) => {
+    setTeamsSortConfig(prev => ({
       key,
       direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc'
     }));
   };
 
-  const handleProjectSort = (key) => {
-    setProjectSortConfig(prev => ({
+  const handleProjectsSort = (key) => {
+    setProjectsSortConfig(prev => ({
       key,
       direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc'
     }));
@@ -397,317 +632,529 @@ const StocStaffingDashboard = () => {
     }));
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
-      <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">STOC Staffing Tool</h1>
-            <p className="text-gray-500 mt-1">Real-time visibility into team utilization and project allocation</p>
-          </div>
-          
-          <div className="flex gap-3">
-            <select className="px-4 py-2 border rounded-lg" value={businessUnitFilter} onChange={(e) => setBusinessUnitFilter(e.target.value)}>
-              <option value="all">All Teams</option>
-              <option value="tas">TAS</option>
-              <option value="cds">CDS</option>
-            </select>
+  // Sorted data
+  const sortedTeamMembers = useMemo(() => {
+    const members = Object.values(processedData.teamMembers);
+    return members.sort((a, b) => {
+      const aVal = a[teamsSortConfig.key];
+      const bVal = b[teamsSortConfig.key];
+      if (teamsSortConfig.direction === 'asc') {
+        return aVal > bVal ? 1 : -1;
+      }
+      return aVal > bVal ? -1 : 1;
+    });
+  }, [processedData.teamMembers, teamsSortConfig]);
 
-            <div className="relative" ref={weekSelectorRef}>
-              <button onClick={() => setShowWeekSelector(!showWeekSelector)} className="px-4 py-2 border rounded-lg bg-white hover:bg-gray-50 flex items-center gap-2 min-w-[200px] justify-between">
-                <span className="text-sm">
-                  {selectedWeeks.length === 0 || selectedWeeks.length === 4 ? 
-                    'All Periods (4 weeks)' : 
-                    `${selectedWeeks.length} week${selectedWeeks.length !== 1 ? 's' : ''} selected`}
-                </span>
-                <ChevronDown className={`w-4 h-4 transition-transform ${showWeekSelector ? 'rotate-180' : ''}`} />
-              </button>
+  const sortedCapacityMembers = useMemo(() => {
+    const members = Object.values(processedData.teamMembers);
+    return members.sort((a, b) => {
+      const aVal = a[capacitySortConfig.key];
+      const bVal = b[capacitySortConfig.key];
+      if (capacitySortConfig.direction === 'asc') {
+        return aVal > bVal ? 1 : -1;
+      }
+      return aVal > bVal ? -1 : 1;
+    });
+  }, [processedData.teamMembers, capacitySortConfig]);
+
+  // Handle period selection toggle
+  const togglePeriodSelection = (periodId) => {
+    setSelectedPeriods(prev => {
+      if (prev.includes(periodId)) {
+        // Don't allow deselecting all periods
+        if (prev.length === 1) return prev;
+        return prev.filter(id => id !== periodId);
+      } else {
+        return [...prev, periodId];
+      }
+    });
+  };
+
+  // Get selected periods label for display
+  const getSelectedPeriodsLabel = () => {
+    if (selectedPeriods.length === timePeriods.length) {
+      return 'All Periods';
+    }
+    if (selectedPeriods.length === 1) {
+      const period = timePeriods.find(p => p.id === selectedPeriods[0]);
+      return period ? period.label : '';
+    }
+    return `${selectedPeriods.length} Periods Selected`;
+  };
+
+  const COLORS = ['#6B7280', '#3B82F6', '#10B981', '#F59E0B'];
+
+  // Custom tooltip for pie chart
+  const CustomPieTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
+          <p className="font-medium text-gray-900">{payload[0].name}</p>
+          <p className="text-sm text-gray-600">
+            {payload[0].value.toFixed(1)} hours ({((payload[0].value / summaryStats.totalUtilized) * 100).toFixed(1)}%)
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-6">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">STOC Staffing Dashboard</h1>
+              <p className="text-gray-600 mt-1">Resource allocation & capacity planning</p>
+            </div>
+            <div className="flex items-center gap-4">
+              {/* Global Team Filter */}
+              <div className="bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200">
+                <div className="flex items-center gap-2">
+                  <Filter className="w-4 h-4 text-gray-500" />
+                  <select
+                    value={teamFilter}
+                    onChange={(e) => setTeamFilter(e.target.value)}
+                    className="border-none bg-transparent font-medium text-gray-700 focus:outline-none cursor-pointer"
+                  >
+                    <option value="all">All Teams</option>
+                    <option value="tas">TAS</option>
+                    <option value="cds">CDS</option>
+                  </select>
+                </div>
+              </div>
               
-              {showWeekSelector && (
-                <div className="absolute top-full mt-2 right-0 bg-white border rounded-lg shadow-xl z-50 w-[400px] max-h-[400px] overflow-y-auto">
-                  <div className="p-3 border-b bg-gray-50 flex justify-between items-center">
-                    <span className="font-semibold text-sm">Select Time Periods</span>
-                    <div className="flex gap-2">
-                      <button onClick={() => { setSelectedWeeks([12,13,14,15]); setSelectedPeriod('all'); }} className="px-2 py-1 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100">All</button>
-                      <button onClick={() => { setSelectedWeeks([]); setSelectedPeriod('all'); }} className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200">Clear</button>
+              {/* Time Period Multiselect Dropdown */}
+              <div className="relative period-dropdown-container">
+                <div 
+                  className="bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200 cursor-pointer hover:bg-gray-50"
+                  onClick={() => setShowPeriodDropdown(!showPeriodDropdown)}
+                >
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-gray-500" />
+                    <span className="font-medium text-gray-700">{getSelectedPeriodsLabel()}</span>
+                    <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${showPeriodDropdown ? 'rotate-180' : ''}`} />
+                  </div>
+                </div>
+                
+                {showPeriodDropdown && (
+                  <div className="absolute right-0 mt-2 w-72 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                    <div className="p-2">
+                      {timePeriods.map((period) => (
+                        <div
+                          key={period.id}
+                          className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer"
+                          onClick={() => togglePeriodSelection(period.id)}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedPeriods.includes(period.id)}
+                            onChange={() => {}}
+                            className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                          />
+                          <span className="text-sm text-gray-700">{period.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="border-t border-gray-200 p-2">
+                      <button
+                        onClick={() => {
+                          setSelectedPeriods(timePeriods.map(p => p.id));
+                        }}
+                        className="w-full text-left px-2 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded"
+                      >
+                        Select All
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedPeriods([timePeriods[0].id]); // Reset to latest only
+                        }}
+                        className="w-full text-left px-2 py-1 text-sm text-gray-600 hover:bg-gray-50 rounded"
+                      >
+                        Reset to Latest
+                      </button>
                     </div>
                   </div>
-                  <div className="p-2">
-                    {[
-                      { num: 15, label: 'Jan 4 - Jan 10, 2026', value: 'week15' },
-                      { num: 14, label: 'Dec 28, 2025 - Jan 3, 2026', value: 'week14' },
-                      { num: 13, label: 'Dec 21 - Dec 27, 2025', value: 'week13' },
-                      { num: 12, label: 'Dec 14 - Dec 20, 2025', value: 'week12' }
-                    ].map(week => (
-                      <label key={week.num} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={selectedWeeks.includes(week.num)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              const newWeeks = [...selectedWeeks, week.num].sort((a, b) => a - b);
-                              setSelectedWeeks(newWeeks);
-                              setSelectedPeriod(newWeeks.length === 1 ? week.value : 'custom');
-                            } else {
-                              const newWeeks = selectedWeeks.filter(w => w !== week.num);
-                              setSelectedWeeks(newWeeks);
-                              setSelectedPeriod(newWeeks.length === 0 ? 'all' : newWeeks.length === 1 ? `week${newWeeks[0]}` : 'custom');
-                            }
-                          }}
-                          className="w-4 h-4 text-blue-600 rounded"
-                        />
-                        <span className="text-sm">{week.label}</span>
-                      </label>
-                    ))}
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Navigation Tabs */}
+          <div className="flex gap-2 border-b border-gray-200">
+            {['overview', 'teams', 'projects', 'capacity', 'exceptions'].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-4 py-2 font-medium capitalize transition-colors ${
+                  activeTab === tab
+                    ? 'border-b-2 border-blue-600 text-blue-600'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Summary Cards */}
+        <div className="grid grid-cols-4 gap-4 mb-6">
+          <div className="bg-white border border-gray-200 rounded-xl shadow-lg p-6">
+            <div className="flex items-center justify-between mb-2">
+              <Users className="w-8 h-8 text-blue-600" />
+              <span className="text-sm text-gray-500">Active</span>
+            </div>
+            <div className="text-2xl font-bold text-gray-900">{summaryStats.totalTeamMembers}</div>
+            <p className="text-sm text-gray-600 mt-1">Team Members</p>
+          </div>
+
+          <div className="bg-white border border-blue-200 rounded-xl shadow-lg p-6">
+            <div className="flex items-center justify-between mb-2">
+              <DollarSign className="w-8 h-8 text-blue-600" />
+              <span className="text-sm text-blue-600 font-medium">Billable</span>
+            </div>
+            <div className="text-2xl font-bold text-gray-900">{summaryStats.totalBillableHours.toFixed(0)}</div>
+            <p className="text-sm text-gray-600 mt-1">Billable Hours</p>
+          </div>
+
+          <div className="bg-white border border-purple-200 rounded-xl shadow-lg p-6">
+            <div className="flex items-center justify-between mb-2">
+              <Activity className="w-8 h-8 text-purple-600" />
+              <span className="text-sm text-purple-600 font-medium">Rate</span>
+            </div>
+            <div className="text-2xl font-bold text-gray-900">{summaryStats.avgUtilization.toFixed(0)}%</div>
+            <p className="text-sm text-gray-600 mt-1">Avg Utilization</p>
+          </div>
+
+          <div className="bg-white border border-green-200 rounded-xl shadow-lg p-6">
+            <div className="flex items-center justify-between mb-2">
+              <Clock className="w-8 h-8 text-green-600" />
+              <span className="text-sm text-green-600 font-medium">Available</span>
+            </div>
+            <div className="text-2xl font-bold text-gray-900">{summaryStats.totalAvailable.toFixed(0)}</div>
+            <p className="text-sm text-gray-600 mt-1">Hours Bandwidth</p>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="grid grid-cols-12 gap-6">
+          {activeTab === 'overview' && (
+            <>
+              {/* Utilization Risk Dashboard - FIRST COMPONENT */}
+              <div className="col-span-12 bg-white rounded-xl shadow-lg p-6 mb-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold text-gray-900">Utilization Risk Dashboard</h2>
+                  
+                  {/* Risk Dashboard Filters */}
+                  <div className="flex items-center gap-3">
+                    <select
+                      value={riskRoleFilter}
+                      onChange={(e) => setRiskRoleFilter(e.target.value)}
+                      className="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="all">All Roles</option>
+                      {riskDashboardData.roles.map(role => (
+                        <option key={role} value={role}>{role}</option>
+                      ))}
+                    </select>
+                    
+                    <select
+                      value={riskClientFilter}
+                      onChange={(e) => setRiskClientFilter(e.target.value)}
+                      className="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="all">All Clients</option>
+                      {riskDashboardData.clients.map(client => (
+                        <option key={client} value={client}>{client}</option>
+                      ))}
+                    </select>
+                    
+                    <select
+                      value={riskLevelFilter}
+                      onChange={(e) => setRiskLevelFilter(e.target.value)}
+                      className="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="all">All Risk Levels</option>
+                      <option value="Burnout Risk">Burnout Risk</option>
+                      <option value="Healthy">Healthy</option>
+                      <option value="Underutilized">Underutilized</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* KPI Tiles */}
+                <div className="grid grid-cols-4 gap-4 mb-6">
+                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-4">
+                    <div className="text-sm text-blue-700 font-medium mb-1">Avg Team Utilization</div>
+                    <div className="text-3xl font-bold text-blue-900">
+                      {riskDashboardData.avgUtilization.toFixed(0)}%
+                    </div>
+                  </div>
+                  
+                  <div className="bg-gradient-to-br from-red-50 to-red-100 border border-red-200 rounded-lg p-4">
+                    <div className="text-sm text-red-700 font-medium mb-1">Burnout Risk</div>
+                    <div className="text-3xl font-bold text-red-900">
+                      {riskDashboardData.burnoutCount}
+                    </div>
+                    <div className="text-xs text-red-600 mt-1">≥95% utilization</div>
+                  </div>
+                  
+                  <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-4">
+                    <div className="text-sm text-green-700 font-medium mb-1">Healthy</div>
+                    <div className="text-3xl font-bold text-green-900">
+                      {riskDashboardData.healthyCount}
+                    </div>
+                    <div className="text-xs text-green-600 mt-1">60-95% utilization</div>
+                  </div>
+                  
+                  <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200 rounded-lg p-4">
+                    <div className="text-sm text-indigo-700 font-medium mb-1">Underutilized</div>
+                    <div className="text-3xl font-bold text-indigo-900">
+                      {riskDashboardData.underutilizedCount}
+                    </div>
+                    <div className="text-xs text-indigo-600 mt-1">&lt;60% utilization</div>
+                  </div>
+                </div>
+
+                {/* Scatter Chart */}
+                <div className="mb-4">
+                  <ResponsiveContainer width="100%" height={400}>
+                    <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                      <XAxis 
+                        type="number" 
+                        dataKey="utilization" 
+                        name="Utilization"
+                        unit="%"
+                        label={{ value: 'Utilization %', position: 'insideBottom', offset: -10 }}
+                      />
+                      <YAxis 
+                        type="number" 
+                        dataKey="usedHours" 
+                        name="Used Hours"
+                        label={{ value: 'Used Hours', angle: -90, position: 'insideLeft' }}
+                      />
+                      <ZAxis range={[100, 100]} />
+                      <Tooltip content={<CustomScatterTooltip />} />
+                      <Scatter
+                        name="Team Members"
+                        data={riskDashboardData.members}
+                        fill="#8884d8"
+                        onClick={(data) => setSelectedRiskMember(data)}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        {riskDashboardData.members.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={getRiskColor(entry.riskLevel)} />
+                        ))}
+                      </Scatter>
+                      {/* Reference lines for risk zones */}
+                      <line x1="60%" y1="0" x2="60%" y2="100%" stroke="#6B7280" strokeDasharray="5 5" />
+                      <line x1="95%" y1="0" x2="95%" y2="100%" stroke="#6B7280" strokeDasharray="5 5" />
+                    </ScatterChart>
+                  </ResponsiveContainer>
+                  
+                  {/* Legend */}
+                  <div className="flex justify-center gap-6 mt-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#DC2626' }}></div>
+                      <span className="text-sm text-gray-700">Burnout Risk (≥95%)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#059669' }}></div>
+                      <span className="text-sm text-gray-700">Healthy (60-95%)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#2563EB' }}></div>
+                      <span className="text-sm text-gray-700">Underutilized (&lt;60%)</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Detail Panel - Inline below chart when member selected */}
+              {selectedRiskMember && (
+                <div className="col-span-12 bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-300 rounded-xl shadow-lg p-6 mb-6">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900">{selectedRiskMember.name}</h3>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                          selectedRiskMember.riskLevel === 'Burnout Risk' ? 'bg-red-100 text-red-700' :
+                          selectedRiskMember.riskLevel === 'Underutilized' ? 'bg-blue-100 text-blue-700' :
+                          'bg-green-100 text-green-700'
+                        }`}>
+                          {selectedRiskMember.riskLevel}
+                        </span>
+                        <span className="text-sm text-gray-600">{selectedRiskMember.role}</span>
+                        <span className="text-sm text-gray-600">• {selectedRiskMember.primaryClient}</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setSelectedRiskMember(null)}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <span className="text-2xl">×</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-6">
+                    {/* Metrics Summary */}
+                    <div className="bg-white rounded-lg p-4 border border-gray-200">
+                      <h4 className="font-semibold text-gray-900 mb-3">Utilization Metrics</h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Used Hours:</span>
+                          <span className="font-semibold text-gray-900">{selectedRiskMember.usedHours.toFixed(1)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Available Hours:</span>
+                          <span className="font-medium text-gray-700">{selectedRiskMember.availableHours.toFixed(1)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Target Hours:</span>
+                          <span className="text-gray-700">{selectedRiskMember.targetHours.toFixed(0)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">OOO Hours:</span>
+                          <span className="text-gray-700">{selectedRiskMember.oooHours.toFixed(1)}</span>
+                        </div>
+                        <div className="flex justify-between pt-2 border-t border-gray-200">
+                          <span className="text-gray-600">Utilization:</span>
+                          <span className="font-bold text-gray-900">{selectedRiskMember.utilization.toFixed(1)}%</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Explanation */}
+                    <div className="bg-white rounded-lg p-4 border border-gray-200">
+                      <h4 className="font-semibold text-gray-900 mb-3">Analysis</h4>
+                      <p className="text-sm text-gray-700 leading-relaxed">
+                        {getRiskExplanation(selectedRiskMember)}
+                      </p>
+                    </div>
+
+                    {/* Recommended Action */}
+                    <div className="bg-white rounded-lg p-4 border border-gray-200">
+                      <h4 className="font-semibold text-gray-900 mb-3">Suggested Action</h4>
+                      <p className="text-sm text-gray-700 leading-relaxed">
+                        {getRiskAction(selectedRiskMember.riskLevel)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Hours Breakdown */}
+                  <div className="mt-4 bg-white rounded-lg p-4 border border-gray-200">
+                    <h4 className="font-semibold text-gray-900 mb-3">Hours Breakdown</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="text-gray-600">Billable Hours:</span>
+                          <span className="font-medium text-gray-900">{selectedRiskMember.billableHours.toFixed(1)}</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="bg-blue-500 h-2 rounded-full" 
+                            style={{ width: `${(selectedRiskMember.billableHours / selectedRiskMember.usedHours) * 100}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="text-gray-600">Internal/BD Hours:</span>
+                          <span className="font-medium text-gray-900">{selectedRiskMember.internalHours.toFixed(1)}</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="bg-purple-500 h-2 rounded-full" 
+                            style={{ width: `${(selectedRiskMember.internalHours / selectedRiskMember.usedHours) * 100}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
-            </div>
-          </div>
-        </div>
 
-        <div className="grid grid-cols-6 gap-4 mt-6">
-          <div className="bg-white rounded-lg p-4 border shadow-sm">
-            <div className="flex items-center gap-2 text-gray-700 mb-2">
-              <Users className="w-5 h-5" />
-              <span className="text-sm font-medium">Team Members</span>
-            </div>
-            <div className="text-2xl font-bold text-gray-900">{metrics.teamCount}</div>
-          </div>
-          <div className="bg-cyan-50 rounded-lg p-4 border border-cyan-100 shadow-sm">
-            <div className="flex items-center gap-2 text-cyan-700 mb-2">
-              <DollarSign className="w-5 h-5" />
-              <span className="text-sm font-medium">Billable</span>
-            </div>
-            <div className="text-2xl font-bold text-cyan-900">{metrics.billableHours}h</div>
-          </div>
-          <div className="bg-purple-50 rounded-lg p-4 border border-purple-100 shadow-sm">
-            <div className="flex items-center gap-2 text-purple-700 mb-2">
-              <Briefcase className="w-5 h-5" />
-              <span className="text-sm font-medium">Internal/BD</span>
-            </div>
-            <div className="text-2xl font-bold text-purple-900">{metrics.internalHours}h</div>
-          </div>
-          <div className="bg-amber-50 rounded-lg p-4 border border-amber-100 shadow-sm">
-            <div className="flex items-center gap-2 text-amber-700 mb-2">
-              <Coffee className="w-5 h-5" />
-              <span className="text-sm font-medium">OOO</span>
-            </div>
-            <div className="text-2xl font-bold text-amber-900">{metrics.oooHours}h</div>
-          </div>
-          <div className="bg-blue-50 rounded-lg p-4 border border-blue-100 shadow-sm">
-            <div className="flex items-center gap-2 text-blue-700 mb-2">
-              <Activity className="w-5 h-5" />
-              <span className="text-sm font-medium">Avg Utilization</span>
-            </div>
-            <div className="text-2xl font-bold text-blue-900">{metrics.avgUtilization}%</div>
-          </div>
-          <div className="bg-green-50 rounded-lg p-4 border border-green-100 shadow-sm">
-            <div className="flex items-center gap-2 text-green-700 mb-2">
-              <Target className="w-5 h-5" />
-              <span className="text-sm font-medium">Billable %</span>
-            </div>
-            <div className="text-2xl font-bold text-green-900">{metrics.billablePercentage}%</div>
-          </div>
-        </div>
-
-        <div className="flex gap-2 mt-6 border-b">
-          {['overview', 'team', 'projects', 'capacity', 'exceptions'].map(tab => (
-            <button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 py-2 font-medium capitalize ${activeTab === tab ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}>
-              {tab}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-12 gap-6">
-        {/* OVERVIEW TAB */}
-        {activeTab === 'overview' && (
-          <>
-            <div className="col-span-12 space-y-4 mb-6">
-              {/* KPI Tiles */}
-              <div className="grid grid-cols-5 gap-4">
-                <div className="bg-white rounded-lg shadow p-5 border-l-4 border-blue-500">
-                  <div className="text-sm font-medium text-gray-600 mb-1">Avg Team Utilization</div>
-                  <div className="text-3xl font-bold text-gray-900">{riskData.kpis.avgUtilization}%</div>
-                  <div className="text-xs text-gray-500 mt-1">Total Used ÷ Available</div>
-                </div>
-                <div className="bg-white rounded-lg shadow p-5 border-l-4 border-red-500">
-                  <div className="text-sm font-medium text-gray-600 mb-1">Burnout Risk</div>
-                  <div className="text-3xl font-bold text-red-600">{riskData.kpis.burnoutCount}</div>
-                  <div className="text-xs text-gray-500 mt-1">Utilization ≥95%</div>
-                </div>
-                <div className="bg-white rounded-lg shadow p-5 border-l-4 border-amber-500">
-                  <div className="text-sm font-medium text-gray-600 mb-1">Available Capacity</div>
-                  <div className="text-3xl font-bold text-amber-600">{riskData.kpis.availableCapacityCount}</div>
-                  <div className="text-xs text-gray-500 mt-1">Utilization &lt;60%</div>
-                </div>
-                <div className="bg-white rounded-lg shadow p-5 border-l-4 border-purple-500">
-                  <div className="text-sm font-medium text-gray-600 mb-1">Strategic Internal</div>
-                  <div className="text-3xl font-bold text-purple-600">{riskData.kpis.strategicCount}</div>
-                  <div className="text-xs text-gray-500 mt-1">CDS Internal Focus</div>
-                </div>
-                <div className="bg-white rounded-lg shadow p-5 border-l-4 border-green-500">
-                  <div className="text-sm font-medium text-gray-600 mb-1">Healthy / Balanced</div>
-                  <div className="text-3xl font-bold text-green-600">{riskData.kpis.healthyCount}</div>
-                  <div className="text-xs text-gray-500 mt-1">60-95% Utilization</div>
-                </div>
+              {/* Existing Overview Content Below */}
+              {/* Utilization Chart */}
+              <div className="col-span-12 bg-white rounded-xl shadow-lg p-6">
+                <h2 className="text-xl font-bold mb-4">Team Utilization</h2>
+                <ResponsiveContainer width="100%" height={350}>
+                  <BarChart data={utilizationData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                    <XAxis 
+                      dataKey="name" 
+                      tick={{ fontSize: 12 }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
+                    />
+                    <YAxis />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: 'white', border: '1px solid #E5E7EB', borderRadius: '8px' }}
+                      labelStyle={{ fontWeight: 'bold', color: '#111827' }}
+                    />
+                    <Legend />
+                    <Bar dataKey="billable" stackId="a" fill="#60A5FA" name="Billable" />
+                    <Bar dataKey="internal" stackId="a" fill="#A78BFA" name="Internal/BD" />
+                    <Bar dataKey="available" stackId="a" fill="#D1D5DB" name="Available" />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
 
-              {/* Utilization Risk Matrix - Scatter Plot */}
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex justify-between items-center mb-2">
-                  <h2 className="text-xl font-bold">Utilization Risk Matrix</h2>
-                  <span className="text-sm text-gray-600">
-                    Showing {riskData.teamRiskData.length} team member{riskData.teamRiskData.length !== 1 ? 's' : ''}
-                  </span>
-                </div>
-                <p className="text-sm text-gray-600 mb-4">
-                  X-axis: Total Hours Used | Y-axis: Utilization % | Click any dot for details
-                </p>
-                
-                <div className="relative" style={{ height: '500px' }}>
-                  <svg width="100%" height="100%" viewBox="0 0 1200 500" preserveAspectRatio="xMidYMid meet" className="border border-gray-200 rounded">
-                    {/* Background zones */}
-                    <rect x="80" y="20" width="1070" height="46" fill="#FEE2E2" opacity="0.3" />
-                    <rect x="80" y="66" width="1070" height="161" fill="#D1FAE5" opacity="0.3" />
-                    <rect x="80" y="227" width="1070" height="253" fill="#FEF3C7" opacity="0.3" />
-                    
-                    {/* Axes */}
-                    <line x1="80" y1="20" x2="80" y2="480" stroke="#E5E7EB" strokeWidth="2" />
-                    <line x1="80" y1="480" x2="1150" y2="480" stroke="#E5E7EB" strokeWidth="2" />
-                    
-                    {/* Y-axis labels */}
-                    <text x="70" y="25" textAnchor="end" fontSize="12" fill="#6B7280">100%</text>
-                    <text x="70" y="70" textAnchor="end" fontSize="12" fill="#EF4444" fontWeight="bold">95%</text>
-                    <line x1="75" y1="66" x2="1150" y2="66" stroke="#EF4444" strokeWidth="2" strokeDasharray="6 4" />
-                    <text x="70" y="157" textAnchor="end" fontSize="12" fill="#6B7280">80%</text>
-                    <text x="70" y="231" textAnchor="end" fontSize="12" fill="#F59E0B" fontWeight="bold">60%</text>
-                    <line x1="75" y1="227" x2="1150" y2="227" stroke="#F59E0B" strokeWidth="2" strokeDasharray="6 4" />
-                    <text x="70" y="318" textAnchor="end" fontSize="12" fill="#6B7280">40%</text>
-                    <text x="70" y="405" textAnchor="end" fontSize="12" fill="#6B7280">20%</text>
-                    <text x="70" y="483" textAnchor="end" fontSize="12" fill="#6B7280">0%</text>
-                    
-                    {/* Axis labels */}
-                    <text x="40" y="250" textAnchor="middle" transform="rotate(-90 40 250)" fontSize="14" fontWeight="bold" fill="#374151">Utilization %</text>
-                    <text x="615" y="498" textAnchor="middle" fontSize="14" fontWeight="bold" fill="#374151">Total Hours Used</text>
-                    
-                    {/* X-axis markers */}
-                    {(() => {
-                      const maxHours = Math.max(...riskData.teamRiskData.map(m => m.totalUsedHours), 160);
-                      const markers = [0, 40, 80, 120, 160];
-                      return markers.map(hours => {
-                        const x = 80 + ((hours / maxHours) * 1070);
-                        return (
-                          <g key={hours}>
-                            <line x1={x} y1="475" x2={x} y2="485" stroke="#9CA3AF" strokeWidth="1" />
-                            <text x={x} y="498" textAnchor="middle" fontSize="11" fill="#6B7280">{hours}h</text>
-                          </g>
-                        );
-                      });
-                    })()}
-                    
-                    {/* Plot points */}
-                    {riskData.teamRiskData.map((member, idx) => {
-                      const maxHours = Math.max(...riskData.teamRiskData.map(m => m.totalUsedHours), 160);
-                      const x = 80 + ((member.totalUsedHours / maxHours) * 1070);
-                      const y = 480 - ((member.utilizationPct / 100) * 460);
-                      
-                      return (
-                        <g key={idx}>
-                          <circle
-                            cx={x}
-                            cy={y}
-                            r="8"
-                            fill={member.riskColor}
-                            stroke="white"
-                            strokeWidth="2.5"
-                            style={{ cursor: 'pointer' }}
-                            onClick={() => setSelectedRiskPerson(member)}
-                            onMouseEnter={(e) => e.target.setAttribute('r', '12')}
-                            onMouseLeave={(e) => e.target.setAttribute('r', '8')}
-                          />
-                          <text 
-                            x={x} 
-                            y={y - 14} 
-                            textAnchor="middle" 
-                            fontSize="11"
-                            fontWeight="600"
-                            fill="#1F2937"
-                            style={{ pointerEvents: 'none' }}
-                          >
-                            {member.name.split(' ')[0]}
-                          </text>
-                          <title>
-{member.name}
-Billable: {member.billableHours.toFixed(1)}h
-Internal/BD: {member.internalHours.toFixed(1)}h
-OOO: {member.oooHours.toFixed(1)}h
-Available: {(member.standardCapacity - member.totalUsedHours).toFixed(1)}h
-Utilization: {member.utilizationPct.toFixed(1)}%
-Billable Mix: {member.billableMixPct.toFixed(1)}%
-Classification: {member.riskLevel}
-                          </title>
-                        </g>
-                      );
-                    })}
-                  </svg>
-                </div>
-                
-                {/* Legend */}
-                <div className="flex gap-6 mt-4 justify-center">
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded-full bg-red-500"></div>
-                    <span className="text-sm">Burnout Risk (≥95%)</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded-full bg-green-500"></div>
-                    <span className="text-sm">Healthy / Balanced (60-95%)</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded-full bg-amber-500"></div>
-                    <span className="text-sm">Available Capacity (&lt;60%)</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded-full bg-purple-500"></div>
-                    <span className="text-sm">Strategic Internal (CDS)</span>
-                  </div>
-                </div>
+              {/* Project Distribution and Top Projects */}
+              <div className="col-span-6 bg-white rounded-xl shadow-lg p-6">
+                <h2 className="text-xl font-bold mb-4">Hour Distribution</h2>
+                <ResponsiveContainer width="100%" height={300}>
+                  <RePieChart>
+                    <Pie
+                      data={projectDistributionData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent, value }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={90}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {projectDistributionData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<CustomPieTooltip />} />
+                  </RePieChart>
+                </ResponsiveContainer>
               </div>
 
-              {/* Risk Summary Table */}
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-xl font-bold mb-4">Risk Summary Table</h2>
-                <div className="overflow-x-auto">
+              <div className="col-span-6 bg-white rounded-xl shadow-lg p-6">
+                <h2 className="text-xl font-bold mb-4">Top Projects by Hours</h2>
+                <div className="overflow-y-auto max-h-[300px]">
                   <table className="w-full">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-gray-50 sticky top-0">
                       <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">Name</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">Classification</th>
-                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">Utilization</th>
-                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">Billable Mix</th>
-                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">Total Used</th>
-                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">Available</th>
-                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase">Action</th>
+                        <th className="text-left py-2 px-3 font-semibold text-gray-700 text-sm">Project</th>
+                        <th className="text-left py-2 px-3 font-semibold text-gray-700 text-sm">Category</th>
+                        <th className="text-right py-2 px-3 font-semibold text-gray-700 text-sm">Hours</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y">
-                      {riskData.teamRiskData.map((member, idx) => (
+                    <tbody className="divide-y divide-gray-100">
+                      {topProjectsData.map((project, idx) => (
                         <tr key={idx} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 text-sm font-medium">{member.name}</td>
-                          <td className="px-4 py-3 text-sm">
-                            <span className="px-2 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: member.riskColor + '20', color: member.riskColor }}>
-                              {member.riskLevel}
+                          <td className="py-2 px-3 text-sm text-gray-900 max-w-xs break-words">{project.name}</td>
+                          <td className="py-2 px-3">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
+                              project.category === 'Billable' ? 'bg-blue-50 text-blue-700' :
+                              project.category === 'Internal/BD' ? 'bg-purple-50 text-purple-700' :
+                              'bg-gray-50 text-gray-700'
+                            }`}>
+                              {project.category}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-sm text-right font-medium">{member.utilizationPct.toFixed(0)}%</td>
-                          <td className="px-4 py-3 text-sm text-right">{member.billableMixPct.toFixed(0)}%</td>
-                          <td className="px-4 py-3 text-sm text-right">{member.totalUsedHours.toFixed(1)}h</td>
-                          <td className="px-4 py-3 text-sm text-right text-green-600 font-medium">{(member.standardCapacity - member.totalUsedHours).toFixed(1)}h</td>
-                          <td className="px-4 py-3 text-center">
-                            <button onClick={() => setSelectedRiskPerson(member)} className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                              View Details
-                            </button>
+                          <td className="py-2 px-3 text-right text-sm font-medium text-gray-900">
+                            {project.totalHours.toFixed(1)}
                           </td>
                         </tr>
                       ))}
@@ -716,468 +1163,598 @@ Classification: {member.riskLevel}
                 </div>
               </div>
 
-              {/* Detail Panel */}
-              {selectedRiskPerson && (
-                <div className="bg-white rounded-lg shadow-xl p-6 border-2 border-blue-500">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h2 className="text-2xl font-bold">{selectedRiskPerson.name}</h2>
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className="px-3 py-1 rounded-full text-sm font-medium" style={{ backgroundColor: selectedRiskPerson.riskColor + '20', color: selectedRiskPerson.riskColor }}>
-                          {selectedRiskPerson.riskLevel}
-                        </span>
-                        <span className="text-sm text-gray-600">
-                          {selectedRiskPerson.utilizationPct.toFixed(0)}% Utilized • {selectedRiskPerson.billableMixPct.toFixed(0)}% Billable Mix
-                        </span>
-                      </div>
-                    </div>
-                    <button onClick={() => setSelectedRiskPerson(null)} className="text-gray-400 hover:text-gray-600">
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
+              {/* Key Metrics */}
+              <div className="col-span-12 grid grid-cols-3 gap-4">
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow-lg p-6 border border-blue-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <TrendingUp className="w-8 h-8 text-blue-600" />
+                    <span className="text-sm text-blue-700 font-medium">Total</span>
                   </div>
-                  <div className="grid grid-cols-2 gap-6">
-                    <div>
-                      <h3 className="font-semibold mb-3">Hours Breakdown</h3>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span>Billable:</span>
-                          <span className="font-medium text-cyan-600">{selectedRiskPerson.billableHours.toFixed(1)}h</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Internal/BD:</span>
-                          <span className="font-medium text-purple-600">{selectedRiskPerson.internalHours.toFixed(1)}h</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>OOO:</span>
-                          <span className="font-medium text-amber-600">{selectedRiskPerson.oooHours.toFixed(1)}h</span>
-                        </div>
-                        <div className="flex justify-between pt-2 border-t font-semibold">
-                          <span>Total Used:</span>
-                          <span>{selectedRiskPerson.totalUsedHours.toFixed(1)}h</span>
-                        </div>
-                        <div className="flex justify-between text-green-600">
-                          <span>Available:</span>
-                          <span className="font-semibold">{(selectedRiskPerson.standardCapacity - selectedRiskPerson.totalUsedHours).toFixed(1)}h</span>
-                        </div>
-                        <div className="flex justify-between text-gray-500">
-                          <span>Standard Capacity:</span>
-                          <span>{selectedRiskPerson.standardCapacity}h</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div>
-                      <h3 className="font-semibold mb-3">Current Projects</h3>
-                      <div className="space-y-1 text-sm max-h-32 overflow-y-auto">
-                        {Object.entries(selectedRiskPerson.projects).slice(0, 8).map(([project, hours], idx) => (
-                          <div key={idx} className="flex justify-between">
-                            <span className="truncate flex-1">{project}</span>
-                            <span className="font-medium ml-2">{hours.toFixed(1)}h</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                  <div className="text-3xl font-bold text-blue-900">{summaryStats.totalUtilized.toFixed(0)}</div>
+                  <p className="text-sm text-blue-700 mt-1">Utilized Hours</p>
+                </div>
+
+                <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl shadow-lg p-6 border border-purple-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <Briefcase className="w-8 h-8 text-purple-600" />
+                    <span className="text-sm text-purple-700 font-medium">Internal</span>
                   </div>
+                  <div className="text-3xl font-bold text-purple-900">{summaryStats.totalInternalHours.toFixed(0)}</div>
+                  <p className="text-sm text-purple-700 mt-1">Non-Billable Hours</p>
+                </div>
+
+                <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl shadow-lg p-6 border border-gray-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <Calendar className="w-8 h-8 text-gray-600" />
+                    <span className="text-sm text-gray-700 font-medium">Time Off</span>
+                  </div>
+                  <div className="text-3xl font-bold text-gray-900">{summaryStats.totalOOOHours.toFixed(0)}</div>
+                  <p className="text-sm text-gray-700 mt-1">OOO Hours</p>
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeTab === 'teams' && (
+            <div className="col-span-12 bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-xl font-bold mb-4">Team Member Details</h2>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Name</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Team</th>
+                      <th 
+                        className="text-right py-3 px-4 font-semibold text-gray-700 cursor-pointer hover:bg-gray-100"
+                        onClick={() => handleTeamsSort('billableHours')}
+                      >
+                        Billable {teamsSortConfig.key === 'billableHours' && (teamsSortConfig.direction === 'desc' ? '↓' : '↑')}
+                      </th>
+                      <th 
+                        className="text-right py-3 px-4 font-semibold text-gray-700 cursor-pointer hover:bg-gray-100"
+                        onClick={() => handleTeamsSort('internalHours')}
+                      >
+                        Internal/BD {teamsSortConfig.key === 'internalHours' && (teamsSortConfig.direction === 'desc' ? '↓' : '↑')}
+                      </th>
+                      <th 
+                        className="text-right py-3 px-4 font-semibold text-gray-700 cursor-pointer hover:bg-gray-100"
+                        onClick={() => handleTeamsSort('oooHours')}
+                      >
+                        OOO {teamsSortConfig.key === 'oooHours' && (teamsSortConfig.direction === 'desc' ? '↓' : '↑')}
+                      </th>
+                      <th 
+                        className="text-right py-3 px-4 font-semibold text-gray-700 cursor-pointer hover:bg-gray-100"
+                        onClick={() => handleTeamsSort('utilized')}
+                      >
+                        Utilized {teamsSortConfig.key === 'utilized' && (teamsSortConfig.direction === 'desc' ? '↓' : '↑')}
+                      </th>
+                      <th 
+                        className="text-right py-3 px-4 font-semibold text-gray-700 cursor-pointer hover:bg-gray-100"
+                        onClick={() => handleTeamsSort('availableBandwidth')}
+                      >
+                        Available {teamsSortConfig.key === 'availableBandwidth' && (teamsSortConfig.direction === 'desc' ? '↓' : '↑')}
+                      </th>
+                      <th 
+                        className="text-right py-3 px-4 font-semibold text-gray-700 cursor-pointer hover:bg-gray-100"
+                        onClick={() => handleTeamsSort('utilizationRate')}
+                      >
+                        Utilization {teamsSortConfig.key === 'utilizationRate' && (teamsSortConfig.direction === 'desc' ? '↓' : '↑')}
+                      </th>
+                      <th className="text-center py-3 px-4 font-semibold text-gray-700">Projects</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {sortedTeamMembers.map((member, index) => {
+                      // Get distinct projects (unique by job_code)
+                      const distinctProjects = Object.entries(member.projects)
+                        .filter(([jobCode]) => categorizeEntry(jobCode) !== 'OOO') // Exclude OOO from percentage calc
+                        .map(([jobCode, hours]) => ({
+                          jobCode,
+                          hours,
+                          percentage: member.utilized > 0 ? (hours / member.utilized) * 100 : 0
+                        }))
+                        .sort((a, b) => b.hours - a.hours);
+                      
+                      const totalProjectCount = distinctProjects.length;
+                      
+                      // Apply search filter if exists for this member
+                      const searchTerm = teamMemberProjectSearch[member.name] || '';
+                      const filteredProjects = searchTerm 
+                        ? distinctProjects.filter(proj => 
+                            proj.jobCode.toLowerCase().includes(searchTerm.toLowerCase())
+                          )
+                        : distinctProjects;
+                      
+                      const filteredProjectCount = filteredProjects.length;
+                      
+                      return (
+                        <React.Fragment key={index}>
+                          <tr className="hover:bg-gray-50">
+                            <td className="py-3 px-4 font-medium text-gray-900">{member.name}</td>
+                            <td className="py-3 px-4">
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                member.isCDS ? 'bg-purple-50 text-purple-700' : 'bg-blue-50 text-blue-700'
+                              }`}>
+                                {member.isCDS ? 'CDS' : 'TAS'}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-right text-gray-600">{member.billableHours.toFixed(1)}</td>
+                            <td className="py-3 px-4 text-right text-gray-600">{member.internalHours.toFixed(1)}</td>
+                            <td className="py-3 px-4 text-right text-gray-600">{member.oooHours.toFixed(1)}</td>
+                            <td className="py-3 px-4 text-right font-medium text-gray-900">{member.utilized.toFixed(1)}</td>
+                            <td className="py-3 px-4 text-right">
+                              <span className={`font-medium ${
+                                member.availableBandwidth < 0 ? 'text-red-600' : 'text-green-600'
+                              }`}>
+                                {member.availableBandwidth.toFixed(1)}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                member.utilizationRate >= 90 ? 'bg-red-50 text-red-700' :
+                                member.utilizationRate >= 75 ? 'bg-yellow-50 text-yellow-700' :
+                                'bg-green-50 text-green-700'
+                              }`}>
+                                {member.utilizationRate.toFixed(0)}%
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              {totalProjectCount > 0 ? (
+                                <button
+                                  onClick={() => setExpandedTeamMembers({
+                                    ...expandedTeamMembers,
+                                    [member.name]: !expandedTeamMembers[member.name]
+                                  })}
+                                  className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium text-sm"
+                                >
+                                  {searchTerm ? `${filteredProjectCount} of ${totalProjectCount}` : totalProjectCount}
+                                  {expandedTeamMembers[member.name] ? 
+                                    <ChevronDown className="w-4 h-4" /> : 
+                                    <ChevronRight className="w-4 h-4" />
+                                  }
+                                </button>
+                              ) : (
+                                <span className="text-gray-400 text-sm">0</span>
+                              )}
+                            </td>
+                          </tr>
+                          {expandedTeamMembers[member.name] && totalProjectCount > 0 && (
+                            <tr>
+                              <td colSpan="9" className="py-3 px-4 bg-gray-50">
+                                <div className="ml-8 space-y-3">
+                                  <div className="flex items-center gap-2">
+                                    <div className="relative flex-1">
+                                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                      <input
+                                        type="text"
+                                        placeholder="Search projects..."
+                                        value={teamMemberProjectSearch[member.name] || ''}
+                                        onChange={(e) => setTeamMemberProjectSearch({
+                                          ...teamMemberProjectSearch,
+                                          [member.name]: e.target.value
+                                        })}
+                                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        onClick={(e) => e.stopPropagation()}
+                                      />
+                                    </div>
+                                    {searchTerm && (
+                                      <button
+                                        onClick={() => setTeamMemberProjectSearch({
+                                          ...teamMemberProjectSearch,
+                                          [member.name]: ''
+                                        })}
+                                        className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg"
+                                      >
+                                        Clear
+                                      </button>
+                                    )}
+                                  </div>
+                                  
+                                  {filteredProjectCount > 0 ? (
+                                    <>
+                                      <div className="font-medium text-sm text-gray-700">
+                                        Project Breakdown (% of Utilized Hours):
+                                      </div>
+                                      <div className="space-y-1">
+                                        {filteredProjects.map((proj, pIdx) => (
+                                          <div key={pIdx} className="flex justify-between text-sm py-1">
+                                            <span className="text-gray-700">{proj.jobCode}</span>
+                                            <span className="text-gray-900 font-medium">
+                                              {proj.hours.toFixed(1)}h ({proj.percentage.toFixed(1)}%)
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <div className="text-sm text-gray-500 italic">
+                                      No projects match your search
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                    <tr className="bg-gray-50 font-semibold">
+                      <td className="py-3 px-4 text-gray-900">Total</td>
+                      <td className="py-3 px-4"></td>
+                      <td className="py-3 px-4 text-right text-gray-900">{summaryStats.totalBillableHours.toFixed(1)}</td>
+                      <td className="py-3 px-4 text-right text-gray-900">{summaryStats.totalInternalHours.toFixed(1)}</td>
+                      <td className="py-3 px-4 text-right text-gray-900">{summaryStats.totalOOOHours.toFixed(1)}</td>
+                      <td className="py-3 px-4 text-right text-gray-900">{summaryStats.totalUtilized.toFixed(1)}</td>
+                      <td className="py-3 px-4 text-right text-gray-900">{summaryStats.totalAvailable.toFixed(1)}</td>
+                      <td className="py-3 px-4 text-right text-gray-900">{summaryStats.avgUtilization.toFixed(0)}%</td>
+                      <td className="py-3 px-4"></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'projects' && (
+            <div className="col-span-12 bg-white rounded-xl shadow-lg p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">Project Allocation</h2>
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Search projects..."
+                      value={projectsSearch}
+                      onChange={(e) => setProjectsSearch(e.target.value)}
+                      className="w-64 pl-10 pr-8 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    {projectsSearch && (
+                      <button
+                        onClick={() => setProjectsSearch('')}
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Filter className="w-4 h-4 text-gray-500" />
+                    <select
+                      value={projectsFilter}
+                      onChange={(e) => setProjectsFilter(e.target.value)}
+                      className="border border-gray-300 rounded px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="all">All Projects</option>
+                      <option value="billable">Billable</option>
+                      <option value="internal-bd">Internal/BD</option>
+                      <option value="administrative">Administrative (+ OOO)</option>
+                      <option value="ooo">OOO Only</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              
+              {projectsByClient.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  No projects match your search criteria
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {projectsByClient.map((clientGroup, idx) => (
+                    <div key={idx} className="border border-gray-200 rounded-lg overflow-hidden">
+                      <div 
+                        className="bg-gray-50 px-4 py-3 flex justify-between items-center cursor-pointer hover:bg-gray-100"
+                        onClick={() => setExpandedProjects({
+                          ...expandedProjects,
+                          [clientGroup.client]: !expandedProjects[clientGroup.client]
+                        })}
+                      >
+                        <div className="flex items-center gap-2">
+                          {expandedProjects[clientGroup.client] ? 
+                            <ChevronDown className="w-5 h-5 text-gray-600" /> : 
+                            <ChevronRight className="w-5 h-5 text-gray-600" />
+                          }
+                          <span className="font-semibold text-gray-900">
+                            {highlightText(clientGroup.client, projectsSearch)}
+                          </span>
+                        </div>
+                        <span className="text-sm text-gray-600 font-medium">
+                          {clientGroup.totalHours.toFixed(1)} hours
+                        </span>
+                      </div>
+                      
+                      {expandedProjects[clientGroup.client] && (
+                        <div className="p-4 space-y-2">
+                          {clientGroup.projects.map((project, pIdx) => (
+                            <div key={pIdx} className={`border-l-4 pl-4 py-2 ${
+                              project.category === 'Billable' ? 'border-blue-400 bg-blue-50' :
+                              project.category === 'Internal/BD' ? 'border-purple-400 bg-purple-50' :
+                              'border-gray-400 bg-gray-50'
+                            }`}>
+                              <div className="flex justify-between items-start mb-2">
+                                <div className="flex-1 pr-4">
+                                  <div className="font-medium text-gray-900 break-words">
+                                    {highlightText(project.name, projectsSearch)}
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <div className="text-lg font-semibold text-gray-900">
+                                    {project.totalHours.toFixed(1)}h
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <div className="mt-3 space-y-1">
+                                {Object.entries(project.teamMembers)
+                                  .sort(([, a], [, b]) => b - a)
+                                  .map(([memberName, hours], mIdx) => (
+                                    <div key={mIdx} className="flex justify-between text-sm">
+                                      <span className="text-gray-700">{memberName}</span>
+                                      <span className="text-gray-600 font-medium">{hours.toFixed(1)}h</span>
+                                    </div>
+                                  ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
+          )}
 
-            {/* Top Projects Table */}
-            <div className="col-span-12 bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-xl font-bold mb-4">Top Projects by Hours</h2>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">Project</th>
-                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase">Category</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">Total Hours</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">Team Size</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {filteredProjects.slice(0, 10).map((project, idx) => (
-                      <tr key={idx} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-sm font-medium">{project.name}</td>
-                        <td className="px-4 py-3 text-center">{getCategoryBadge(project.category)}</td>
-                        <td className="px-4 py-3 text-sm text-right font-medium">{project.totalHours.toFixed(1)}h</td>
-                        <td className="px-4 py-3 text-sm text-right">{Object.keys(project.teamMembers).length}</td>
+          {activeTab === 'capacity' && (
+            <>
+              <div className="col-span-12 bg-white rounded-xl shadow-lg p-6">
+                <h2 className="text-xl font-bold mb-4">Capacity & Bandwidth Analysis</h2>
+                
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Team Member</th>
+                        <th className="text-right py-3 px-4 font-semibold text-gray-700">Target Hours</th>
+                        <th 
+                          className="text-right py-3 px-4 font-semibold text-gray-700 cursor-pointer hover:bg-gray-100"
+                          onClick={() => handleCapacitySort('oooHours')}
+                        >
+                          OOO {capacitySortConfig.key === 'oooHours' && (capacitySortConfig.direction === 'desc' ? '↓' : '↑')}
+                        </th>
+                        <th 
+                          className="text-right py-3 px-4 font-semibold text-gray-700 cursor-pointer hover:bg-gray-100"
+                          onClick={() => handleCapacitySort('effectiveCapacity')}
+                        >
+                          Effective Capacity {capacitySortConfig.key === 'effectiveCapacity' && (capacitySortConfig.direction === 'desc' ? '↓' : '↑')}
+                        </th>
+                        <th 
+                          className="text-right py-3 px-4 font-semibold text-gray-700 cursor-pointer hover:bg-gray-100"
+                          onClick={() => handleCapacitySort('utilized')}
+                        >
+                          Utilized {capacitySortConfig.key === 'utilized' && (capacitySortConfig.direction === 'desc' ? '↓' : '↑')}
+                        </th>
+                        <th 
+                          className="text-right py-3 px-4 font-semibold text-gray-700 cursor-pointer hover:bg-gray-100"
+                          onClick={() => handleCapacitySort('availableBandwidth')}
+                        >
+                          Available {capacitySortConfig.key === 'availableBandwidth' && (capacitySortConfig.direction === 'desc' ? '↓' : '↑')}
+                        </th>
+                        <th className="text-right py-3 px-4 font-semibold text-gray-700">Status</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* TEAM TAB */}
-        {activeTab === 'team' && (
-          <div className="col-span-12 bg-white rounded-xl shadow-lg p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">Team Member Details</h2>
-              <div className="text-sm text-gray-600">
-                Total: {sortedTeamMembers.length} members
-              </div>
-            </div>
-            
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase cursor-pointer" onClick={() => handleTeamSort('name')}>
-                      Name {teamSortConfig.key === 'name' && (teamSortConfig.direction === 'asc' ? '↑' : '↓')}
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase cursor-pointer" onClick={() => handleTeamSort('totalHours')}>
-                      Total Hours {teamSortConfig.key === 'totalHours' && (teamSortConfig.direction === 'asc' ? '↑' : '↓')}
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase cursor-pointer" onClick={() => handleTeamSort('billableHours')}>
-                      Billable {teamSortConfig.key === 'billableHours' && (teamSortConfig.direction === 'asc' ? '↑' : '↓')}
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase cursor-pointer" onClick={() => handleTeamSort('internalHours')}>
-                      Internal/BD {teamSortConfig.key === 'internalHours' && (teamSortConfig.direction === 'asc' ? '↑' : '↓')}
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase cursor-pointer" onClick={() => handleTeamSort('oooHours')}>
-                      OOO {teamSortConfig.key === 'oooHours' && (teamSortConfig.direction === 'asc' ? '↑' : '↓')}
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase cursor-pointer" onClick={() => handleTeamSort('utilization')}>
-                      Utilization {teamSortConfig.key === 'utilization' && (teamSortConfig.direction === 'asc' ? '↑' : '↓')}
-                    </th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase">Projects</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {sortedTeamMembers.map((member, idx) => (
-                    <React.Fragment key={idx}>
-                      <tr className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-sm font-medium text-gray-900">{member.name}</td>
-                        <td className="px-4 py-3 text-sm text-right font-semibold">{member.totalHours.toFixed(1)}h</td>
-                        <td className="px-4 py-3 text-sm text-right text-cyan-600">{member.billableHours.toFixed(1)}h</td>
-                        <td className="px-4 py-3 text-sm text-right text-purple-600">{member.internalHours.toFixed(1)}h</td>
-                        <td className="px-4 py-3 text-sm text-right text-amber-600">{member.oooHours.toFixed(1)}h</td>
-                        <td className="px-4 py-3 text-sm text-right font-medium">{member.utilization.toFixed(0)}%</td>
-                        <td className="px-4 py-3 text-center">
-                          <button
-                            onClick={() => setExpandedTeamMembers(prev => ({ ...prev, [member.name]: !prev[member.name] }))}
-                            className="text-blue-600 hover:text-blue-800 text-sm flex items-center justify-center mx-auto"
-                          >
-                            {expandedTeamMembers[member.name] ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                            {Object.keys(member.projects).length}
-                          </button>
-                        </td>
-                      </tr>
-                      {expandedTeamMembers[member.name] && (
-                        <tr>
-                          <td colSpan="7" className="px-4 py-3 bg-gray-50">
-                            <div className="pl-8">
-                              <h4 className="font-semibold text-sm mb-2">Projects:</h4>
-                              <div className="space-y-1">
-                                {Object.entries(member.projects).map(([project, hours], pidx) => (
-                                  <div key={pidx} className="flex justify-between text-sm py-1">
-                                    <span className="text-gray-700">{project}</span>
-                                    <span className="font-medium text-gray-900">{hours.toFixed(1)}h</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* PROJECTS TAB */}
-        {activeTab === 'projects' && (
-          <div className="col-span-12 space-y-6">
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">Projects Overview</h2>
-                <select className="px-4 py-2 border rounded-lg" value={projectFilter} onChange={(e) => setProjectFilter(e.target.value)}>
-                  <option value="all">All Categories</option>
-                  <option value="Billable">Billable Only</option>
-                  <option value="Internal/BD">Internal/BD Only</option>
-                  <option value="OOO">OOO Only</option>
-                </select>
-              </div>
-              
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase cursor-pointer" onClick={() => handleProjectSort('name')}>
-                        Project Name {projectSortConfig.key === 'name' && (projectSortConfig.direction === 'asc' ? '↑' : '↓')}
-                      </th>
-                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase">Category</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase cursor-pointer" onClick={() => handleProjectSort('totalHours')}>
-                        Total Hours {projectSortConfig.key === 'totalHours' && (projectSortConfig.direction === 'asc' ? '↑' : '↓')}
-                      </th>
-                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase">Team Members</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {filteredProjects.map((project, idx) => (
-                      <React.Fragment key={idx}>
-                        <tr className="hover:bg-gray-50">
-                          <td className="px-4 py-3 text-sm font-medium text-gray-900">{project.name}</td>
-                          <td className="px-4 py-3 text-center">{getCategoryBadge(project.category)}</td>
-                          <td className="px-4 py-3 text-sm text-right font-semibold">{project.totalHours.toFixed(1)}h</td>
-                          <td className="px-4 py-3 text-center">
-                            <button
-                              onClick={() => setExpandedProjects(prev => ({ ...prev, [project.name]: !prev[project.name] }))}
-                              className="text-blue-600 hover:text-blue-800 text-sm flex items-center justify-center mx-auto"
-                            >
-                              {expandedProjects[project.name] ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                              {Object.keys(project.teamMembers).length}
-                            </button>
-                          </td>
-                        </tr>
-                        {expandedProjects[project.name] && (
-                          <tr>
-                            <td colSpan="4" className="px-4 py-3 bg-gray-50">
-                              <div className="pl-8">
-                                <h4 className="font-semibold text-sm mb-2">Team Members:</h4>
-                                <div className="grid grid-cols-2 gap-2">
-                                  {Object.entries(project.teamMembers).map(([member, hours], midx) => (
-                                    <div key={midx} className="flex justify-between text-sm py-1">
-                                      <span className="text-gray-700">{member}</span>
-                                      <span className="font-medium text-gray-900">{hours.toFixed(1)}h</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {sortedCapacityMembers.map((member, index) => {
+                        const weeklyTarget = 40;
+                        return (
+                          <tr key={index} className="hover:bg-gray-50">
+                            <td className="py-3 px-4 font-medium text-gray-900">{member.name}</td>
+                            <td className="py-3 px-4 text-right text-gray-600">{weeklyTarget.toFixed(1)}</td>
+                            <td className="py-3 px-4 text-right text-gray-600">{member.oooHours.toFixed(1)}</td>
+                            <td className="py-3 px-4 text-right font-medium text-gray-900">{member.effectiveCapacity.toFixed(1)}</td>
+                            <td className="py-3 px-4 text-right text-gray-600">{member.utilized.toFixed(1)}</td>
+                            <td className="py-3 px-4 text-right">
+                              <span className={`font-medium ${
+                                member.availableBandwidth < 0 ? 'text-red-600' : 
+                                member.availableBandwidth < 10 ? 'text-yellow-600' :
+                                'text-green-600'
+                              }`}>
+                                {member.availableBandwidth.toFixed(1)}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              {member.availableBandwidth < 0 ? (
+                                <span className="px-2 py-1 bg-red-50 text-red-700 rounded-full text-xs font-medium">
+                                  Overallocated
+                                </span>
+                              ) : member.availableBandwidth < 10 ? (
+                                <span className="px-2 py-1 bg-yellow-50 text-yellow-700 rounded-full text-xs font-medium">
+                                  Near Capacity
+                                </span>
+                              ) : (
+                                <span className="px-2 py-1 bg-green-50 text-green-700 rounded-full text-xs font-medium">
+                                  Available
+                                </span>
+                              )}
                             </td>
                           </tr>
-                        )}
-                      </React.Fragment>
-                    ))}
-                  </tbody>
-                </table>
+                        );
+                      })}
+                      <tr className="bg-gray-50 font-semibold">
+                        <td className="py-3 px-4 text-gray-900">Total</td>
+                        <td className="py-3 px-4 text-right text-gray-900">
+                          {(Object.keys(processedData.teamMembers).length * 40).toFixed(1)}
+                        </td>
+                        <td className="py-3 px-4 text-right text-gray-900">{summaryStats.totalOOOHours.toFixed(1)}</td>
+                        <td className="py-3 px-4 text-right text-gray-900">{summaryStats.totalCapacity.toFixed(1)}</td>
+                        <td className="py-3 px-4 text-right text-gray-900">{summaryStats.totalUtilized.toFixed(1)}</td>
+                        <td className="py-3 px-4 text-right text-gray-900">{summaryStats.totalAvailable.toFixed(1)}</td>
+                        <td className="py-3 px-4"></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
 
-            {/* Clients Section */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-xl font-bold mb-4">Client Overview</h2>
-              <div className="space-y-4">
-                {Object.values(processedData.clients).sort((a, b) => b.totalHours - a.totalHours).map((client, idx) => (
-                  <div key={idx} className="border rounded-lg p-4">
-                    <div className="flex justify-between items-center cursor-pointer" onClick={() => setExpandedClients(prev => ({ ...prev, [client.name]: !prev[client.name] }))}>
-                      <div>
-                        <h3 className="font-semibold text-lg">{client.name}</h3>
-                        <p className="text-sm text-gray-600">{Object.keys(client.projects).length} projects</p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl font-bold text-gray-900">{client.totalHours.toFixed(1)}h</span>
-                        {expandedClients[client.name] ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
-                      </div>
-                    </div>
-                    {expandedClients[client.name] && (
-                      <div className="mt-4 pl-4 space-y-2 border-l-2 border-gray-200">
-                        {Object.entries(client.projects).map(([project, hours], pidx) => (
-                          <div key={pidx} className="flex justify-between text-sm">
-                            <span className="text-gray-700">{project}</span>
-                            <span className="font-medium">{hours.toFixed(1)}h</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+              <div className="col-span-12 grid grid-cols-3 gap-4">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                  <UserCheck className="w-8 h-8 text-green-600 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-gray-900">
+                    {Object.values(processedData.teamMembers)
+                      .filter(m => m.availableBandwidth >= 10).length}
                   </div>
-                ))}
+                  <p className="text-sm text-gray-600 mt-1">Available Capacity</p>
+                </div>
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
+                  <Target className="w-8 h-8 text-yellow-600 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-gray-900">
+                    {Object.values(processedData.teamMembers)
+                      .filter(m => m.availableBandwidth >= 0 && m.availableBandwidth < 10).length}
+                  </div>
+                  <p className="text-sm text-gray-600 mt-1">Near Capacity</p>
+                </div>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+                  <AlertTriangle className="w-8 h-8 text-red-600 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-gray-900">
+                    {Object.values(processedData.teamMembers)
+                      .filter(m => m.availableBandwidth < 0).length}
+                  </div>
+                  <p className="text-sm text-gray-600 mt-1">Over Capacity</p>
+                </div>
               </div>
-            </div>
-          </div>
-        )}
 
-        {/* CAPACITY TAB */}
-        {activeTab === 'capacity' && (
-          <div className="col-span-12 space-y-6">
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <div className="mb-4">
-                <h2 className="text-xl font-bold">Capacity Planning</h2>
-                <p className="text-sm text-gray-600 mt-1">
-                  Showing available hours based on {selectedWeeks.length > 0 ? selectedWeeks.length : 4} week(s) selected
-                </p>
+              <div className="col-span-12 bg-white rounded-xl shadow-lg p-6">
+                <h3 className="font-semibold mb-3">Capacity Alerts</h3>
+                <div className="space-y-2">
+                  {Object.values(processedData.teamMembers)
+                    .filter(m => m.availableBandwidth < 0)
+                    .map((member, index) => (
+                      <div key={index} className="flex items-center gap-2 p-2 bg-red-50 rounded-lg">
+                        <AlertCircle className="w-4 h-4 text-red-600" />
+                        <span className="text-sm">
+                          <span className="font-medium">{member.name}</span> is overallocated by {Math.abs(member.availableBandwidth).toFixed(1)} hours ({member.utilizationRate.toFixed(0)}% utilized)
+                        </span>
+                      </div>
+                    ))}
+                  {Object.values(processedData.teamMembers).filter(m => m.availableBandwidth < 0).length === 0 && (
+                    <div className="flex items-center gap-2 p-2 bg-green-50 rounded-lg">
+                      <UserCheck className="w-4 h-4 text-green-600" />
+                      <span className="text-sm text-gray-600">No overallocated team members</span>
+                    </div>
+                  )}
+                </div>
               </div>
+            </>
+          )}
+
+          {activeTab === 'exceptions' && (
+            <div className="col-span-12 bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-xl font-bold mb-4">Time Entry Exceptions & Alerts</h2>
               
-              <div className="overflow-x-auto">
+              <div className="grid grid-cols-3 gap-4 mb-6">
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2 text-yellow-700 mb-2">
+                    <AlertCircle className="w-5 h-5" />
+                    <span className="font-semibold">Low Hours</span>
+                  </div>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {Object.values(processedData.teamMembers).filter(m => m.totalHours > 0 && m.totalHours < 20).length}
+                  </p>
+                  <p className="text-sm text-gray-600">Below 20 hours/week</p>
+                </div>
+
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2 text-orange-700 mb-2">
+                    <AlertTriangle className="w-5 h-5" />
+                    <span className="font-semibold">Near Capacity</span>
+                  </div>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {Object.values(processedData.teamMembers).filter(m => m.availableBandwidth < 10 && m.availableBandwidth >= 0).length}
+                  </p>
+                  <p className="text-sm text-gray-600">Less than 10h available</p>
+                </div>
+
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2 text-red-700 mb-2">
+                    <AlertCircle className="w-5 h-5" />
+                    <span className="font-semibold">Overallocated</span>
+                  </div>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {Object.values(processedData.teamMembers).filter(m => m.availableBandwidth < 0).length}
+                  </p>
+                  <p className="text-sm text-gray-600">Over capacity</p>
+                </div>
+              </div>
+
+              <div className="border border-gray-200 rounded-lg overflow-hidden">
                 <table className="w-full">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase cursor-pointer" onClick={() => handleCapacitySort('name')}>
-                        Name {capacitySortConfig.key === 'name' && (capacitySortConfig.direction === 'asc' ? '↑' : '↓')}
-                      </th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">Standard Capacity</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase cursor-pointer" onClick={() => handleCapacitySort('billableHours')}>
-                        Billable {capacitySortConfig.key === 'billableHours' && (capacitySortConfig.direction === 'asc' ? '↑' : '↓')}
-                      </th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase cursor-pointer" onClick={() => handleCapacitySort('internalHours')}>
-                        Internal {capacitySortConfig.key === 'internalHours' && (capacitySortConfig.direction === 'asc' ? '↑' : '↓')}
-                      </th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase cursor-pointer" onClick={() => handleCapacitySort('availableHours')}>
-                        Available {capacitySortConfig.key === 'availableHours' && (capacitySortConfig.direction === 'asc' ? '↑' : '↓')}
-                      </th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase cursor-pointer" onClick={() => handleCapacitySort('utilization')}>
-                        Utilization % {capacitySortConfig.key === 'utilization' && (capacitySortConfig.direction === 'asc' ? '↑' : '↓')}
-                      </th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Issue Type</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Team Member</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Details</th>
+                      <th className="text-center py-3 px-4 font-semibold text-gray-700">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y">
-                    {sortedCapacityMembers.map((member, idx) => (
-                      <tr key={idx} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-sm font-medium text-gray-900">{member.name}</td>
-                        <td className="px-4 py-3 text-sm text-right text-gray-600">{member.standardCapacity}h</td>
-                        <td className="px-4 py-3 text-sm text-right text-cyan-600 font-medium">{member.billableHours.toFixed(1)}h</td>
-                        <td className="px-4 py-3 text-sm text-right text-purple-600 font-medium">{member.internalHours.toFixed(1)}h</td>
-                        <td className="px-4 py-3 text-sm text-right text-green-600 font-bold">{member.availableHours.toFixed(1)}h</td>
-                        <td className="px-4 py-3 text-sm text-right font-semibold">
-                          <span className={member.utilization >= 95 ? 'text-red-600' : member.utilization < 60 ? 'text-amber-600' : 'text-green-600'}>
-                            {member.utilization.toFixed(0)}%
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
+                  <tbody>
+                    {Object.values(processedData.teamMembers)
+                      .filter(m => m.availableBandwidth < 0)
+                      .map((member, idx) => (
+                        <tr key={`over-${idx}`} className="border-t border-gray-100">
+                          <td className="py-3 px-4">
+                            <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">
+                              Overallocated
+                            </span>
+                          </td>
+                          <td className="py-3 px-4">{member.name}</td>
+                          <td className="py-3 px-4 text-sm text-gray-600">
+                            {Math.abs(member.availableBandwidth).toFixed(1)}h over capacity ({member.utilizationRate.toFixed(0)}% utilized)
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <span className="text-red-600 text-sm font-medium">Action Required</span>
+                          </td>
+                        </tr>
+                      ))}
+                    {Object.values(processedData.teamMembers)
+                      .filter(m => m.totalHours > 0 && m.totalHours < 20)
+                      .map((member, idx) => (
+                        <tr key={`low-${idx}`} className="border-t border-gray-100">
+                          <td className="py-3 px-4">
+                            <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">
+                              Low Hours
+                            </span>
+                          </td>
+                          <td className="py-3 px-4">{member.name}</td>
+                          <td className="py-3 px-4 text-sm text-gray-600">
+                            Only {member.totalHours.toFixed(1)} hours logged
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <span className="text-yellow-600 text-sm font-medium">Review</span>
+                          </td>
+                        </tr>
+                      ))}
                   </tbody>
                 </table>
               </div>
-            </div>
 
-            {/* Capacity Summary Cards */}
-            <div className="grid grid-cols-3 gap-4">
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <h3 className="font-semibold text-green-900 mb-2">Available for Staffing</h3>
-                <p className="text-3xl font-bold text-green-700">
-                  {sortedCapacityMembers.reduce((sum, m) => sum + m.availableHours, 0).toFixed(0)}h
-                </p>
-                <p className="text-sm text-green-600 mt-1">Total available hours across team</p>
-              </div>
-              <div className="bg-cyan-50 border border-cyan-200 rounded-lg p-4">
-                <h3 className="font-semibold text-cyan-900 mb-2">Currently Billable</h3>
-                <p className="text-3xl font-bold text-cyan-700">
-                  {sortedCapacityMembers.reduce((sum, m) => sum + m.billableHours, 0).toFixed(0)}h
-                </p>
-                <p className="text-sm text-cyan-600 mt-1">Total billable hours logged</p>
-              </div>
-              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                <h3 className="font-semibold text-purple-900 mb-2">Internal/BD Hours</h3>
-                <p className="text-3xl font-bold text-purple-700">
-                  {sortedCapacityMembers.reduce((sum, m) => sum + m.internalHours, 0).toFixed(0)}h
-                </p>
-                <p className="text-sm text-purple-600 mt-1">Time invested in growth</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* EXCEPTIONS TAB */}
-        {activeTab === 'exceptions' && (
-          <div className="col-span-12 space-y-6">
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-xl font-bold mb-4">Exception Alerts</h2>
-              
-              <div className="grid grid-cols-3 gap-6">
-                {/* Over-utilized */}
-                <div>
-                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                    <AlertTriangle className="w-5 h-5 text-red-500" />
-                    Over-Utilized (&gt;40h/week avg)
-                  </h3>
-                  <div className="space-y-2">
-                    {sortedTeamMembers
-                      .filter(member => {
-                        const weekCount = selectedWeeks.length > 0 ? selectedWeeks.length : 4;
-                        const avgPerWeek = member.totalHours / weekCount;
-                        return avgPerWeek > 40;
-                      })
-                      .map(member => {
-                        const weekCount = selectedWeeks.length > 0 ? selectedWeeks.length : 4;
-                        const avgPerWeek = member.totalHours / weekCount;
-                        return (
-                          <div key={member.name} className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-200">
-                            <div>
-                              <div className="font-medium text-gray-900">{member.name}</div>
-                              <div className="text-sm text-gray-600">{avgPerWeek.toFixed(1)}h per week average</div>
-                            </div>
-                            <span className="font-medium text-red-600">{member.totalHours.toFixed(1)}h</span>
-                          </div>
-                        );
-                      })}
-                    {sortedTeamMembers.filter(member => {
-                      const weekCount = selectedWeeks.length > 0 ? selectedWeeks.length : 4;
-                      return (member.totalHours / weekCount) > 40;
-                    }).length === 0 && (
-                      <div className="text-gray-500 text-sm">No over-utilization alerts</div>
-                    )}
-                  </div>
-                </div>
-
-                {/* High OOO */}
-                <div>
-                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                    <Coffee className="w-5 h-5 text-amber-500" />
-                    High OOO (&gt;20h)
-                  </h3>
-                  <div className="space-y-2">
-                    {sortedTeamMembers
-                      .filter(member => member.oooHours > 20)
-                      .map(member => (
-                        <div key={member.name} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-300">
-                          <div>
-                            <div className="font-medium text-gray-900">{member.name}</div>
-                            <div className="text-sm text-gray-600">{member.oooHours.toFixed(1)}h out of office</div>
-                          </div>
-                          <span className="font-medium text-gray-700">{member.oooHours.toFixed(1)}h</span>
-                        </div>
-                      ))}
-                    {sortedTeamMembers.filter(member => member.oooHours > 20).length === 0 && (
-                      <div className="text-gray-500 text-sm">No high OOO alerts</div>
-                    )}
-                  </div>
-                </div>
-
-                {/* High Billable Load */}
-                <div>
-                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                    <Activity className="w-5 h-5 text-cyan-500" />
-                    High Billable Load (&gt;40h/week avg)
-                  </h3>
-                  <div className="space-y-2">
-                    {sortedTeamMembers
-                      .filter(member => {
-                        const weekCount = selectedWeeks.length > 0 ? selectedWeeks.length : 4;
-                        const avgPerWeek = member.billableHours / weekCount;
-                        return avgPerWeek > 40;
-                      })
-                      .map(member => {
-                        const weekCount = selectedWeeks.length > 0 ? selectedWeeks.length : 4;
-                        const avgPerWeek = member.billableHours / weekCount;
-                        return (
-                          <div key={member.name} className="flex items-center justify-between p-3 bg-cyan-50 rounded-lg border border-cyan-200">
-                            <div>
-                              <div className="font-medium text-gray-900">{member.name}</div>
-                              <div className="text-sm text-gray-600">{avgPerWeek.toFixed(1)}h billable per week</div>
-                            </div>
-                            <span className="font-medium text-gray-900">{member.billableHours.toFixed(1)}h</span>
-                          </div>
-                        );
-                      })}
-                    {sortedTeamMembers.filter(member => {
-                      const weekCount = selectedWeeks.length > 0 ? selectedWeeks.length : 4;
-                      return (member.billableHours / weekCount) > 40;
-                    }).length === 0 && (
-                      <div className="text-gray-500 text-sm">No high billable load alerts</div>
-                    )}
+              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
+                  <div>
+                    <p className="font-semibold text-blue-900">Data Quality Score: {
+                      (100 - (Object.values(processedData.teamMembers).filter(m => m.availableBandwidth < 0).length * 5) - 
+                      (Object.values(processedData.teamMembers).filter(m => m.totalHours > 0 && m.totalHours < 20).length * 2)).toFixed(0)
+                    }%</p>
+                    <p className="text-sm text-blue-700 mt-1">
+                      Time entries are tracked. Monitor capacity allocation and address overallocated team members.
+                    </p>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
