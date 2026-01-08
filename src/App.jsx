@@ -200,6 +200,51 @@ Sundar,Barath,bsundar@stocadvisory.com,Holiday,8
 Tuli,Rahul,rtuli@stocadvisory.com,Vacation,32`
 };
 
+// ============================================================================
+// SCHEDULE DATA - DAY-LEVEL ASSIGNMENTS
+// Schedule data by week showing daily assignments with times and customers
+// ============================================================================
+const SCHEDULE_DATA_BY_WEEK = {
+  "Jan 4 – Jan 10, 2026": [
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-06", end_date: "2026-01-06", day: "Tue", customer: "Lake Worth and Town & Country", employee: "Brandon McFadden", start_time: "8:30a", end_time: "10:30a", hours: 2, details: "(customer inferred from cell text; row label not visible)", start_datetime: "2026-01-06 8:30a", end_datetime: "2026-01-06 10:30a" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-07", day: "Wed", customer: "SP - Southern Smiles", employee: "Hung Nguyen", start_time: "9:00a", end_time: "11:00a", hours: 2, details: "", start_datetime: "2026-01-07 9:00a", end_datetime: "2026-01-07 11:00a" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-05", end_date: "2026-01-05", day: "Mon", customer: "AEG - Child and Family Eye Care Center", employee: "Brandon McFadden", start_time: "8:30a", end_time: "1:30p", hours: 5, details: "", start_datetime: "2026-01-05 8:30a", end_datetime: "2026-01-05 1:30p" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-09", end_date: "2026-01-09", day: "Fri", customer: "AEG - Metropolitan Vision", employee: "Brandon McFadden", start_time: "8:30a", end_time: "12:30p", hours: 4, details: "", start_datetime: "2026-01-09 8:30a", end_datetime: "2026-01-09 12:30p" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-05", end_date: "2026-01-06", day: "Mon", customer: "AEG - Sandy & Draper Vision", employee: "Pravin Jadhav", start_time: "10:30p", end_time: "3:30a", hours: 5, details: "Lake Worth and Town & Country (overnight)", start_datetime: "2026-01-05 10:30p", end_datetime: "2026-01-06 3:30a" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-06", end_date: "2026-01-07", day: "Tue", customer: "AEG - Sandy & Draper Vision", employee: "Pravin Jadhav", start_time: "10:30p", end_time: "3:30a", hours: 5, details: "Lake Worth and Town & Country (overnight)", start_datetime: "2026-01-06 10:30p", end_datetime: "2026-01-07 3:30a" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-08", day: "Wed", customer: "AEG - Sandy & Draper Vision", employee: "Pravin Jadhav", start_time: "10:30p", end_time: "3:30a", hours: 5, details: "AEG - Pascarella Eye Care and Contact Lenses (Dr. Pascarella) (overnight)", start_datetime: "2026-01-07 10:30p", end_datetime: "2026-01-08 3:30a" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-09", day: "Thu", customer: "AEG - Sandy & Draper Vision", employee: "Pravin Jadhav", start_time: "10:30p", end_time: "3:30a", hours: 5, details: "AEG - Pascarella Eye Care and Contact Lenses (Dr. Pascarella) (overnight)", start_datetime: "2026-01-08 10:30p", end_datetime: "2026-01-09 3:30a" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-05", end_date: "2026-01-05", day: "Mon", customer: "AEG - South Shore Eye Center", employee: "Brandon McFadden", start_time: "1:30p", end_time: "4:30p", hours: 3, details: "", start_datetime: "2026-01-05 1:30p", end_datetime: "2026-01-05 4:30p" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-06", end_date: "2026-01-06", day: "Tue", customer: "AEG - South Shore Eye Center", employee: "Brandon McFadden", start_time: "12:30p", end_time: "4:30p", hours: 4, details: "", start_datetime: "2026-01-06 12:30p", end_datetime: "2026-01-06 4:30p" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-07", day: "Wed", customer: "AEG - South Shore Eye Center", employee: "Brandon McFadden", start_time: "8:30a", end_time: "12:30p", hours: 4, details: "", start_datetime: "2026-01-07 8:30a", end_datetime: "2026-01-07 12:30p" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-08", day: "Thu", customer: "AEG - South Shore Eye Center", employee: "Brandon McFadden", start_time: "12:30p", end_time: "4:30p", hours: 4, details: "", start_datetime: "2026-01-08 12:30p", end_datetime: "2026-01-08 4:30p" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-07", day: "Wed", customer: "Archway - Connecticut Dental (Archway - DP)", employee: "Leah Hudson", start_time: "8:30a", end_time: "5:00p", hours: 8.5, details: "Archway - DP", start_datetime: "2026-01-07 8:30a", end_datetime: "2026-01-07 5:00p" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-08", day: "Thu", customer: "Archway - Connecticut Dental (Archway - DP)", employee: "Leah Hudson", start_time: "8:30a", end_time: "5:00p", hours: 8.5, details: "Archway - DP", start_datetime: "2026-01-08 8:30a", end_datetime: "2026-01-08 5:00p" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-09", end_date: "2026-01-09", day: "Fri", customer: "Archway - Connecticut Dental (Archway - DP)", employee: "Leah Hudson", start_time: "8:30a", end_time: "5:00p", hours: 8.5, details: "Archway - DP", start_datetime: "2026-01-09 8:30a", end_datetime: "2026-01-09 5:00p" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-05", end_date: "2026-01-05", day: "Mon", customer: "Holiday", employee: "Sean Egan", start_time: "", end_time: "", hours: 8, details: "8hrs", start_datetime: "2026-01-05", end_datetime: "2026-01-05" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-06", end_date: "2026-01-06", day: "Tue", customer: "Holiday", employee: "Sean Egan", start_time: "", end_time: "", hours: 8, details: "8hrs", start_datetime: "2026-01-06", end_datetime: "2026-01-06" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-07", day: "Wed", customer: "Holiday", employee: "Barath Sundar", start_time: "", end_time: "", hours: 8, details: "8hrs", start_datetime: "2026-01-07", end_datetime: "2026-01-07" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-08", day: "Thu", customer: "Holiday", employee: "Barath Sundar", start_time: "", end_time: "", hours: 8, details: "8hrs", start_datetime: "2026-01-08", end_datetime: "2026-01-08" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-09", end_date: "2026-01-09", day: "Fri", customer: "Holiday", employee: "Barath Sundar", start_time: "", end_time: "", hours: 8, details: "8hrs", start_datetime: "2026-01-09", end_datetime: "2026-01-09" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-07", day: "Wed", customer: "Budget - FP&A", employee: "Jishnu Chiramkara", start_time: "9:00a", end_time: "5:00p", hours: 8, details: "", start_datetime: "2026-01-07 9:00a", end_datetime: "2026-01-07 5:00p" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-08", day: "Thu", customer: "Budget - FP&A", employee: "Jishnu Chiramkara", start_time: "9:00a", end_time: "5:00p", hours: 8, details: "", start_datetime: "2026-01-08 9:00a", end_datetime: "2026-01-08 5:00p" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-09", end_date: "2026-01-09", day: "Fri", customer: "Budget - FP&A", employee: "Jishnu Chiramkara", start_time: "9:00a", end_time: "5:00p", hours: 8, details: "", start_datetime: "2026-01-09 9:00a", end_datetime: "2026-01-09 5:00p" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-07", day: "Wed", customer: "SALT - Alden Bridge Pediatric", employee: "Brandon McFadden", start_time: "1:00p", end_time: "4:30p", hours: 3.5, details: "", start_datetime: "2026-01-07 1:00p", end_datetime: "2026-01-07 4:30p" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-09", day: "Thu", customer: "SALT - Alden Bridge Pediatric", employee: "Arjit Saxena", start_time: "10:30p", end_time: "7:30a", hours: 9, details: "Alden bridge (overnight)", start_datetime: "2026-01-08 10:30p", end_datetime: "2026-01-09 7:30a" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-08", day: "Thu", customer: "SALT - Chesapeake Pediatric", employee: "Matthew Hottman", start_time: "8:30a", end_time: "4:30p", hours: 8, details: "", start_datetime: "2026-01-08 8:30a", end_datetime: "2026-01-08 4:30p" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-07", day: "Wed", customer: "SALT - Haeger Orthodontics", employee: "Matthew Hottman", start_time: "8:30a", end_time: "4:30p", hours: 8, details: "", start_datetime: "2026-01-07 8:30a", end_datetime: "2026-01-07 4:30p" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-08", day: "Thu", customer: "SALT - Haeger Orthodontics", employee: "Brandon McFadden", start_time: "8:30a", end_time: "12:30p", hours: 4, details: "", start_datetime: "2026-01-08 8:30a", end_datetime: "2026-01-08 12:30p" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-09", end_date: "2026-01-09", day: "Fri", customer: "SALT - Haeger Orthodontics", employee: "Brandon McFadden", start_time: "8:30a", end_time: "12:30p", hours: 4, details: "", start_datetime: "2026-01-09 8:30a", end_datetime: "2026-01-09 12:30p" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-08", day: "Wed", customer: "SALT - Haeger Orthodontics", employee: "Arjit Saxena", start_time: "10:30p", end_time: "7:30a", hours: 9, details: "Myortho and Haeger Ortho (overnight)", start_datetime: "2026-01-07 10:30p", end_datetime: "2026-01-08 7:30a" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-06", end_date: "2026-01-06", day: "Tue", customer: "SALT - Houston OMS", employee: "Matthew Hottman", start_time: "8:30a", end_time: "4:30p", hours: 8, details: "", start_datetime: "2026-01-06 8:30a", end_datetime: "2026-01-06 4:30p" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-09", day: "Thu", customer: "SALT - Houston OMS", employee: "Rahul Tuli", start_time: "10:30p", end_time: "7:30a", hours: 9, details: "(overnight)", start_datetime: "2026-01-08 10:30p", end_datetime: "2026-01-09 7:30a" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-09", end_date: "2026-01-09", day: "Fri", customer: "SALT - MyOrthodontist", employee: "Matthew Hottman", start_time: "8:30a", end_time: "4:30p", hours: 8, details: "", start_datetime: "2026-01-09 8:30a", end_datetime: "2026-01-09 4:30p" }
+  ],
+  "Dec 28, 2025 – Jan 3, 2026": [],
+  "Dec 21 – Dec 27, 2025": [],
+  "Dec 14 – Dec 20, 2025": []
+};
+
 
 // Backward compatibility: Keep rawData1 and rawData2 for any code that still references them
 const rawData1 = WEEK_DATA["Jan 4 – Jan 10, 2026"];
@@ -253,6 +298,11 @@ const StocStaffingDashboard = () => {
   const [riskClientFilter, setRiskClientFilter] = useState('all');
   const [riskLevelFilter, setRiskLevelFilter] = useState('all');
   const [riskTableSortConfig, setRiskTableSortConfig] = useState({ key: 'utilization', direction: 'desc' });
+
+  // Schedule section state
+  const [goForwardToday, setGoForwardToday] = useState(new Date().toISOString().split('T')[0]);
+  const [goForwardProjectSearch, setGoForwardProjectSearch] = useState('');
+  const [showScheduleHoursBreakdown, setShowScheduleHoursBreakdown] = useState(false);
 
   // Parse data
   const week1Data = useMemo(() => parseCSV(rawData1), []);
@@ -923,7 +973,7 @@ const StocStaffingDashboard = () => {
 
           {/* Navigation Tabs */}
           <div className="flex gap-2 border-b border-gray-200">
-            {['overview', 'teams', 'projects', 'capacity', 'exceptions'].map((tab) => (
+            {['overview', 'teams', 'projects', 'capacity', 'exceptions', 'schedule'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -2082,6 +2132,379 @@ const StocStaffingDashboard = () => {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* SCHEDULE SECTION */}
+          {activeTab === 'schedule' && (
+            <div className="col-span-12">
+              {(() => {
+                // Extract main client from customer name
+                const extractMainClient = (customer) => {
+                  if (!customer) return 'Unknown';
+                  const dashIndex = customer.indexOf(' - ');
+                  if (dashIndex > 0) {
+                    return customer.substring(0, dashIndex);
+                  }
+                  return customer;
+                };
+
+                // Parse hours safely
+                const parseHours = (row) => {
+                  if (row.hours && !isNaN(parseFloat(row.hours))) {
+                    return parseFloat(row.hours);
+                  }
+                  return 0;
+                };
+
+                // Format date for display
+                const formatDate = (dateStr) => {
+                  if (!dateStr) return '—';
+                  try {
+                    const date = new Date(`${dateStr}T00:00:00`);
+                    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                  } catch {
+                    return dateStr;
+                  }
+                };
+
+                // Get day of week (use row.day if available, otherwise compute safely)
+                const getDayOfWeek = (row) => {
+                  if (row.day) return row.day;
+                  if (!row.date) return '—';
+                  try {
+                    const date = new Date(`${row.date}T00:00:00`);
+                    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+                    return days[date.getDay()];
+                  } catch {
+                    return '—';
+                  }
+                };
+
+                // Check if shift is overnight
+                const isOvernight = (row) => {
+                  return row.end_date && row.date && row.end_date !== row.date;
+                };
+
+                // Format time display
+                const formatTime = (row) => {
+                  if (!row.start_time || !row.end_time) return '—';
+                  const overnight = isOvernight(row);
+                  return `${row.start_time} – ${row.end_time}${overnight ? ' (overnight)' : ''}`;
+                };
+
+                // Get schedule data for selected week
+                if (selectedPeriods.length !== 1) {
+                  return (
+                    <div className="bg-white rounded-xl shadow-lg p-12 text-center">
+                      <Calendar className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+                      <p className="text-lg text-gray-600">Please select exactly one week to view the schedule.</p>
+                    </div>
+                  );
+                }
+
+                const weekLabel = selectedPeriods[0];
+                const scheduleData = SCHEDULE_DATA_BY_WEEK?.[weekLabel] || [];
+
+                if (scheduleData.length === 0) {
+                  return (
+                    <div className="bg-white rounded-xl shadow-lg p-12 text-center">
+                      <Calendar className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+                      <p className="text-lg text-gray-600">No schedule data available for the selected week.</p>
+                    </div>
+                  );
+                }
+
+                // Use goForwardToday for filtering (already exists in state)
+                const todayDateObj = new Date(`${goForwardToday}T00:00:00`);
+                todayDateObj.setHours(0, 0, 0, 0);
+
+                // Filter for remaining days (strictly after today)
+                const filteredRows = scheduleData.filter(row => {
+                  if (!row.date || !row.employee || !row.customer) return false;
+                  
+                  try {
+                    const rowDate = new Date(`${row.date}T00:00:00`);
+                    rowDate.setHours(0, 0, 0, 0);
+                    
+                    // Only include dates strictly AFTER today
+                    if (rowDate <= todayDateObj) return false;
+                    
+                    // Apply search filter if exists
+                    if (goForwardProjectSearch && goForwardProjectSearch.trim()) {
+                      const query = goForwardProjectSearch.toLowerCase();
+                      const customerMatch = row.customer.toLowerCase().includes(query);
+                      const employeeMatch = row.employee.toLowerCase().includes(query);
+                      if (!customerMatch && !employeeMatch) return false;
+                    }
+                    
+                    return true;
+                  } catch {
+                    return false;
+                  }
+                });
+
+                // Get remaining dates
+                const remainingDates = [...new Set(filteredRows.map(row => row.date))].sort();
+
+                // Group by main client, then by project
+                const mainClientGroups = {};
+                
+                filteredRows.forEach(row => {
+                  const mainClient = extractMainClient(row.customer);
+                  const project = row.customer;
+                  
+                  if (!mainClientGroups[mainClient]) {
+                    mainClientGroups[mainClient] = {
+                      mainClient,
+                      totalHours: 0,
+                      projects: {}
+                    };
+                  }
+                  
+                  if (!mainClientGroups[mainClient].projects[project]) {
+                    mainClientGroups[mainClient].projects[project] = {
+                      project,
+                      totalHours: 0,
+                      shifts: []
+                    };
+                  }
+                  
+                  const hours = parseHours(row);
+                  mainClientGroups[mainClient].totalHours += hours;
+                  mainClientGroups[mainClient].projects[project].totalHours += hours;
+                  mainClientGroups[mainClient].projects[project].shifts.push(row);
+                });
+
+                // Sort main clients by total hours (desc)
+                const sortedMainClients = Object.values(mainClientGroups).sort((a, b) => 
+                  b.totalHours - a.totalHours
+                );
+
+                // Sort projects within each main client by total hours (desc)
+                sortedMainClients.forEach(mainClientGroup => {
+                  mainClientGroup.projectsArray = Object.values(mainClientGroup.projects).sort((a, b) => 
+                    b.totalHours - a.totalHours
+                  );
+                  
+                  // Sort shifts within each project by date, then time
+                  mainClientGroup.projectsArray.forEach(project => {
+                    project.shifts.sort((a, b) => {
+                      const dateCompare = a.date.localeCompare(b.date);
+                      if (dateCompare !== 0) return dateCompare;
+                      return (a.start_time || '').localeCompare(b.start_time || '');
+                    });
+                  });
+                });
+
+                // Calculate KPIs
+                const totalScheduledHours = filteredRows.reduce((sum, row) => sum + parseHours(row), 0);
+                const uniquePeople = [...new Set(filteredRows.map(row => row.employee))].length;
+
+                // Calculate hours by employee for breakdown
+                const employeeHoursBreakdown = {};
+                filteredRows.forEach(row => {
+                  const employee = row.employee;
+                  if (!employeeHoursBreakdown[employee]) {
+                    employeeHoursBreakdown[employee] = 0;
+                  }
+                  employeeHoursBreakdown[employee] += parseHours(row);
+                });
+
+                // Sort employees by hours (descending)
+                const sortedEmployeeBreakdown = Object.entries(employeeHoursBreakdown)
+                  .map(([employee, hours]) => ({ employee, hours }))
+                  .sort((a, b) => b.hours - a.hours);
+
+                return (
+                  <div className="space-y-6">
+                    {/* Filters Section */}
+                    <div className="bg-white rounded-lg shadow-sm p-4">
+                      <div className="flex flex-wrap items-center gap-4">
+                        {/* Today Date Picker */}
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-gray-500" />
+                          <label className="text-sm text-gray-600">Today:</label>
+                          <input
+                            type="date"
+                            value={goForwardToday}
+                            onChange={(e) => setGoForwardToday(e.target.value)}
+                            className="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+
+                        {/* Search */}
+                        <div className="flex-1 min-w-[200px] max-w-md">
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <input
+                              type="text"
+                              placeholder="Search by project or employee..."
+                              value={goForwardProjectSearch}
+                              onChange={(e) => setGoForwardProjectSearch(e.target.value)}
+                              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                            />
+                            {goForwardProjectSearch && (
+                              <button
+                                onClick={() => setGoForwardProjectSearch('')}
+                                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                              >
+                                ×
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Reset Button */}
+                        <button
+                          onClick={() => {
+                            setGoForwardToday(new Date().toISOString().split('T')[0]);
+                            setGoForwardProjectSearch('');
+                          }}
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                        >
+                          <span>Reset</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* KPI Summary */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="bg-white rounded-lg shadow-sm p-4 flex items-center gap-3">
+                        <div className="p-3 bg-blue-100 rounded-lg">
+                          <Calendar className="w-6 h-6 text-blue-600" />
+                        </div>
+                        <div>
+                          <div className="text-2xl font-bold text-gray-900">{remainingDates.length}</div>
+                          <div className="text-sm text-gray-600">Remaining Days</div>
+                        </div>
+                      </div>
+
+                      <div 
+                        className="bg-white rounded-lg shadow-sm p-4 flex items-center gap-3 cursor-pointer hover:shadow-md transition-shadow"
+                        onClick={() => setShowScheduleHoursBreakdown(!showScheduleHoursBreakdown)}
+                      >
+                        <div className="p-3 bg-green-100 rounded-lg">
+                          <Clock className="w-6 h-6 text-green-600" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="text-2xl font-bold text-gray-900">{totalScheduledHours.toFixed(1)}</div>
+                          <div className="text-sm text-gray-600">Scheduled Hours Remaining</div>
+                        </div>
+                        <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${showScheduleHoursBreakdown ? 'rotate-180' : ''}`} />
+                      </div>
+
+                      <div className="bg-white rounded-lg shadow-sm p-4 flex items-center gap-3">
+                        <div className="p-3 bg-purple-100 rounded-lg">
+                          <Users className="w-6 h-6 text-purple-600" />
+                        </div>
+                        <div>
+                          <div className="text-2xl font-bold text-gray-900">{uniquePeople}</div>
+                          <div className="text-sm text-gray-600">Unique People Scheduled</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Hours Breakdown Panel */}
+                    {showScheduleHoursBreakdown && (
+                      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+                        <div className="bg-gradient-to-r from-green-600 to-green-700 px-6 py-3">
+                          <h3 className="text-lg font-semibold text-white">Hours Breakdown by Employee</h3>
+                        </div>
+                        <div className="p-6">
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {sortedEmployeeBreakdown.map((item, idx) => (
+                              <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                <span className="text-sm font-medium text-gray-900">{item.employee}</span>
+                                <span className="text-sm font-bold text-green-700">{item.hours.toFixed(1)} hrs</span>
+                              </div>
+                            ))}
+                          </div>
+                          {sortedEmployeeBreakdown.length === 0 && (
+                            <p className="text-center text-gray-500 py-4">No scheduled hours found.</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Main Content */}
+                    {filteredRows.length === 0 ? (
+                      <div className="bg-white rounded-lg shadow-sm p-12 text-center">
+                        <div className="text-gray-400 mb-4">
+                          <Calendar className="w-16 h-16 mx-auto" />
+                        </div>
+                        <p className="text-lg text-gray-600">No scheduled shifts found for the remaining days in this week.</p>
+                        <p className="text-sm text-gray-500 mt-2">Try adjusting the "Today" date or search filters.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        {sortedMainClients.map((mainClientGroup, idx) => (
+                          <div key={idx} className="bg-white rounded-lg shadow-sm overflow-hidden">
+                            {/* Main Client Header */}
+                            <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-6 py-4">
+                              <div className="flex justify-between items-center">
+                                <h2 className="text-xl font-bold text-white">{mainClientGroup.mainClient}</h2>
+                                <span className="text-sm font-medium text-indigo-100">
+                                  {mainClientGroup.totalHours.toFixed(1)} hours
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Projects */}
+                            <div className="p-6 space-y-6">
+                              {mainClientGroup.projectsArray.map((projectGroup, projIdx) => (
+                                <div key={projIdx} className="border border-gray-200 rounded-lg overflow-hidden">
+                                  {/* Project Header */}
+                                  <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-3 border-b border-gray-200">
+                                    <div className="flex justify-between items-center">
+                                      <h3 className="font-semibold text-gray-900">{projectGroup.project}</h3>
+                                      <span className="text-sm font-medium text-gray-600">
+                                        {projectGroup.totalHours.toFixed(1)} hours
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* Shifts Table */}
+                                  <div className="overflow-x-auto">
+                                    <table className="w-full">
+                                      <thead className="bg-gray-50 border-b border-gray-200">
+                                        <tr>
+                                          <th className="text-left py-3 px-4 text-xs font-semibold text-gray-700">Employee</th>
+                                          <th className="text-left py-3 px-4 text-xs font-semibold text-gray-700">Date</th>
+                                          <th className="text-left py-3 px-4 text-xs font-semibold text-gray-700">Day</th>
+                                          <th className="text-left py-3 px-4 text-xs font-semibold text-gray-700">Time</th>
+                                          <th className="text-right py-3 px-4 text-xs font-semibold text-gray-700">Hours</th>
+                                          <th className="text-left py-3 px-4 text-xs font-semibold text-gray-700">Details</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody className="divide-y divide-gray-100">
+                                        {projectGroup.shifts.map((shift, shiftIdx) => (
+                                          <tr key={shiftIdx} className="hover:bg-gray-50 transition-colors">
+                                            <td className="py-3 px-4 text-sm text-gray-900">{shift.employee}</td>
+                                            <td className="py-3 px-4 text-sm text-gray-700">{formatDate(shift.date)}</td>
+                                            <td className="py-3 px-4 text-sm text-gray-600 font-medium">{getDayOfWeek(shift)}</td>
+                                            <td className="py-3 px-4 text-sm text-gray-700">{formatTime(shift)}</td>
+                                            <td className="py-3 px-4 text-sm text-gray-900 text-right font-medium">
+                                              {parseHours(shift).toFixed(1)}
+                                            </td>
+                                            <td className="py-3 px-4 text-sm text-gray-500 italic">
+                                              {shift.details || '—'}
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           )}
         </div>
