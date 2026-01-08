@@ -5,6 +5,7 @@ import { BarChart, Bar, LineChart, Line, PieChart as RePieChart, Pie, Cell, XAxi
 // ============================================================================
 // WEEKLY DATA - SINGLE SOURCE OF TRUTH
 // Add new week's CSV data here. Weeks are in descending order (latest first).
+// Schema: lname,fname,username,job_code,hours
 // ============================================================================
 
 const WEEK_DATA = {
@@ -13,11 +14,11 @@ Chiramkara,Jishnu,jchiramkara@stocadvisory.com,Administrative,2
 Chiramkara,Jishnu,jchiramkara@stocadvisory.com,Business Development,1
 Chiramkara,Jishnu,jchiramkara@stocadvisory.com,Holiday,8
 Chiramkara,Jishnu,jchiramkara@stocadvisory.com,Riata - Government Window,30
-D,Ramya,ramya@stocadvisory.com,Business Development,32.85
-D,Ramya,ramya@stocadvisory.com,Holiday,8
-Egan,Sean,segan@stocadvisory.com,ADP - Tearsheet,2
+D,Ramya,rdamani@stocadvisory.com,Business Development,32.85
+D,Ramya,rdamani@stocadvisory.com,Holiday,8
+Egan,Sean,segan@stocadvisory.com,ADP - Tearsheet,16
 Egan,Sean,segan@stocadvisory.com,CPC - Canine Country Club,4.5
-Egan,Sean,segan@stocadvisory.com,CPC - Home Away From Home,4.5
+Egan,Sean,segan@stocadvisory.com,CPC - Home Away From Home,9
 Egan,Sean,segan@stocadvisory.com,SP USA - Sage Import & Closing Recon,5
 Egan,Sean,segan@stocadvisory.com,SPUSA - Holly Dental,2
 Garg,Vishal,vgarg@stocadvisory.com,ADP - Tearsheet,19.5
@@ -45,7 +46,8 @@ Jhingan,Siddharth,siddharth.j@bpsanalytics.co.in,CPC - Home Away From Home,6.5
 Jhingan,Siddharth,siddharth.j@bpsanalytics.co.in,SALT - Suffolk Pedo Dentistry & Ortho,0.5
 Jhingan,Siddharth,siddharth.j@bpsanalytics.co.in,SP USA - Weekly Sales Dashboard,0.5
 Joseph,Stefan,sjoseph@stocadvisory.com,Business Development,46.57
-Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Alta Loma Optometric,1
+Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Alta Loma Optometric (Dr. Morton),1.98
+Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Capital Plaza (Dr. Amin),2
 Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Child and Family Eye Care Center,1.5
 Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Federal Hill Eye Care,1
 Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Lifetime Vision Source,1
@@ -53,7 +55,6 @@ Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Manhattan Vision & Queens Eye Asso
 Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Metropolitan Vision,0.5
 Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Optometric Images Vision Center (Drs. Ramsey & Ozaki),1
 Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Sandy & Draper Vision Care Center,1
-Luetgers,Sam,sluetgers@stocadvisory.com,AEG - TSO - Capital Plaza (Dr. Amin),2
 Luetgers,Sam,sluetgers@stocadvisory.com,Administrative,3.5
 Luetgers,Sam,sluetgers@stocadvisory.com,Beacon Behavioral - Hawkins Psychiatry,5
 Luetgers,Sam,sluetgers@stocadvisory.com,Sick,4
@@ -79,18 +80,18 @@ Saxena,Arjit,asaxena@stocadvisory.com,SALT - MyOrthodontist,5
 Saxena,Arjit,asaxena@stocadvisory.com,SALT - Suffolk Pedo Dentistry & Ortho,30
 Sharma,Mohit,msharma@stocadvisory.com,Business Development,44.28
 Sharma,Mohit,msharma@stocadvisory.com,Holiday,10
-Sheehy,Aidan,asheehy@stocadvisory.com,ADP - Tearsheet,32
 Sheehy,Aidan,asheehy@stocadvisory.com,Administrative,5
+Sheehy,Aidan,asheehy@stocadvisory.com,ADP - Tearsheet,32
 Sheehy,Aidan,asheehy@stocadvisory.com,Holiday,9
-Siddiqui,Saqib,ssiddiqui@stocadvisory.com,AEG - Chicago Eye Care Center,12
 Siddiqui,Saqib,ssiddiqui@stocadvisory.com,Administrative,12
+Siddiqui,Saqib,ssiddiqui@stocadvisory.com,AEG - Chicago Eye Care Center,12
 Singh,Jogendra,jrathore@stocadvisory.com,Business Development,44.88
 Singh,Jogendra,jrathore@stocadvisory.com,Holiday,10
 Sundar,Barath,bsundar@stocadvisory.com,SP USA - Practice Analysis (Pre-LOI),25
 Tuli,Rahul,rtuli@stocadvisory.com,Vacation,32`,
 
   "Dec 28, 2025 – Jan 3, 2026": `lname,fname,username,job_code,hours
-D,Ramya,ramya@stocadvisory.com,Business Development,22.05
+D,Ramya,rdamani@stocadvisory.com,Business Development,22.05
 Egan,Sean,segan@stocadvisory.com,Holiday,16
 Govind,Vaishnav,vgovind@stocadvisory.com,Business Development,11.56
 Hottman,Matthew,mhottman@stocadvisory.com,Riata - Government Window,3
@@ -102,8 +103,8 @@ Hottman,Matthew,mhottman@stocadvisory.com,SALT - Suffolk Pedo Dentistry & Ortho,
 Jadhav,Pravin,pjadhav@stocadvisory.com,AEG - Alta Loma Optometric (Dr. Morton),1.98
 Jadhav,Pravin,pjadhav@stocadvisory.com,AEG - Sandy & Draper Vision Care Center,18.91
 Joseph,Stefan,sjoseph@stocadvisory.com,Business Development,25.36
-Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Child and Family Eye Care Center,3
 Luetgers,Sam,sluetgers@stocadvisory.com,Administrative,1
+Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Child and Family Eye Care Center,3
 McFadden,Brandon,bmcfadden@stocadvisory.com,AEG - Child and Family Eye Care Center,4.5
 McFadden,Brandon,bmcfadden@stocadvisory.com,AEG - South Shore Eye Center,2.5
 Nayak,Rakesh,rnayak@stocadvisory.com,Business Development,22.15
@@ -120,11 +121,85 @@ Tuli,Rahul,rtuli@stocadvisory.com,Riata - Government Window,6.98
 Tuli,Rahul,rtuli@stocadvisory.com,SALT - Suffolk Pedo Dentistry & Ortho,10.53`,
 
   "Dec 21 – Dec 27, 2025": `lname,fname,username,job_code,hours
-`,
+D,Ramya,rdamani@stocadvisory.com,Business Development,25.15
+Egan,Sean,segan@stocadvisory.com,CPC - Home Away From Home,2.5
+Egan,Sean,segan@stocadvisory.com,Holiday,8
+Govind,Vaishnav,vgovind@stocadvisory.com,Administrative,3
+Govind,Vaishnav,vgovind@stocadvisory.com,Business Development,30.55
+Hariram,Pradeep,phariram@stocadvisory.com,ADP - Emma Wu and Associates,1
+Hariram,Pradeep,phariram@stocadvisory.com,ADP - Tearsheet,16
+Hottman,Matthew,mhottman@stocadvisory.com,Riata - Government Window,15
+Hottman,Matthew,mhottman@stocadvisory.com,SALT - Berkeley & Orinda Orthodontics,6
+Hottman,Matthew,mhottman@stocadvisory.com,SALT - Suffolk Pedo Dentistry & Ortho,5.5
+Jadhav,Pravin,pjadhav@stocadvisory.com,AEG - Alta Loma Optometric (Dr. Morton),2.5
+Jadhav,Pravin,pjadhav@stocadvisory.com,AEG - Sandy & Draper Vision Care Center,10
+Joseph,Stefan,sjoseph@stocadvisory.com,Business Development,35.05
+Luetgers,Sam,sluetgers@stocadvisory.com,Administrative,8
+Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Child and Family Eye Care Center,3
+McFadden,Brandon,bmcfadden@stocadvisory.com,Administrative,8
+McFadden,Brandon,bmcfadden@stocadvisory.com,AEG - Child and Family Eye Care Center,3
+Nayak,Rakesh,rnayak@stocadvisory.com,Business Development,32.55
+Pandey,Sharvan,spandey@stocadvisory.com,CDS - Tableau,16
+Saxena,Arjit,asaxena@stocadvisory.com,Administrative,4
+Saxena,Arjit,asaxena@stocadvisory.com,SALT - MyOrthodontist,8
+Saxena,Arjit,asaxena@stocadvisory.com,SALT - Suffolk Pedo Dentistry & Ortho,10
+Sharma,Mohit,msharma@stocadvisory.com,Business Development,36
+Sheehy,Aidan,asheehy@stocadvisory.com,ADP - Tearsheet,2
+Singh,Jogendra,jrathore@stocadvisory.com,Business Development,35
+Sundar,Barath,bsundar@stocadvisory.com,Holiday,16
+Tuli,Rahul,rtuli@stocadvisory.com,Administrative,8
+Tuli,Rahul,rtuli@stocadvisory.com,Riata - Government Window,8
+Tuli,Rahul,rtuli@stocadvisory.com,SALT - Suffolk Pedo Dentistry & Ortho,4.5`,
 
   "Dec 14 – Dec 20, 2025": `lname,fname,username,job_code,hours
-`
+D,Ramya,rdamani@stocadvisory.com,Business Development,20
+Egan,Sean,segan@stocadvisory.com,Holiday,8
+Garg,Vishal,vgarg@stocadvisory.com,AEG - Child and Family Eye Care Center,8
+Govind,Vaishnav,vgovind@stocadvisory.com,Business Development,28
+Hariram,Pradeep,phariram@stocadvisory.com,ADP - Corp Dev Support (Tearsheet),21
+Hariram,Pradeep,phariram@stocadvisory.com,ADP - Emma Wu and Associates,2
+Hariram,Pradeep,phariram@stocadvisory.com,ADP - Tearsheet,9
+Hottman,Matthew,mhottman@stocadvisory.com,Administrative,3.5
+Hottman,Matthew,mhottman@stocadvisory.com,Riata - Government Window,9
+Hottman,Matthew,mhottman@stocadvisory.com,SALT - Suffolk Pedo Dentistry & Ortho,7.5
+Jadhav,Pravin,pjadhav@stocadvisory.com,AEG - Alta Loma Optometric (Dr. Morton),46.78
+Joseph,Stefan,sjoseph@stocadvisory.com,Business Development,40
+Luetgers,Sam,sluetgers@stocadvisory.com,Administrative,3.5
+Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Alta Loma Optometric (Dr. Morton),1
+Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Capital Plaza (Dr. Amin),2
+Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Child and Family Eye Care Center,1.5
+Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Federal Hill Eye Care,1
+Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Lifetime Vision Source,1
+Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Manhattan Vision & Queens Eye Associates,0.5
+Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Metropolitan Vision,0.5
+Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Optometric Images Vision Center (Drs. Ramsey & Ozaki),1
+Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Sandy & Draper Vision Care Center,1
+Luetgers,Sam,sluetgers@stocadvisory.com,Beacon Behavioral - Hawkins Psychiatry,5
+Luetgers,Sam,sluetgers@stocadvisory.com,Sick,4
+Luetgers,Sam,sluetgers@stocadvisory.com,Vacation,8
+McFadden,Brandon,bmcfadden@stocadvisory.com,Administrative,6
+McFadden,Brandon,bmcfadden@stocadvisory.com,AEG - Canby Eyecare,46.78
+McFadden,Brandon,bmcfadden@stocadvisory.com,AEG - Child and Family Eye Care Center,6
+McFadden,Brandon,bmcfadden@stocadvisory.com,Holiday,8
+McFadden,Brandon,bmcfadden@stocadvisory.com,Vacation,16
+Nayak,Rakesh,rnayak@stocadvisory.com,Business Development,28
+Nguyen,Hung,hnguyen@stocadvisory.com,Administrative,8
+Nguyen,Hung,hnguyen@stocadvisory.com,CPC - Home Away From Home,2.5
+Nguyen,Hung,hnguyen@stocadvisory.com,SP USA - Practice Analysis (Pre-LOI),21
+Pandey,Sharvan,spandey@stocadvisory.com,CDS - Tableau,32
+Pandey,Sharvan,spandey@stocadvisory.com,Holiday,8
+Saxena,Arjit,asaxena@stocadvisory.com,Administrative,3.5
+Saxena,Arjit,asaxena@stocadvisory.com,SALT - Suffolk Pedo Dentistry & Ortho,30
+Sharma,Mohit,msharma@stocadvisory.com,Business Development,35
+Sheehy,Aidan,asheehy@stocadvisory.com,ADP - Tearsheet,9
+Sheehy,Aidan,asheehy@stocadvisory.com,Holiday,9
+Siddiqui,Saqib,ssiddiqui@stocadvisory.com,Administrative,12
+Siddiqui,Saqib,ssiddiqui@stocadvisory.com,AEG - Chicago Eye Care Center,12
+Singh,Jogendra,jrathore@stocadvisory.com,Business Development,22
+Sundar,Barath,bsundar@stocadvisory.com,Holiday,8
+Tuli,Rahul,rtuli@stocadvisory.com,Vacation,32`
 };
+
 
 // Backward compatibility: Keep rawData1 and rawData2 for any code that still references them
 const rawData1 = WEEK_DATA["Jan 4 – Jan 10, 2026"];
