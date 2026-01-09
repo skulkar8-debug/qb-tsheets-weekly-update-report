@@ -2321,7 +2321,7 @@ const StocStaffingDashboard = () => {
                   <div className="bg-green-50 rounded-lg p-4">
                     <div className="text-sm text-green-600 font-medium">Scheduled Hours Remaining</div>
                     <div className="text-2xl font-bold text-green-900 mt-1">{totalRemainingHours.toFixed(1)}</div>
-                    <p className="text-xs text-green-700 mt-1">Future business days only</p>
+                    <p className="text-xs text-green-700 mt-1">Including today</p>
                   </div>
                   <div className="bg-purple-50 rounded-lg p-4">
                     <div className="text-sm text-purple-600 font-medium">
