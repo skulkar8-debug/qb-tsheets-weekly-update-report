@@ -2221,7 +2221,7 @@ const StocStaffingDashboard = () => {
                   <div>
                     <h2 className="text-2xl font-bold text-gray-900">Go-Forward Schedule</h2>
                     <p className="text-sm text-gray-600 mt-1">
-                      Work scheduled for {new Date(goForwardToday).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      Work scheduled for {new Date(goForwardToday).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/New_York', })}
                     </p>
                   </div>
                   
