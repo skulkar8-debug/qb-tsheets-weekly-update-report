@@ -288,13 +288,6 @@ const StocStaffingDashboard = () => {
   const [teamFilter, setTeamFilter] = useState('all'); // Global filter: all, tas, cds
   const [projectsFilter, setProjectsFilter] = useState('all'); // Projects section filter
   const [teamsSortConfig, setTeamsSortConfig] = useState({ key: 'utilized', direction: 'desc' });
-  
-  // Go-Forward Schedule state
-  const [goForwardToday, setGoForwardToday] = useState(
-    new Date().toISOString().split('T')[0]
-  );
-  const [goForwardTeamFilter, setGoForwardTeamFilter] = useState('all');
-  const [goForwardProjectSearch, setGoForwardProjectSearch] = useState('');
   const [projectsSortConfig, setProjectsSortConfig] = useState({ key: 'totalHours', direction: 'desc' });
   const [capacitySortConfig, setCapacitySortConfig] = useState({ key: 'availableBandwidth', direction: 'desc' });
   const [showPeriodDropdown, setShowPeriodDropdown] = useState(false);
@@ -308,6 +301,7 @@ const StocStaffingDashboard = () => {
 
   // Schedule section state
   const [goForwardToday, setGoForwardToday] = useState(new Date().toISOString().split('T')[0]);
+  const [goForwardTeamFilter, setGoForwardTeamFilter] = useState('all');
   const [goForwardProjectSearch, setGoForwardProjectSearch] = useState('');
 
   // Parse data
