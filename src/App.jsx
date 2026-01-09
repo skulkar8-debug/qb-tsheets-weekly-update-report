@@ -2300,8 +2300,6 @@ const StocStaffingDashboard = () => {
                     <Calendar className="w-16 h-16 mx-auto mb-4 opacity-50" />
                     <p className="text-lg font-medium text-gray-700 mb-2">No remaining scheduled work found</p>
                     <div className="text-sm space-y-1">
-                      <p>• Make sure "Jan 4 – Jan 10, 2026" week is selected at the top</p>
-                      <p>• Try setting "Today" to Jan 5 or earlier</p>
                       <p>• Check that Team filter is set to "All Teams"</p>
                       <p>• Clear the project search box if it has text</p>
                     </div>
