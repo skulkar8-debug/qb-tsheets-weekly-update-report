@@ -206,43 +206,40 @@ Tuli,Rahul,rtuli@stocadvisory.com,Vacation,32`
 // ============================================================================
 const SCHEDULE_DATA_BY_WEEK = {
   "Jan 4 – Jan 10, 2026": [
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-05", end_date: "2026-01-05", day: "Mon", customer: "AEG - Sandy & Draper Vision", employee: "Pravin Jadhav", start_time: "10:30p", end_time: "11:59p", hours: 1.48, details: "", start_datetime: "2026-01-05 10:30p", end_datetime: "2026-01-05 11:59p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-05", end_date: "2026-01-05", day: "Mon", customer: "AEG - South Shore Eye Center", employee: "Brandon McFadden", start_time: "1:30p", end_time: "4:30p", hours: 3.0, details: "", start_datetime: "2026-01-05 1:30p", end_datetime: "2026-01-05 4:30p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-05", end_date: "2026-01-05", day: "Mon", customer: "AEG - Child and Family Eye Care Center", employee: "Brandon McFadden", start_time: "8:30a", end_time: "1:30p", hours: 5.0, details: "", start_datetime: "2026-01-05 8:30a", end_datetime: "2026-01-05 1:30p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-06", end_date: "2026-01-06", day: "Tue", customer: "AEG - Sandy & Draper Vision", employee: "Pravin Jadhav", start_time: "10:30p", end_time: "11:59p", hours: 1.48, details: "", start_datetime: "2026-01-06 10:30p", end_datetime: "2026-01-06 11:59p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-06", end_date: "2026-01-06", day: "Tue", customer: "AEG - Sandy & Draper Vision", employee: "Pravin Jadhav", start_time: "12:00a", end_time: "3:30a", hours: 3.5, details: "", start_datetime: "2026-01-06 12:00a", end_datetime: "2026-01-06 3:30a" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-06", end_date: "2026-01-06", day: "Tue", customer: "AEG - South Shore Eye Center", employee: "Brandon McFadden", start_time: "12:30p", end_time: "4:30p", hours: 4.0, details: "", start_datetime: "2026-01-06 12:30p", end_datetime: "2026-01-06 4:30p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-06", end_date: "2026-01-06", day: "Tue", customer: "Lake Worth and Town & Country", employee: "Brandon McFadden", start_time: "8:30a", end_time: "10:30a", hours: 2.0, details: "", start_datetime: "2026-01-06 8:30a", end_datetime: "2026-01-06 10:30a" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-06", end_date: "2026-01-06", day: "Tue", customer: "SALT - Houston OMS", employee: "Matthew Hottman", start_time: "8:30a", end_time: "4:30p", hours: 8.0, details: "", start_datetime: "2026-01-06 8:30a", end_datetime: "2026-01-06 4:30p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-07", day: "Wed", customer: "SALT - Haeger Orthodontics", employee: "Arjit Saxena", start_time: "10:30p", end_time: "11:59p", hours: 1.48, details: "", start_datetime: "2026-01-07 10:30p", end_datetime: "2026-01-07 11:59p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-07", day: "Wed", customer: "AEG - Sandy & Draper Vision", employee: "Pravin Jadhav", start_time: "10:30p", end_time: "11:59p", hours: 1.48, details: "", start_datetime: "2026-01-07 10:30p", end_datetime: "2026-01-07 11:59p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-07", day: "Wed", customer: "AEG - Sandy & Draper Vision", employee: "Pravin Jadhav", start_time: "12:00a", end_time: "3:30a", hours: 3.5, details: "", start_datetime: "2026-01-07 12:00a", end_datetime: "2026-01-07 3:30a" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-06", end_date: "2026-01-06", day: "Tue", customer: "Lake Worth and Town & Country", employee: "Brandon McFadden", start_time: "8:30a", end_time: "10:30a", hours: 2, details: "(customer inferred from cell text; row label not visible)", start_datetime: "2026-01-06 8:30a", end_datetime: "2026-01-06 10:30a" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-07", day: "Wed", customer: "SP - Southern Smiles", employee: "Hung Nguyen", start_time: "9:00a", end_time: "11:00a", hours: 2, details: "", start_datetime: "2026-01-07 9:00a", end_datetime: "2026-01-07 11:00a" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-05", end_date: "2026-01-05", day: "Mon", customer: "AEG - Child and Family Eye Care Center", employee: "Brandon McFadden", start_time: "8:30a", end_time: "1:30p", hours: 5, details: "", start_datetime: "2026-01-05 8:30a", end_datetime: "2026-01-05 1:30p" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-09", end_date: "2026-01-09", day: "Fri", customer: "AEG - Metropolitan Vision", employee: "Brandon McFadden", start_time: "8:30a", end_time: "12:30p", hours: 4, details: "", start_datetime: "2026-01-09 8:30a", end_datetime: "2026-01-09 12:30p" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-05", end_date: "2026-01-06", day: "Mon", customer: "AEG - Sandy & Draper Vision", employee: "Pravin Jadhav", start_time: "10:30p", end_time: "3:30a", hours: 5, details: "Lake Worth and Town & Country (overnight)", start_datetime: "2026-01-05 10:30p", end_datetime: "2026-01-06 3:30a" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-06", end_date: "2026-01-07", day: "Tue", customer: "AEG - Sandy & Draper Vision", employee: "Pravin Jadhav", start_time: "10:30p", end_time: "3:30a", hours: 5, details: "Lake Worth and Town & Country (overnight)", start_datetime: "2026-01-06 10:30p", end_datetime: "2026-01-07 3:30a" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-08", day: "Wed", customer: "AEG - Sandy & Draper Vision", employee: "Pravin Jadhav", start_time: "10:30p", end_time: "3:30a", hours: 5, details: "AEG - Pascarella Eye Care and Contact Lenses (Dr. Pascarella) (overnight)", start_datetime: "2026-01-07 10:30p", end_datetime: "2026-01-08 3:30a" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-09", day: "Thu", customer: "AEG - Sandy & Draper Vision", employee: "Pravin Jadhav", start_time: "10:30p", end_time: "3:30a", hours: 5, details: "AEG - Pascarella Eye Care and Contact Lenses (Dr. Pascarella) (overnight)", start_datetime: "2026-01-08 10:30p", end_datetime: "2026-01-09 3:30a" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-05", end_date: "2026-01-05", day: "Mon", customer: "AEG - South Shore Eye Center", employee: "Brandon McFadden", start_time: "1:30p", end_time: "4:30p", hours: 3, details: "", start_datetime: "2026-01-05 1:30p", end_datetime: "2026-01-05 4:30p" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-06", end_date: "2026-01-06", day: "Tue", customer: "AEG - South Shore Eye Center", employee: "Brandon McFadden", start_time: "12:30p", end_time: "4:30p", hours: 4, details: "", start_datetime: "2026-01-06 12:30p", end_datetime: "2026-01-06 4:30p" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-07", day: "Wed", customer: "AEG - South Shore Eye Center", employee: "Brandon McFadden", start_time: "8:30a", end_time: "12:30p", hours: 4, details: "", start_datetime: "2026-01-07 8:30a", end_datetime: "2026-01-07 12:30p" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-08", day: "Thu", customer: "AEG - South Shore Eye Center", employee: "Brandon McFadden", start_time: "12:30p", end_time: "4:30p", hours: 4, details: "", start_datetime: "2026-01-08 12:30p", end_datetime: "2026-01-08 4:30p" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-07", day: "Wed", customer: "Archway - Connecticut Dental (Archway - DP)", employee: "Leah Hudson", start_time: "8:30a", end_time: "5:00p", hours: 8.5, details: "Archway - DP", start_datetime: "2026-01-07 8:30a", end_datetime: "2026-01-07 5:00p" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-08", day: "Thu", customer: "Archway - Connecticut Dental (Archway - DP)", employee: "Leah Hudson", start_time: "8:30a", end_time: "5:00p", hours: 8.5, details: "Archway - DP", start_datetime: "2026-01-08 8:30a", end_datetime: "2026-01-08 5:00p" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-09", end_date: "2026-01-09", day: "Fri", customer: "Archway - Connecticut Dental (Archway - DP)", employee: "Leah Hudson", start_time: "8:30a", end_time: "5:00p", hours: 8.5, details: "Archway - DP", start_datetime: "2026-01-09 8:30a", end_datetime: "2026-01-09 5:00p" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-05", end_date: "2026-01-05", day: "Mon", customer: "Holiday", employee: "Sean Egan", start_time: "", end_time: "", hours: 8, details: "8hrs", start_datetime: "2026-01-05", end_datetime: "2026-01-05" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-06", end_date: "2026-01-06", day: "Tue", customer: "Holiday", employee: "Sean Egan", start_time: "", end_time: "", hours: 8, details: "8hrs", start_datetime: "2026-01-06", end_datetime: "2026-01-06" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-07", day: "Wed", customer: "Holiday", employee: "Barath Sundar", start_time: "", end_time: "", hours: 8, details: "8hrs", start_datetime: "2026-01-07", end_datetime: "2026-01-07" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-08", day: "Thu", customer: "Holiday", employee: "Barath Sundar", start_time: "", end_time: "", hours: 8, details: "8hrs", start_datetime: "2026-01-08", end_datetime: "2026-01-08" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-09", end_date: "2026-01-09", day: "Fri", customer: "Holiday", employee: "Barath Sundar", start_time: "", end_time: "", hours: 8, details: "8hrs", start_datetime: "2026-01-09", end_datetime: "2026-01-09" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-07", day: "Wed", customer: "Budget - FP&A", employee: "Jishnu Chiramkara", start_time: "9:00a", end_time: "5:00p", hours: 8, details: "", start_datetime: "2026-01-07 9:00a", end_datetime: "2026-01-07 5:00p" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-08", day: "Thu", customer: "Budget - FP&A", employee: "Jishnu Chiramkara", start_time: "9:00a", end_time: "5:00p", hours: 8, details: "", start_datetime: "2026-01-08 9:00a", end_datetime: "2026-01-08 5:00p" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-09", end_date: "2026-01-09", day: "Fri", customer: "Budget - FP&A", employee: "Jishnu Chiramkara", start_time: "9:00a", end_time: "5:00p", hours: 8, details: "", start_datetime: "2026-01-09 9:00a", end_datetime: "2026-01-09 5:00p" },
     { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-07", day: "Wed", customer: "SALT - Alden Bridge Pediatric", employee: "Brandon McFadden", start_time: "1:00p", end_time: "4:30p", hours: 3.5, details: "", start_datetime: "2026-01-07 1:00p", end_datetime: "2026-01-07 4:30p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-07", day: "Wed", customer: "AEG - South Shore Eye Center", employee: "Brandon McFadden", start_time: "8:30a", end_time: "12:30p", hours: 4.0, details: "", start_datetime: "2026-01-07 8:30a", end_datetime: "2026-01-07 12:30p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-07", day: "Wed", customer: "Archway - Connecticut Dental (Archway - DP)", employee: "Leah Hudson", start_time: "8:30a", end_time: "5:00p", hours: 8.5, details: "", start_datetime: "2026-01-07 8:30a", end_datetime: "2026-01-07 5:00p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-07", day: "Wed", customer: "SALT - Haeger Orthodontics", employee: "Matthew Hottman", start_time: "8:30a", end_time: "4:30p", hours: 8.0, details: "", start_datetime: "2026-01-07 8:30a", end_datetime: "2026-01-07 4:30p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-07", day: "Wed", customer: "SP - Southern Smiles", employee: "Hung Nguyen", start_time: "9:00a", end_time: "11:00a", hours: 2.0, details: "", start_datetime: "2026-01-07 9:00a", end_datetime: "2026-01-07 11:00a" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-07", day: "Wed", customer: "Budget - FP&A", employee: "Jishnu Chiramkara", start_time: "9:00a", end_time: "5:00p", hours: 8.0, details: "", start_datetime: "2026-01-07 9:00a", end_datetime: "2026-01-07 5:00p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-08", day: "Thu", customer: "SALT - Alden Bridge Pediatric", employee: "Arjit Saxena", start_time: "10:30p", end_time: "11:59p", hours: 1.48, details: "", start_datetime: "2026-01-08 10:30p", end_datetime: "2026-01-08 11:59p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-08", day: "Thu", customer: "AEG - Sandy & Draper Vision", employee: "Pravin Jadhav", start_time: "10:30p", end_time: "11:59p", hours: 1.48, details: "", start_datetime: "2026-01-08 10:30p", end_datetime: "2026-01-08 11:59p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-08", day: "Thu", customer: "SALT - Houston OMS", employee: "Rahul Tuli", start_time: "10:30p", end_time: "11:59p", hours: 1.48, details: "", start_datetime: "2026-01-08 10:30p", end_datetime: "2026-01-08 11:59p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-08", day: "Thu", customer: "SALT - Haeger Orthodontics", employee: "Arjit Saxena", start_time: "12:00a", end_time: "7:30a", hours: 7.5, details: "", start_datetime: "2026-01-08 12:00a", end_datetime: "2026-01-08 7:30a" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-08", day: "Thu", customer: "AEG - Sandy & Draper Vision", employee: "Pravin Jadhav", start_time: "12:00a", end_time: "3:30a", hours: 3.5, details: "", start_datetime: "2026-01-08 12:00a", end_datetime: "2026-01-08 3:30a" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-08", day: "Thu", customer: "AEG - South Shore Eye Center", employee: "Brandon McFadden", start_time: "12:30p", end_time: "4:30p", hours: 4.0, details: "", start_datetime: "2026-01-08 12:30p", end_datetime: "2026-01-08 4:30p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-08", day: "Thu", customer: "SALT - Haeger Orthodontics", employee: "Brandon McFadden", start_time: "8:30a", end_time: "12:30p", hours: 4.0, details: "", start_datetime: "2026-01-08 8:30a", end_datetime: "2026-01-08 12:30p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-08", day: "Thu", customer: "Archway - Connecticut Dental (Archway - DP)", employee: "Leah Hudson", start_time: "8:30a", end_time: "5:00p", hours: 8.5, details: "", start_datetime: "2026-01-08 8:30a", end_datetime: "2026-01-08 5:00p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-08", day: "Thu", customer: "SALT - Chesapeake Pediatric", employee: "Matthew Hottman", start_time: "8:30a", end_time: "4:30p", hours: 8.0, details: "", start_datetime: "2026-01-08 8:30a", end_datetime: "2026-01-08 4:30p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-08", day: "Thu", customer: "Budget - FP&A", employee: "Jishnu Chiramkara", start_time: "9:00a", end_time: "5:00p", hours: 8.0, details: "", start_datetime: "2026-01-08 9:00a", end_datetime: "2026-01-08 5:00p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-09", end_date: "2026-01-09", day: "Fri", customer: "SALT - Alden Bridge Pediatric", employee: "Arjit Saxena", start_time: "12:00a", end_time: "7:30a", hours: 7.5, details: "", start_datetime: "2026-01-09 12:00a", end_datetime: "2026-01-09 7:30a" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-09", end_date: "2026-01-09", day: "Fri", customer: "AEG - Sandy & Draper Vision", employee: "Pravin Jadhav", start_time: "12:00a", end_time: "3:30a", hours: 3.5, details: "", start_datetime: "2026-01-09 12:00a", end_datetime: "2026-01-09 3:30a" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-09", end_date: "2026-01-09", day: "Fri", customer: "SALT - Houston OMS", employee: "Rahul Tuli", start_time: "12:00a", end_time: "7:30a", hours: 7.5, details: "", start_datetime: "2026-01-09 12:00a", end_datetime: "2026-01-09 7:30a" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-09", end_date: "2026-01-09", day: "Fri", customer: "AEG - Metropolitan Vision", employee: "Brandon McFadden", start_time: "8:30a", end_time: "12:30p", hours: 4.0, details: "", start_datetime: "2026-01-09 8:30a", end_datetime: "2026-01-09 12:30p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-09", end_date: "2026-01-09", day: "Fri", customer: "SALT - Haeger Orthodontics", employee: "Brandon McFadden", start_time: "8:30a", end_time: "12:30p", hours: 4.0, details: "", start_datetime: "2026-01-09 8:30a", end_datetime: "2026-01-09 12:30p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-09", end_date: "2026-01-09", day: "Fri", customer: "Archway - Connecticut Dental (Archway - DP)", employee: "Leah Hudson", start_time: "8:30a", end_time: "5:00p", hours: 8.5, details: "", start_datetime: "2026-01-09 8:30a", end_datetime: "2026-01-09 5:00p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-09", end_date: "2026-01-09", day: "Fri", customer: "SALT - MyOrthodontist", employee: "Matthew Hottman", start_time: "8:30a", end_time: "4:30p", hours: 8.0, details: "", start_datetime: "2026-01-09 8:30a", end_datetime: "2026-01-09 4:30p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-09", end_date: "2026-01-09", day: "Fri", customer: "Budget - FP&A", employee: "Jishnu Chiramkara", start_time: "9:00a", end_time: "5:00p", hours: 8.0, details: "", start_datetime: "2026-01-09 9:00a", end_datetime: "2026-01-09 5:00p" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-09", day: "Thu", customer: "SALT - Alden Bridge Pediatric", employee: "Arjit Saxena", start_time: "10:30p", end_time: "7:30a", hours: 9, details: "Alden bridge (overnight)", start_datetime: "2026-01-08 10:30p", end_datetime: "2026-01-09 7:30a" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-08", day: "Thu", customer: "SALT - Chesapeake Pediatric", employee: "Matthew Hottman", start_time: "8:30a", end_time: "4:30p", hours: 8, details: "", start_datetime: "2026-01-08 8:30a", end_datetime: "2026-01-08 4:30p" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-07", day: "Wed", customer: "SALT - Haeger Orthodontics", employee: "Matthew Hottman", start_time: "8:30a", end_time: "4:30p", hours: 8, details: "", start_datetime: "2026-01-07 8:30a", end_datetime: "2026-01-07 4:30p" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-08", day: "Thu", customer: "SALT - Haeger Orthodontics", employee: "Brandon McFadden", start_time: "8:30a", end_time: "12:30p", hours: 4, details: "", start_datetime: "2026-01-08 8:30a", end_datetime: "2026-01-08 12:30p" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-09", end_date: "2026-01-09", day: "Fri", customer: "SALT - Haeger Orthodontics", employee: "Brandon McFadden", start_time: "8:30a", end_time: "12:30p", hours: 4, details: "", start_datetime: "2026-01-09 8:30a", end_datetime: "2026-01-09 12:30p" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-08", day: "Wed", customer: "SALT - Haeger Orthodontics", employee: "Arjit Saxena", start_time: "10:30p", end_time: "7:30a", hours: 9, details: "Myortho and Haeger Ortho (overnight)", start_datetime: "2026-01-07 10:30p", end_datetime: "2026-01-08 7:30a" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-06", end_date: "2026-01-06", day: "Tue", customer: "SALT - Houston OMS", employee: "Matthew Hottman", start_time: "8:30a", end_time: "4:30p", hours: 8, details: "", start_datetime: "2026-01-06 8:30a", end_datetime: "2026-01-06 4:30p" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-09", day: "Thu", customer: "SALT - Houston OMS", employee: "Rahul Tuli", start_time: "10:30p", end_time: "7:30a", hours: 9, details: "(overnight)", start_datetime: "2026-01-08 10:30p", end_datetime: "2026-01-09 7:30a" },
+    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-09", end_date: "2026-01-09", day: "Fri", customer: "SALT - MyOrthodontist", employee: "Matthew Hottman", start_time: "8:30a", end_time: "4:30p", hours: 8, details: "", start_datetime: "2026-01-09 8:30a", end_datetime: "2026-01-09 4:30p" }
   ],
-  
   "Dec 28, 2025 – Jan 3, 2026": [],
   "Dec 21 – Dec 27, 2025": [],
   "Dec 14 – Dec 20, 2025": []
@@ -291,6 +288,13 @@ const StocStaffingDashboard = () => {
   const [teamFilter, setTeamFilter] = useState('all'); // Global filter: all, tas, cds
   const [projectsFilter, setProjectsFilter] = useState('all'); // Projects section filter
   const [teamsSortConfig, setTeamsSortConfig] = useState({ key: 'utilized', direction: 'desc' });
+  
+  // Go-Forward Schedule state
+  const [goForwardToday, setGoForwardToday] = useState(
+    new Date().toISOString().split('T')[0]
+  );
+  const [goForwardTeamFilter, setGoForwardTeamFilter] = useState('all');
+  const [goForwardProjectSearch, setGoForwardProjectSearch] = useState('');
   const [projectsSortConfig, setProjectsSortConfig] = useState({ key: 'totalHours', direction: 'desc' });
   const [capacitySortConfig, setCapacitySortConfig] = useState({ key: 'availableBandwidth', direction: 'desc' });
   const [showPeriodDropdown, setShowPeriodDropdown] = useState(false);
@@ -305,7 +309,6 @@ const StocStaffingDashboard = () => {
   // Schedule section state
   const [goForwardToday, setGoForwardToday] = useState(new Date().toISOString().split('T')[0]);
   const [goForwardProjectSearch, setGoForwardProjectSearch] = useState('');
-  const [showScheduleHoursBreakdown, setShowScheduleHoursBreakdown] = useState(false);
 
   // Parse data
   const week1Data = useMemo(() => parseCSV(rawData1), []);
@@ -1555,6 +1558,242 @@ const StocStaffingDashboard = () => {
             </>
           )}
 
+          {/* GO-FORWARD SCHEDULE SECTION */}
+          {activeTab === 'overview' && (() => {
+            // Get schedule data for selected week (use first selected period)
+            const selectedWeek = selectedPeriods[0] || 'Jan 4 – Jan 10, 2026';
+            const scheduleRows = SCHEDULE_DATA_BY_WEEK[selectedWeek] || [];
+            
+            if (scheduleRows.length === 0) {
+              return (
+                <div className="col-span-12 bg-white rounded-xl shadow-lg p-6 mt-6">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-4">Go-Forward Schedule</h2>
+                  <div className="text-center py-12 text-gray-500">
+                    <Calendar className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                    <p>No schedule data available for the selected week.</p>
+                  </div>
+                </div>
+              );
+            }
+
+            // Parse today date and get end of selected week
+            const todayDate = new Date(goForwardToday + 'T00:00:00');
+            const weekRange = selectedWeek.split(' – ');
+            const weekEndStr = weekRange[1]?.split(',')[0]?.trim();
+            
+            // Parse week end date
+            let weekEndDate = new Date();
+            if (weekEndStr) {
+              const year = selectedWeek.match(/\d{4}/)?.[0] || new Date().getFullYear();
+              weekEndDate = new Date(`${weekEndStr}, ${year}T23:59:59`);
+            }
+
+            // Filter to remaining schedule (dates AFTER today, within selected week)
+            const remainingSchedule = scheduleRows.filter(row => {
+              if (!row.date) return false;
+              
+              const shiftDate = new Date(row.date + 'T00:00:00');
+              const isAfterToday = shiftDate > todayDate;
+              const isWithinWeek = shiftDate <= weekEndDate;
+              
+              // Team filter
+              const employeeName = row.employee || '';
+              if (goForwardTeamFilter !== 'all') {
+                const isTAS = TAS_MEMBERS.includes(employeeName);
+                const isCDS = CDS_MEMBERS.includes(employeeName);
+                if (goForwardTeamFilter === 'tas' && !isTAS) return false;
+                if (goForwardTeamFilter === 'cds' && !isCDS) return false;
+              }
+              
+              // Project search filter
+              if (goForwardProjectSearch) {
+                const searchLower = goForwardProjectSearch.toLowerCase();
+                const projectMatch = (row.customer || '').toLowerCase().includes(searchLower);
+                const employeeMatch = employeeName.toLowerCase().includes(searchLower);
+                if (!projectMatch && !employeeMatch) return false;
+              }
+              
+              return isAfterToday && isWithinWeek;
+            });
+
+            // Group by project/customer
+            const projectGroups = {};
+            remainingSchedule.forEach(row => {
+              const project = row.customer || 'Unassigned';
+              if (!projectGroups[project]) {
+                projectGroups[project] = {
+                  project,
+                  totalHours: 0,
+                  shifts: []
+                };
+              }
+              
+              const hours = parseFloat(row.hours) || 0;
+              projectGroups[project].totalHours += hours;
+              projectGroups[project].shifts.push({
+                employee: row.employee || '',
+                date: row.date,
+                day: row.day,
+                startTime: row.start_time,
+                endTime: row.end_time,
+                hours
+              });
+            });
+
+            // Sort projects by total hours (desc)
+            const sortedProjects = Object.values(projectGroups).sort(
+              (a, b) => b.totalHours - a.totalHours
+            );
+
+            // Sort shifts within each project by date then time
+            sortedProjects.forEach(group => {
+              group.shifts.sort((a, b) => {
+                if (a.date !== b.date) return a.date.localeCompare(b.date);
+                return (a.startTime || '').localeCompare(b.startTime || '');
+              });
+            });
+
+            // Calculate KPIs
+            const uniqueEmployees = new Set(remainingSchedule.map(r => r.employee || '')).size;
+            const totalRemainingHours = remainingSchedule.reduce((sum, r) => 
+              sum + (parseFloat(r.hours) || 0), 0
+            );
+            const uniqueDates = new Set(remainingSchedule.map(r => r.date)).size;
+
+            return (
+              <div className="col-span-12 bg-white rounded-xl shadow-lg p-6 mt-6">
+                {/* Header with filters */}
+                <div className="flex justify-between items-center mb-6">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Go-Forward Schedule</h2>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Remaining work from {new Date(goForwardToday).toLocaleDateString()} through {selectedWeek}
+                    </p>
+                  </div>
+                  
+                  {/* Filters */}
+                  <div className="flex items-center gap-3">
+                    {/* Today Date Control */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-600 font-medium">Today:</span>
+                      <input
+                        type="date"
+                        value={goForwardToday}
+                        onChange={(e) => setGoForwardToday(e.target.value)}
+                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    
+                    {/* Team Filter */}
+                    <select
+                      value={goForwardTeamFilter}
+                      onChange={(e) => setGoForwardTeamFilter(e.target.value)}
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="all">All Teams</option>
+                      <option value="tas">TAS</option>
+                      <option value="cds">CDS</option>
+                    </select>
+                    
+                    {/* Project Search */}
+                    <div className="relative w-64">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Search projects or employees..."
+                        value={goForwardProjectSearch}
+                        onChange={(e) => setGoForwardProjectSearch(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* KPIs */}
+                {sortedProjects.length > 0 && (
+                  <div className="grid grid-cols-3 gap-4 mb-6">
+                    <div className="bg-blue-50 rounded-lg p-4">
+                      <div className="text-sm text-blue-600 font-medium">Remaining Days</div>
+                      <div className="text-2xl font-bold text-blue-900 mt-1">{uniqueDates}</div>
+                    </div>
+                    <div className="bg-green-50 rounded-lg p-4">
+                      <div className="text-sm text-green-600 font-medium">Total Hours Scheduled</div>
+                      <div className="text-2xl font-bold text-green-900 mt-1">{totalRemainingHours.toFixed(1)}</div>
+                    </div>
+                    <div className="bg-purple-50 rounded-lg p-4">
+                      <div className="text-sm text-purple-600 font-medium">Unique People</div>
+                      <div className="text-2xl font-bold text-purple-900 mt-1">{uniqueEmployees}</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Schedule by Project */}
+                {sortedProjects.length === 0 ? (
+                  <div className="text-center py-12 text-gray-500">
+                    <Calendar className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                    <p>No remaining scheduled work found for the selected filters.</p>
+                    <p className="text-sm mt-2">Try adjusting your "Today" date or filters.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {sortedProjects.map((group, idx) => (
+                      <div key={idx} className="border border-gray-200 rounded-lg overflow-hidden">
+                        {/* Project Header */}
+                        <div className="bg-gradient-to-r from-blue-50 to-blue-100 px-4 py-3 border-b border-blue-200">
+                          <div className="flex justify-between items-center">
+                            <h3 className="text-lg font-bold text-gray-900">{group.project}</h3>
+                            <span className="text-sm font-semibold text-blue-700">
+                              {group.totalHours.toFixed(1)} hours remaining
+                            </span>
+                          </div>
+                        </div>
+                        
+                        {/* Shifts Table */}
+                        <table className="w-full">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Employee</th>
+                              <th className="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Date</th>
+                              <th className="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Day</th>
+                              <th className="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Time</th>
+                              <th className="py-3 px-4 text-right text-xs font-semibold text-gray-600 uppercase">Hours</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-200">
+                            {group.shifts.map((shift, sIdx) => (
+                              <tr key={sIdx} className="hover:bg-gray-50">
+                                <td className="py-3 px-4 text-sm text-gray-900 font-medium">
+                                  {shift.employee}
+                                </td>
+                                <td className="py-3 px-4 text-sm text-gray-700">
+                                  {new Date(shift.date + 'T00:00:00').toLocaleDateString('en-US', { 
+                                    month: 'short', 
+                                    day: 'numeric' 
+                                  })}
+                                </td>
+                                <td className="py-3 px-4 text-sm text-gray-600 font-medium">
+                                  {shift.day}
+                                </td>
+                                <td className="py-3 px-4 text-sm text-gray-700">
+                                  {shift.startTime && shift.endTime 
+                                    ? `${shift.startTime} – ${shift.endTime}`
+                                    : '—'}
+                                </td>
+                                <td className="py-3 px-4 text-sm text-gray-900 text-right font-medium">
+                                  {shift.hours.toFixed(1)}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
           {activeTab === 'teams' && (
             <div className="col-span-12 bg-white rounded-xl shadow-lg p-6">
               <div className="flex justify-between items-center mb-4">
@@ -2222,7 +2461,7 @@ const StocStaffingDashboard = () => {
                 const todayDateObj = new Date(`${goForwardToday}T00:00:00`);
                 todayDateObj.setHours(0, 0, 0, 0);
 
-                // Filter for remaining days (including today and after)
+                // Filter for remaining days (strictly after today)
                 const filteredRows = scheduleData.filter(row => {
                   if (!row.date || !row.employee || !row.customer) return false;
                   
@@ -2230,11 +2469,8 @@ const StocStaffingDashboard = () => {
                     const rowDate = new Date(`${row.date}T00:00:00`);
                     rowDate.setHours(0, 0, 0, 0);
                     
-                    const rowEndDate = new Date(`${row.end_date || row.date}T00:00:00`);
-                    rowEndDate.setHours(0, 0, 0, 0);
-                    
-                    // Include if either start date OR end date is from today onwards
-                    if (rowDate < todayDateObj && rowEndDate < todayDateObj) return false;
+                    // Only include dates strictly AFTER today
+                    if (rowDate <= todayDateObj) return false;
                     
                     // Apply search filter if exists
                     if (goForwardProjectSearch && goForwardProjectSearch.trim()) {
@@ -2307,73 +2543,8 @@ const StocStaffingDashboard = () => {
                 const totalScheduledHours = filteredRows.reduce((sum, row) => sum + parseHours(row), 0);
                 const uniquePeople = [...new Set(filteredRows.map(row => row.employee))].length;
 
-                // Calculate hours by employee for breakdown
-                const employeeHoursBreakdown = {};
-                filteredRows.forEach(row => {
-                  const employee = row.employee;
-                  if (!employeeHoursBreakdown[employee]) {
-                    employeeHoursBreakdown[employee] = 0;
-                  }
-                  employeeHoursBreakdown[employee] += parseHours(row);
-                });
-
-                // Sort employees by hours (descending)
-                const sortedEmployeeBreakdown = Object.entries(employeeHoursBreakdown)
-                  .map(([employee, hours]) => ({ employee, hours }))
-                  .sort((a, b) => b.hours - a.hours);
-
                 return (
                   <div className="space-y-6">
-                    {/* Filters Section */}
-                    <div className="bg-white rounded-lg shadow-sm p-4">
-                      <div className="flex flex-wrap items-center gap-4">
-                        {/* Today Date Picker */}
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-gray-500" />
-                          <label className="text-sm text-gray-600">Today:</label>
-                          <input
-                            type="date"
-                            value={goForwardToday}
-                            onChange={(e) => setGoForwardToday(e.target.value)}
-                            className="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                        </div>
-
-                        {/* Search */}
-                        <div className="flex-1 min-w-[200px] max-w-md">
-                          <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                            <input
-                              type="text"
-                              placeholder="Search by project or employee..."
-                              value={goForwardProjectSearch}
-                              onChange={(e) => setGoForwardProjectSearch(e.target.value)}
-                              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                            />
-                            {goForwardProjectSearch && (
-                              <button
-                                onClick={() => setGoForwardProjectSearch('')}
-                                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                              >
-                                ×
-                              </button>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Reset Button */}
-                        <button
-                          onClick={() => {
-                            setGoForwardToday(new Date().toISOString().split('T')[0]);
-                            setGoForwardProjectSearch('');
-                          }}
-                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                        >
-                          <span>Reset</span>
-                        </button>
-                      </div>
-                    </div>
-
                     {/* KPI Summary */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="bg-white rounded-lg shadow-sm p-4 flex items-center gap-3">
@@ -2386,18 +2557,14 @@ const StocStaffingDashboard = () => {
                         </div>
                       </div>
 
-                      <div 
-                        className="bg-white rounded-lg shadow-sm p-4 flex items-center gap-3 cursor-pointer hover:shadow-md transition-shadow"
-                        onClick={() => setShowScheduleHoursBreakdown(!showScheduleHoursBreakdown)}
-                      >
+                      <div className="bg-white rounded-lg shadow-sm p-4 flex items-center gap-3">
                         <div className="p-3 bg-green-100 rounded-lg">
                           <Clock className="w-6 h-6 text-green-600" />
                         </div>
-                        <div className="flex-1">
+                        <div>
                           <div className="text-2xl font-bold text-gray-900">{totalScheduledHours.toFixed(1)}</div>
                           <div className="text-sm text-gray-600">Scheduled Hours Remaining</div>
                         </div>
-                        <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${showScheduleHoursBreakdown ? 'rotate-180' : ''}`} />
                       </div>
 
                       <div className="bg-white rounded-lg shadow-sm p-4 flex items-center gap-3">
@@ -2410,28 +2577,6 @@ const StocStaffingDashboard = () => {
                         </div>
                       </div>
                     </div>
-
-                    {/* Hours Breakdown Panel */}
-                    {showScheduleHoursBreakdown && (
-                      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                        <div className="bg-gradient-to-r from-green-600 to-green-700 px-6 py-3">
-                          <h3 className="text-lg font-semibold text-white">Hours Breakdown by Employee</h3>
-                        </div>
-                        <div className="p-6">
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {sortedEmployeeBreakdown.map((item, idx) => (
-                              <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                                <span className="text-sm font-medium text-gray-900">{item.employee}</span>
-                                <span className="text-sm font-bold text-green-700">{item.hours.toFixed(1)} hrs</span>
-                              </div>
-                            ))}
-                          </div>
-                          {sortedEmployeeBreakdown.length === 0 && (
-                            <p className="text-center text-gray-500 py-4">No scheduled hours found.</p>
-                          )}
-                        </div>
-                      </div>
-                    )}
 
                     {/* Main Content */}
                     {filteredRows.length === 0 ? (
