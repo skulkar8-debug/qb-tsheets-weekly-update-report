@@ -2227,10 +2227,12 @@ const StocStaffingDashboard = () => {
             });
 
             // Calculate hours scheduled on the selected date for each employee
+            // NOTE: This correctly sums ALL shifts for each employee on the date (handles multiple clients per day)
             const employeeHoursOnDate = {};
             scheduleRows.forEach(row => {
               if (row.date === goForwardToday && row.employee) {
                 const hours = parseFloat(row.hours) || 0;
+                // Accumulate hours - handles multiple shifts per employee per day
                 employeeHoursOnDate[row.employee] = (employeeHoursOnDate[row.employee] || 0) + hours;
               }
             });
@@ -2261,7 +2263,7 @@ const StocStaffingDashboard = () => {
                   <div>
                     <h2 className="text-2xl font-bold text-gray-900">Go-Forward Schedule</h2>
                     <p className="text-sm text-gray-600 mt-1">
-                      Work scheduled for {new Date(goForwardToday).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      Work scheduled for {new Date(goForwardToday + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </p>
                   </div>
                   
@@ -2347,7 +2349,7 @@ const StocStaffingDashboard = () => {
                       <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-96 overflow-y-auto">
                         <div className="p-3 border-b border-gray-200 bg-gray-50">
                           <h4 className="font-semibold text-gray-900 text-sm">
-                            Available on {new Date(goForwardToday).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            Available on {new Date(goForwardToday + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                           </h4>
                         </div>
                         <div className="p-2">
