@@ -303,6 +303,7 @@ const StocStaffingDashboard = () => {
   const [goForwardToday, setGoForwardToday] = useState('2026-01-05'); // Set to Jan 5 to show remaining schedule (Jan 6-9)
   const [goForwardProjectSearch, setGoForwardProjectSearch] = useState('');
   const [goForwardEmployeeFilter, setGoForwardEmployeeFilter] = useState('all'); // Employee filter for metrics
+  const [showAvailablePeople, setShowAvailablePeople] = useState(false); // Toggle for available people dropdown
 
   // Parse data
   const week1Data = useMemo(() => parseCSV(rawData1), []);
@@ -2214,6 +2215,45 @@ const StocStaffingDashboard = () => {
             );
             const uniqueEmployees = new Set(scheduleForMetrics.map(r => r.employee || '')).size;
 
+            // Calculate available employees for the selected date
+            // Get all unique employees from all weeks in SCHEDULE_DATA_BY_WEEK
+            const allEmployeesEver = new Set();
+            Object.values(SCHEDULE_DATA_BY_WEEK).forEach(weekData => {
+              if (Array.isArray(weekData)) {
+                weekData.forEach(row => {
+                  if (row.employee) allEmployeesEver.add(row.employee);
+                });
+              }
+            });
+
+            // Calculate hours scheduled on the selected date for each employee
+            const employeeHoursOnDate = {};
+            scheduleRows.forEach(row => {
+              if (row.date === goForwardToday && row.employee) {
+                const hours = parseFloat(row.hours) || 0;
+                employeeHoursOnDate[row.employee] = (employeeHoursOnDate[row.employee] || 0) + hours;
+              }
+            });
+
+            // Build list of available employees
+            const availableEmployees = [];
+            allEmployeesEver.forEach(employee => {
+              const scheduledHours = employeeHoursOnDate[employee] || 0;
+              if (scheduledHours < 8) {
+                const availableHours = 8 - scheduledHours;
+                const note = scheduledHours === 0 ? '(no data registered)' : '';
+                availableEmployees.push({
+                  name: employee,
+                  availableHours,
+                  scheduledHours,
+                  note
+                });
+              }
+            });
+
+            // Sort by available hours (descending)
+            availableEmployees.sort((a, b) => b.availableHours - a.availableHours);
+
             return (
               <div className="col-span-12 bg-white rounded-xl shadow-lg p-6 mt-6">
                 {/* Header with filters */}
@@ -2221,7 +2261,7 @@ const StocStaffingDashboard = () => {
                   <div>
                     <h2 className="text-2xl font-bold text-gray-900">Go-Forward Schedule</h2>
                     <p className="text-sm text-gray-600 mt-1">
-                      Work scheduled for {new Date(goForwardToday).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/New_York', })}
+                      Work scheduled for {new Date(goForwardToday).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </p>
                   </div>
                   
@@ -2270,7 +2310,7 @@ const StocStaffingDashboard = () => {
                 </div>
 
                 {/* KPIs - Always show */}
-                <div className="grid grid-cols-3 gap-4 mb-6">
+                <div className="grid grid-cols-4 gap-4 mb-6">
                   <div className="bg-blue-50 rounded-lg p-4">
                     <div className="text-sm text-blue-600 font-medium">Business Days Remaining</div>
                     <div className="text-2xl font-bold text-blue-900 mt-1">{businessDaysRemaining}</div>
@@ -2292,6 +2332,51 @@ const StocStaffingDashboard = () => {
                       {goForwardEmployeeFilter === 'all' ? 'In schedule' : goForwardEmployeeFilter}
                     </p>
                   </div>
+                  <div className="bg-orange-50 rounded-lg p-4 relative">
+                    <div 
+                      className="cursor-pointer"
+                      onClick={() => setShowAvailablePeople(!showAvailablePeople)}
+                    >
+                      <div className="text-sm text-orange-600 font-medium">Available People</div>
+                      <div className="text-2xl font-bold text-orange-900 mt-1">{availableEmployees.length}</div>
+                      <p className="text-xs text-orange-700 mt-1">Click to view details</p>
+                    </div>
+                    
+                    {/* Dropdown */}
+                    {showAvailablePeople && (
+                      <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-96 overflow-y-auto">
+                        <div className="p-3 border-b border-gray-200 bg-gray-50">
+                          <h4 className="font-semibold text-gray-900 text-sm">
+                            Available on {new Date(goForwardToday).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          </h4>
+                        </div>
+                        <div className="p-2">
+                          {availableEmployees.length === 0 ? (
+                            <div className="text-center py-4 text-gray-500 text-sm">
+                              No available people found
+                            </div>
+                          ) : (
+                            availableEmployees.map((emp, idx) => (
+                              <div 
+                                key={idx} 
+                                className="px-3 py-2 hover:bg-gray-50 rounded flex justify-between items-center text-sm"
+                              >
+                                <span className="font-medium text-gray-900">{emp.name}</span>
+                                <div className="text-right">
+                                  <span className="text-orange-700 font-semibold">
+                                    {emp.availableHours.toFixed(1)} hrs
+                                  </span>
+                                  {emp.note && (
+                                    <div className="text-xs text-gray-500">{emp.note}</div>
+                                  )}
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Schedule by Project */}
@@ -2300,6 +2385,8 @@ const StocStaffingDashboard = () => {
                     <Calendar className="w-16 h-16 mx-auto mb-4 opacity-50" />
                     <p className="text-lg font-medium text-gray-700 mb-2">No remaining scheduled work found</p>
                     <div className="text-sm space-y-1">
+                      <p>• Make sure "Jan 4 – Jan 10, 2026" week is selected at the top</p>
+                      <p>• Try setting "Today" to Jan 5 or earlier</p>
                       <p>• Check that Team filter is set to "All Teams"</p>
                       <p>• Clear the project search box if it has text</p>
                     </div>
