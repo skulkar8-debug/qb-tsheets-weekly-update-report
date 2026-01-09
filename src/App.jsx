@@ -300,9 +300,10 @@ const StocStaffingDashboard = () => {
   const [riskTableSortConfig, setRiskTableSortConfig] = useState({ key: 'utilization', direction: 'desc' });
 
   // Schedule section state
-  const [goForwardToday, setGoForwardToday] = useState(new Date().toISOString().split('T')[0]);
+  const [goForwardToday, setGoForwardToday] = useState('2026-01-05'); // Set to Jan 5 to show remaining schedule (Jan 6-9)
   const [goForwardTeamFilter, setGoForwardTeamFilter] = useState('all');
   const [goForwardProjectSearch, setGoForwardProjectSearch] = useState('');
+  const [goForwardEmployeeFilter, setGoForwardEmployeeFilter] = useState('all'); // Employee filter for metrics
 
   // Parse data
   const week1Data = useMemo(() => parseCSV(rawData1), []);
@@ -1583,31 +1584,35 @@ const StocStaffingDashboard = () => {
             }
 
             // Filter to remaining schedule (dates AFTER today, within selected week)
+            // SIMPLIFIED FILTER - Show all future shifts with minimal filtering
             const remainingSchedule = scheduleRows.filter(row => {
               if (!row.date) return false;
               
               const shiftDate = new Date(row.date + 'T00:00:00');
-              const isAfterToday = shiftDate > todayDate;
-              const isWithinWeek = shiftDate <= weekEndDate;
+              const isSelectedDate = shiftDate.toDateString() === todayDate.toDateString();
               
-              // Team filter
-              const employeeName = row.employee || '';
-              if (goForwardTeamFilter !== 'all') {
-                const isTAS = TAS_MEMBERS.includes(employeeName);
-                const isCDS = CDS_MEMBERS.includes(employeeName);
-                if (goForwardTeamFilter === 'tas' && !isTAS) return false;
-                if (goForwardTeamFilter === 'cds' && !isCDS) return false;
+              // Apply employee filter from "View metrics for" dropdown
+              if (goForwardEmployeeFilter !== 'all') {
+                if (row.employee !== goForwardEmployeeFilter) return false;
               }
               
-              // Project search filter
-              if (goForwardProjectSearch) {
+              // Only apply team filter if not 'all'
+              if (goForwardTeamFilter !== 'all') {
+                const employeeName = row.employee || '';
+                const isCDS = CDS_TEAM_MEMBERS.includes(employeeName);
+                if (goForwardTeamFilter === 'cds' && !isCDS) return false;
+                if (goForwardTeamFilter === 'tas' && isCDS) return false;
+              }
+              
+              // Only apply project search if there's actual search text
+              if (goForwardProjectSearch && goForwardProjectSearch.trim()) {
                 const searchLower = goForwardProjectSearch.toLowerCase();
                 const projectMatch = (row.customer || '').toLowerCase().includes(searchLower);
-                const employeeMatch = employeeName.toLowerCase().includes(searchLower);
+                const employeeMatch = (row.employee || '').toLowerCase().includes(searchLower);
                 if (!projectMatch && !employeeMatch) return false;
               }
               
-              return isAfterToday && isWithinWeek;
+              return isSelectedDate; // Show only the selected date
             });
 
             // Group by project/customer
@@ -1647,12 +1652,58 @@ const StocStaffingDashboard = () => {
               });
             });
 
-            // Calculate KPIs
-            const uniqueEmployees = new Set(remainingSchedule.map(r => r.employee || '')).size;
-            const totalRemainingHours = remainingSchedule.reduce((sum, r) => 
+            // Helper: Check if a date is a weekday (Mon-Fri)
+            const isWeekday = (date) => {
+              const day = date.getDay();
+              return day >= 1 && day <= 5; // 1=Mon, 5=Fri
+            };
+
+            // Helper: Get business days remaining in current week
+            const getBusinessDaysRemaining = (todayStr) => {
+              const today = new Date(todayStr + 'T00:00:00');
+              const dayOfWeek = today.getDay();
+              
+              // If Sat (6) or Sun (0), no business days remaining
+              if (dayOfWeek === 0 || dayOfWeek === 6) return 0;
+              
+              // If Fri (5), no business days remaining
+              if (dayOfWeek === 5) return 0;
+              
+              // Mon=1, Tue=2, Wed=3, Thu=4
+              // Remaining business days = 5 - dayOfWeek (e.g., if Mon=1, then 5-1=4 days left: Tue-Fri)
+              return 5 - dayOfWeek;
+            };
+
+            // Get all unique employees from schedule data for the dropdown
+            const allEmployeesInSchedule = [...new Set(scheduleRows.map(r => r.employee || '').filter(e => e))].sort();
+
+            // Calculate KPIs with employee filter and business-day logic
+            const businessDaysRemaining = getBusinessDaysRemaining(goForwardToday);
+            
+            // Filter schedule for KPI calculations (employee filter + selected date and future business days)
+            // Metrics show "remaining" work from the selected date forward
+            const scheduleForMetrics = scheduleRows.filter(row => {
+              if (!row.date) return false;
+              
+              // Include selected date and future dates
+              const shiftDate = new Date(row.date + 'T00:00:00');
+              if (shiftDate < todayDate) return false; // Exclude past dates only
+              
+              // Apply employee filter for metrics
+              if (goForwardEmployeeFilter !== 'all' && row.employee !== goForwardEmployeeFilter) {
+                return false;
+              }
+              
+              // Only include weekdays for metrics
+              if (!isWeekday(shiftDate)) return false;
+              
+              return true;
+            });
+            
+            const totalRemainingHours = scheduleForMetrics.reduce((sum, r) => 
               sum + (parseFloat(r.hours) || 0), 0
             );
-            const uniqueDates = new Set(remainingSchedule.map(r => r.date)).size;
+            const uniqueEmployees = new Set(scheduleForMetrics.map(r => r.employee || '')).size;
 
             return (
               <div className="col-span-12 bg-white rounded-xl shadow-lg p-6 mt-6">
@@ -1661,15 +1712,15 @@ const StocStaffingDashboard = () => {
                   <div>
                     <h2 className="text-2xl font-bold text-gray-900">Go-Forward Schedule</h2>
                     <p className="text-sm text-gray-600 mt-1">
-                      Remaining work from {new Date(goForwardToday).toLocaleDateString()} through {selectedWeek}
+                      Work scheduled for {new Date(goForwardToday).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </p>
                   </div>
                   
                   {/* Filters */}
                   <div className="flex items-center gap-3">
-                    {/* Today Date Control */}
+                    {/* Date Control */}
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-600 font-medium">Today:</span>
+                      <span className="text-sm text-gray-600 font-medium">Date:</span>
                       <input
                         type="date"
                         value={goForwardToday}
@@ -1703,30 +1754,60 @@ const StocStaffingDashboard = () => {
                   </div>
                 </div>
 
-                {/* KPIs */}
-                {sortedProjects.length > 0 && (
-                  <div className="grid grid-cols-3 gap-4 mb-6">
-                    <div className="bg-blue-50 rounded-lg p-4">
-                      <div className="text-sm text-blue-600 font-medium">Remaining Days</div>
-                      <div className="text-2xl font-bold text-blue-900 mt-1">{uniqueDates}</div>
-                    </div>
-                    <div className="bg-green-50 rounded-lg p-4">
-                      <div className="text-sm text-green-600 font-medium">Total Hours Scheduled</div>
-                      <div className="text-2xl font-bold text-green-900 mt-1">{totalRemainingHours.toFixed(1)}</div>
-                    </div>
-                    <div className="bg-purple-50 rounded-lg p-4">
-                      <div className="text-sm text-purple-600 font-medium">Unique People</div>
-                      <div className="text-2xl font-bold text-purple-900 mt-1">{uniqueEmployees}</div>
-                    </div>
+                {/* Employee Filter for Metrics */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    View metrics for:
+                  </label>
+                  <select
+                    value={goForwardEmployeeFilter}
+                    onChange={(e) => setGoForwardEmployeeFilter(e.target.value)}
+                    className="w-full max-w-md border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="all">All Employees</option>
+                    {allEmployeesInSchedule.map(emp => (
+                      <option key={emp} value={emp}>{emp}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* KPIs - Always show */}
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="bg-blue-50 rounded-lg p-4">
+                    <div className="text-sm text-blue-600 font-medium">Business Days Remaining</div>
+                    <div className="text-2xl font-bold text-blue-900 mt-1">{businessDaysRemaining}</div>
+                    <p className="text-xs text-blue-700 mt-1">Mon-Fri only</p>
                   </div>
-                )}
+                  <div className="bg-green-50 rounded-lg p-4">
+                    <div className="text-sm text-green-600 font-medium">Scheduled Hours Remaining</div>
+                    <div className="text-2xl font-bold text-green-900 mt-1">{totalRemainingHours.toFixed(1)}</div>
+                    <p className="text-xs text-green-700 mt-1">Future business days only</p>
+                  </div>
+                  <div className="bg-purple-50 rounded-lg p-4">
+                    <div className="text-sm text-purple-600 font-medium">
+                      {goForwardEmployeeFilter === 'all' ? 'Unique People' : 'Employee'}
+                    </div>
+                    <div className="text-2xl font-bold text-purple-900 mt-1">
+                      {goForwardEmployeeFilter === 'all' ? uniqueEmployees : '1'}
+                    </div>
+                    <p className="text-xs text-purple-700 mt-1">
+                      {goForwardEmployeeFilter === 'all' ? 'In schedule' : goForwardEmployeeFilter}
+                    </p>
+                  </div>
+                </div>
 
                 {/* Schedule by Project */}
                 {sortedProjects.length === 0 ? (
                   <div className="text-center py-12 text-gray-500">
                     <Calendar className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                    <p>No remaining scheduled work found for the selected filters.</p>
-                    <p className="text-sm mt-2">Try adjusting your "Today" date or filters.</p>
+                    <p className="text-lg font-medium text-gray-700 mb-2">No remaining scheduled work found</p>
+                    <div className="text-sm space-y-1">
+                      <p>• Make sure "Jan 4 – Jan 10, 2026" week is selected at the top</p>
+                      <p>• Try setting "Today" to Jan 5 or earlier</p>
+                      <p>• Check that Team filter is set to "All Teams"</p>
+                      <p>• Clear the project search box if it has text</p>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-4">Raw schedule rows available: {scheduleRows.length}</p>
                   </div>
                 ) : (
                   <div className="space-y-6">
