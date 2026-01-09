@@ -301,7 +301,6 @@ const StocStaffingDashboard = () => {
 
   // Schedule section state
   const [goForwardToday, setGoForwardToday] = useState('2026-01-05'); // Set to Jan 5 to show remaining schedule (Jan 6-9)
-  const [goForwardTeamFilter, setGoForwardTeamFilter] = useState('all');
   const [goForwardProjectSearch, setGoForwardProjectSearch] = useState('');
   const [goForwardEmployeeFilter, setGoForwardEmployeeFilter] = useState('all'); // Employee filter for metrics
 
@@ -1437,89 +1436,6 @@ const StocStaffingDashboard = () => {
               </div>
 
               {/* Existing Overview Content Below */}
-              {/* Utilization Chart */}
-              <div className="col-span-12 bg-white rounded-xl shadow-lg p-6">
-                <h2 className="text-xl font-bold mb-4">Team Utilization</h2>
-                <ResponsiveContainer width="100%" height={350}>
-                  <BarChart data={utilizationData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                    <XAxis 
-                      dataKey="name" 
-                      tick={{ fontSize: 12 }}
-                      angle={-45}
-                      textAnchor="end"
-                      height={80}
-                    />
-                    <YAxis />
-                    <Tooltip 
-                      contentStyle={{ backgroundColor: 'white', border: '1px solid #E5E7EB', borderRadius: '8px' }}
-                      labelStyle={{ fontWeight: 'bold', color: '#111827' }}
-                    />
-                    <Legend />
-                    <Bar dataKey="billable" stackId="a" fill="#60A5FA" name="Billable" />
-                    <Bar dataKey="internal" stackId="a" fill="#A78BFA" name="Internal/BD" />
-                    <Bar dataKey="available" stackId="a" fill="#D1D5DB" name="Available" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-
-              {/* Project Distribution and Top Projects */}
-              <div className="col-span-6 bg-white rounded-xl shadow-lg p-6">
-                <h2 className="text-xl font-bold mb-4">Hour Distribution</h2>
-                <ResponsiveContainer width="100%" height={300}>
-                  <RePieChart>
-                    <Pie
-                      data={projectDistributionData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent, value }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={90}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {projectDistributionData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip content={<CustomPieTooltip />} />
-                  </RePieChart>
-                </ResponsiveContainer>
-              </div>
-
-              <div className="col-span-6 bg-white rounded-xl shadow-lg p-6">
-                <h2 className="text-xl font-bold mb-4">Top Projects by Hours</h2>
-                <div className="overflow-y-auto max-h-[300px]">
-                  <table className="w-full">
-                    <thead className="bg-gray-50 sticky top-0">
-                      <tr>
-                        <th className="text-left py-2 px-3 font-semibold text-gray-700 text-sm">Project</th>
-                        <th className="text-left py-2 px-3 font-semibold text-gray-700 text-sm">Category</th>
-                        <th className="text-right py-2 px-3 font-semibold text-gray-700 text-sm">Hours</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {topProjectsData.map((project, idx) => (
-                        <tr key={idx} className="hover:bg-gray-50">
-                          <td className="py-2 px-3 text-sm text-gray-900 max-w-xs break-words">{project.name}</td>
-                          <td className="py-2 px-3">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
-                              project.category === 'Billable' ? 'bg-blue-50 text-blue-700' :
-                              project.category === 'Internal/BD' ? 'bg-purple-50 text-purple-700' :
-                              'bg-gray-50 text-gray-700'
-                            }`}>
-                              {project.category}
-                            </span>
-                          </td>
-                          <td className="py-2 px-3 text-right text-sm font-medium text-gray-900">
-                            {project.totalHours.toFixed(1)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
 
               {/* Key Metrics */}
               <div className="col-span-12 grid grid-cols-3 gap-4">
@@ -1552,322 +1468,6 @@ const StocStaffingDashboard = () => {
               </div>
             </>
           )}
-
-          {/* GO-FORWARD SCHEDULE SECTION */}
-          {activeTab === 'overview' && (() => {
-            // Get schedule data for selected week (use first selected period)
-            const selectedWeek = selectedPeriods[0] || 'Jan 4 – Jan 10, 2026';
-            const scheduleRows = SCHEDULE_DATA_BY_WEEK[selectedWeek] || [];
-            
-            if (scheduleRows.length === 0) {
-              return (
-                <div className="col-span-12 bg-white rounded-xl shadow-lg p-6 mt-6">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-4">Go-Forward Schedule</h2>
-                  <div className="text-center py-12 text-gray-500">
-                    <Calendar className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                    <p>No schedule data available for the selected week.</p>
-                  </div>
-                </div>
-              );
-            }
-
-            // Parse today date and get end of selected week
-            const todayDate = new Date(goForwardToday + 'T00:00:00');
-            const weekRange = selectedWeek.split(' – ');
-            const weekEndStr = weekRange[1]?.split(',')[0]?.trim();
-            
-            // Parse week end date
-            let weekEndDate = new Date();
-            if (weekEndStr) {
-              const year = selectedWeek.match(/\d{4}/)?.[0] || new Date().getFullYear();
-              weekEndDate = new Date(`${weekEndStr}, ${year}T23:59:59`);
-            }
-
-            // Filter to remaining schedule (dates AFTER today, within selected week)
-            // SIMPLIFIED FILTER - Show all future shifts with minimal filtering
-            const remainingSchedule = scheduleRows.filter(row => {
-              if (!row.date) return false;
-              
-              const shiftDate = new Date(row.date + 'T00:00:00');
-              const isSelectedDate = shiftDate.toDateString() === todayDate.toDateString();
-              
-              // Apply employee filter from "View metrics for" dropdown
-              if (goForwardEmployeeFilter !== 'all') {
-                if (row.employee !== goForwardEmployeeFilter) return false;
-              }
-              
-              // Only apply team filter if not 'all'
-              if (goForwardTeamFilter !== 'all') {
-                const employeeName = row.employee || '';
-                const isCDS = CDS_TEAM_MEMBERS.includes(employeeName);
-                if (goForwardTeamFilter === 'cds' && !isCDS) return false;
-                if (goForwardTeamFilter === 'tas' && isCDS) return false;
-              }
-              
-              // Only apply project search if there's actual search text
-              if (goForwardProjectSearch && goForwardProjectSearch.trim()) {
-                const searchLower = goForwardProjectSearch.toLowerCase();
-                const projectMatch = (row.customer || '').toLowerCase().includes(searchLower);
-                const employeeMatch = (row.employee || '').toLowerCase().includes(searchLower);
-                if (!projectMatch && !employeeMatch) return false;
-              }
-              
-              return isSelectedDate; // Show only the selected date
-            });
-
-            // Group by project/customer
-            const projectGroups = {};
-            remainingSchedule.forEach(row => {
-              const project = row.customer || 'Unassigned';
-              if (!projectGroups[project]) {
-                projectGroups[project] = {
-                  project,
-                  totalHours: 0,
-                  shifts: []
-                };
-              }
-              
-              const hours = parseFloat(row.hours) || 0;
-              projectGroups[project].totalHours += hours;
-              projectGroups[project].shifts.push({
-                employee: row.employee || '',
-                date: row.date,
-                day: row.day,
-                startTime: row.start_time,
-                endTime: row.end_time,
-                hours
-              });
-            });
-
-            // Sort projects by total hours (desc)
-            const sortedProjects = Object.values(projectGroups).sort(
-              (a, b) => b.totalHours - a.totalHours
-            );
-
-            // Sort shifts within each project by date then time
-            sortedProjects.forEach(group => {
-              group.shifts.sort((a, b) => {
-                if (a.date !== b.date) return a.date.localeCompare(b.date);
-                return (a.startTime || '').localeCompare(b.startTime || '');
-              });
-            });
-
-            // Helper: Check if a date is a weekday (Mon-Fri)
-            const isWeekday = (date) => {
-              const day = date.getDay();
-              return day >= 1 && day <= 5; // 1=Mon, 5=Fri
-            };
-
-            // Helper: Get business days remaining in current week
-            const getBusinessDaysRemaining = (todayStr) => {
-              const today = new Date(todayStr + 'T00:00:00');
-              const dayOfWeek = today.getDay();
-              
-              // If Sat (6) or Sun (0), no business days remaining
-              if (dayOfWeek === 0 || dayOfWeek === 6) return 0;
-              
-              // If Fri (5), no business days remaining
-              if (dayOfWeek === 5) return 0;
-              
-              // Mon=1, Tue=2, Wed=3, Thu=4
-              // Remaining business days = 5 - dayOfWeek (e.g., if Mon=1, then 5-1=4 days left: Tue-Fri)
-              return 5 - dayOfWeek;
-            };
-
-            // Get all unique employees from schedule data for the dropdown
-            const allEmployeesInSchedule = [...new Set(scheduleRows.map(r => r.employee || '').filter(e => e))].sort();
-
-            // Calculate KPIs with employee filter and business-day logic
-            const businessDaysRemaining = getBusinessDaysRemaining(goForwardToday);
-            
-            // Filter schedule for KPI calculations (employee filter + selected date and future business days)
-            // Metrics show "remaining" work from the selected date forward
-            const scheduleForMetrics = scheduleRows.filter(row => {
-              if (!row.date) return false;
-              
-              // Include selected date and future dates
-              const shiftDate = new Date(row.date + 'T00:00:00');
-              if (shiftDate < todayDate) return false; // Exclude past dates only
-              
-              // Apply employee filter for metrics
-              if (goForwardEmployeeFilter !== 'all' && row.employee !== goForwardEmployeeFilter) {
-                return false;
-              }
-              
-              // Only include weekdays for metrics
-              if (!isWeekday(shiftDate)) return false;
-              
-              return true;
-            });
-            
-            const totalRemainingHours = scheduleForMetrics.reduce((sum, r) => 
-              sum + (parseFloat(r.hours) || 0), 0
-            );
-            const uniqueEmployees = new Set(scheduleForMetrics.map(r => r.employee || '')).size;
-
-            return (
-              <div className="col-span-12 bg-white rounded-xl shadow-lg p-6 mt-6">
-                {/* Header with filters */}
-                <div className="flex justify-between items-center mb-6">
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Go-Forward Schedule</h2>
-                    <p className="text-sm text-gray-600 mt-1">
-                      Work scheduled for {new Date(goForwardToday).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </p>
-                  </div>
-                  
-                  {/* Filters */}
-                  <div className="flex items-center gap-3">
-                    {/* Date Control */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-600 font-medium">Date:</span>
-                      <input
-                        type="date"
-                        value={goForwardToday}
-                        onChange={(e) => setGoForwardToday(e.target.value)}
-                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    
-                    {/* Team Filter */}
-                    <select
-                      value={goForwardTeamFilter}
-                      onChange={(e) => setGoForwardTeamFilter(e.target.value)}
-                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="all">All Teams</option>
-                      <option value="tas">TAS</option>
-                      <option value="cds">CDS</option>
-                    </select>
-                    
-                    {/* Project Search */}
-                    <div className="relative w-64">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <input
-                        type="text"
-                        placeholder="Search projects or employees..."
-                        value={goForwardProjectSearch}
-                        onChange={(e) => setGoForwardProjectSearch(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Employee Filter for Metrics */}
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    View metrics for:
-                  </label>
-                  <select
-                    value={goForwardEmployeeFilter}
-                    onChange={(e) => setGoForwardEmployeeFilter(e.target.value)}
-                    className="w-full max-w-md border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="all">All Employees</option>
-                    {allEmployeesInSchedule.map(emp => (
-                      <option key={emp} value={emp}>{emp}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* KPIs - Always show */}
-                <div className="grid grid-cols-3 gap-4 mb-6">
-                  <div className="bg-blue-50 rounded-lg p-4">
-                    <div className="text-sm text-blue-600 font-medium">Business Days Remaining</div>
-                    <div className="text-2xl font-bold text-blue-900 mt-1">{businessDaysRemaining}</div>
-                    <p className="text-xs text-blue-700 mt-1">Mon-Fri only</p>
-                  </div>
-                  <div className="bg-green-50 rounded-lg p-4">
-                    <div className="text-sm text-green-600 font-medium">Scheduled Hours Remaining</div>
-                    <div className="text-2xl font-bold text-green-900 mt-1">{totalRemainingHours.toFixed(1)}</div>
-                    <p className="text-xs text-green-700 mt-1">Future business days only</p>
-                  </div>
-                  <div className="bg-purple-50 rounded-lg p-4">
-                    <div className="text-sm text-purple-600 font-medium">
-                      {goForwardEmployeeFilter === 'all' ? 'Unique People' : 'Employee'}
-                    </div>
-                    <div className="text-2xl font-bold text-purple-900 mt-1">
-                      {goForwardEmployeeFilter === 'all' ? uniqueEmployees : '1'}
-                    </div>
-                    <p className="text-xs text-purple-700 mt-1">
-                      {goForwardEmployeeFilter === 'all' ? 'In schedule' : goForwardEmployeeFilter}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Schedule by Project */}
-                {sortedProjects.length === 0 ? (
-                  <div className="text-center py-12 text-gray-500">
-                    <Calendar className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                    <p className="text-lg font-medium text-gray-700 mb-2">No remaining scheduled work found</p>
-                    <div className="text-sm space-y-1">
-                      <p>• Make sure "Jan 4 – Jan 10, 2026" week is selected at the top</p>
-                      <p>• Try setting "Today" to Jan 5 or earlier</p>
-                      <p>• Check that Team filter is set to "All Teams"</p>
-                      <p>• Clear the project search box if it has text</p>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-4">Raw schedule rows available: {scheduleRows.length}</p>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    {sortedProjects.map((group, idx) => (
-                      <div key={idx} className="border border-gray-200 rounded-lg overflow-hidden">
-                        {/* Project Header */}
-                        <div className="bg-gradient-to-r from-blue-50 to-blue-100 px-4 py-3 border-b border-blue-200">
-                          <div className="flex justify-between items-center">
-                            <h3 className="text-lg font-bold text-gray-900">{group.project}</h3>
-                            <span className="text-sm font-semibold text-blue-700">
-                              {group.totalHours.toFixed(1)} hours remaining
-                            </span>
-                          </div>
-                        </div>
-                        
-                        {/* Shifts Table */}
-                        <table className="w-full">
-                          <thead className="bg-gray-50">
-                            <tr>
-                              <th className="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Employee</th>
-                              <th className="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Date</th>
-                              <th className="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Day</th>
-                              <th className="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Time</th>
-                              <th className="py-3 px-4 text-right text-xs font-semibold text-gray-600 uppercase">Hours</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-200">
-                            {group.shifts.map((shift, sIdx) => (
-                              <tr key={sIdx} className="hover:bg-gray-50">
-                                <td className="py-3 px-4 text-sm text-gray-900 font-medium">
-                                  {shift.employee}
-                                </td>
-                                <td className="py-3 px-4 text-sm text-gray-700">
-                                  {new Date(shift.date + 'T00:00:00').toLocaleDateString('en-US', { 
-                                    month: 'short', 
-                                    day: 'numeric' 
-                                  })}
-                                </td>
-                                <td className="py-3 px-4 text-sm text-gray-600 font-medium">
-                                  {shift.day}
-                                </td>
-                                <td className="py-3 px-4 text-sm text-gray-700">
-                                  {shift.startTime && shift.endTime 
-                                    ? `${shift.startTime} – ${shift.endTime}`
-                                    : '—'}
-                                </td>
-                                <td className="py-3 px-4 text-sm text-gray-900 text-right font-medium">
-                                  {shift.hours.toFixed(1)}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })()}
 
           {activeTab === 'teams' && (
             <div className="col-span-12 bg-white rounded-xl shadow-lg p-6">
@@ -2452,287 +2052,325 @@ const StocStaffingDashboard = () => {
             </div>
           )}
 
-          {/* SCHEDULE SECTION */}
-          {activeTab === 'schedule' && (
-            <div className="col-span-12">
-              {(() => {
-                // Extract main client from customer name
-                const extractMainClient = (customer) => {
-                  if (!customer) return 'Unknown';
-                  const dashIndex = customer.indexOf(' - ');
-                  if (dashIndex > 0) {
-                    return customer.substring(0, dashIndex);
-                  }
-                  return customer;
-                };
-
-                // Parse hours safely
-                const parseHours = (row) => {
-                  if (row.hours && !isNaN(parseFloat(row.hours))) {
-                    return parseFloat(row.hours);
-                  }
-                  return 0;
-                };
-
-                // Format date for display
-                const formatDate = (dateStr) => {
-                  if (!dateStr) return '—';
-                  try {
-                    const date = new Date(`${dateStr}T00:00:00`);
-                    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                  } catch {
-                    return dateStr;
-                  }
-                };
-
-                // Get day of week (use row.day if available, otherwise compute safely)
-                const getDayOfWeek = (row) => {
-                  if (row.day) return row.day;
-                  if (!row.date) return '—';
-                  try {
-                    const date = new Date(`${row.date}T00:00:00`);
-                    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-                    return days[date.getDay()];
-                  } catch {
-                    return '—';
-                  }
-                };
-
-                // Check if shift is overnight
-                const isOvernight = (row) => {
-                  return row.end_date && row.date && row.end_date !== row.date;
-                };
-
-                // Format time display
-                const formatTime = (row) => {
-                  if (!row.start_time || !row.end_time) return '—';
-                  const overnight = isOvernight(row);
-                  return `${row.start_time} – ${row.end_time}${overnight ? ' (overnight)' : ''}`;
-                };
-
-                // Get schedule data for selected week
-                if (selectedPeriods.length !== 1) {
-                  return (
-                    <div className="bg-white rounded-xl shadow-lg p-12 text-center">
-                      <Calendar className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-                      <p className="text-lg text-gray-600">Please select exactly one week to view the schedule.</p>
-                    </div>
-                  );
-                }
-
-                const weekLabel = selectedPeriods[0];
-                const scheduleData = SCHEDULE_DATA_BY_WEEK?.[weekLabel] || [];
-
-                if (scheduleData.length === 0) {
-                  return (
-                    <div className="bg-white rounded-xl shadow-lg p-12 text-center">
-                      <Calendar className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-                      <p className="text-lg text-gray-600">No schedule data available for the selected week.</p>
-                    </div>
-                  );
-                }
-
-                // Use goForwardToday for filtering (already exists in state)
-                const todayDateObj = new Date(`${goForwardToday}T00:00:00`);
-                todayDateObj.setHours(0, 0, 0, 0);
-
-                // Filter for remaining days (strictly after today)
-                const filteredRows = scheduleData.filter(row => {
-                  if (!row.date || !row.employee || !row.customer) return false;
-                  
-                  try {
-                    const rowDate = new Date(`${row.date}T00:00:00`);
-                    rowDate.setHours(0, 0, 0, 0);
-                    
-                    // Only include dates strictly AFTER today
-                    if (rowDate <= todayDateObj) return false;
-                    
-                    // Apply search filter if exists
-                    if (goForwardProjectSearch && goForwardProjectSearch.trim()) {
-                      const query = goForwardProjectSearch.toLowerCase();
-                      const customerMatch = row.customer.toLowerCase().includes(query);
-                      const employeeMatch = row.employee.toLowerCase().includes(query);
-                      if (!customerMatch && !employeeMatch) return false;
-                    }
-                    
-                    return true;
-                  } catch {
-                    return false;
-                  }
-                });
-
-                // Get remaining dates
-                const remainingDates = [...new Set(filteredRows.map(row => row.date))].sort();
-
-                // Group by main client, then by project
-                const mainClientGroups = {};
-                
-                filteredRows.forEach(row => {
-                  const mainClient = extractMainClient(row.customer);
-                  const project = row.customer;
-                  
-                  if (!mainClientGroups[mainClient]) {
-                    mainClientGroups[mainClient] = {
-                      mainClient,
-                      totalHours: 0,
-                      projects: {}
-                    };
-                  }
-                  
-                  if (!mainClientGroups[mainClient].projects[project]) {
-                    mainClientGroups[mainClient].projects[project] = {
-                      project,
-                      totalHours: 0,
-                      shifts: []
-                    };
-                  }
-                  
-                  const hours = parseHours(row);
-                  mainClientGroups[mainClient].totalHours += hours;
-                  mainClientGroups[mainClient].projects[project].totalHours += hours;
-                  mainClientGroups[mainClient].projects[project].shifts.push(row);
-                });
-
-                // Sort main clients by total hours (desc)
-                const sortedMainClients = Object.values(mainClientGroups).sort((a, b) => 
-                  b.totalHours - a.totalHours
-                );
-
-                // Sort projects within each main client by total hours (desc)
-                sortedMainClients.forEach(mainClientGroup => {
-                  mainClientGroup.projectsArray = Object.values(mainClientGroup.projects).sort((a, b) => 
-                    b.totalHours - a.totalHours
-                  );
-                  
-                  // Sort shifts within each project by date, then time
-                  mainClientGroup.projectsArray.forEach(project => {
-                    project.shifts.sort((a, b) => {
-                      const dateCompare = a.date.localeCompare(b.date);
-                      if (dateCompare !== 0) return dateCompare;
-                      return (a.start_time || '').localeCompare(b.start_time || '');
-                    });
-                  });
-                });
-
-                // Calculate KPIs
-                const totalScheduledHours = filteredRows.reduce((sum, row) => sum + parseHours(row), 0);
-                const uniquePeople = [...new Set(filteredRows.map(row => row.employee))].length;
-
-                return (
-                  <div className="space-y-6">
-                    {/* KPI Summary */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="bg-white rounded-lg shadow-sm p-4 flex items-center gap-3">
-                        <div className="p-3 bg-blue-100 rounded-lg">
-                          <Calendar className="w-6 h-6 text-blue-600" />
-                        </div>
-                        <div>
-                          <div className="text-2xl font-bold text-gray-900">{remainingDates.length}</div>
-                          <div className="text-sm text-gray-600">Remaining Days</div>
-                        </div>
-                      </div>
-
-                      <div className="bg-white rounded-lg shadow-sm p-4 flex items-center gap-3">
-                        <div className="p-3 bg-green-100 rounded-lg">
-                          <Clock className="w-6 h-6 text-green-600" />
-                        </div>
-                        <div>
-                          <div className="text-2xl font-bold text-gray-900">{totalScheduledHours.toFixed(1)}</div>
-                          <div className="text-sm text-gray-600">Scheduled Hours Remaining</div>
-                        </div>
-                      </div>
-
-                      <div className="bg-white rounded-lg shadow-sm p-4 flex items-center gap-3">
-                        <div className="p-3 bg-purple-100 rounded-lg">
-                          <Users className="w-6 h-6 text-purple-600" />
-                        </div>
-                        <div>
-                          <div className="text-2xl font-bold text-gray-900">{uniquePeople}</div>
-                          <div className="text-sm text-gray-600">Unique People Scheduled</div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Main Content */}
-                    {filteredRows.length === 0 ? (
-                      <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-                        <div className="text-gray-400 mb-4">
-                          <Calendar className="w-16 h-16 mx-auto" />
-                        </div>
-                        <p className="text-lg text-gray-600">No scheduled shifts found for the remaining days in this week.</p>
-                        <p className="text-sm text-gray-500 mt-2">Try adjusting the "Today" date or search filters.</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-6">
-                        {sortedMainClients.map((mainClientGroup, idx) => (
-                          <div key={idx} className="bg-white rounded-lg shadow-sm overflow-hidden">
-                            {/* Main Client Header */}
-                            <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-6 py-4">
-                              <div className="flex justify-between items-center">
-                                <h2 className="text-xl font-bold text-white">{mainClientGroup.mainClient}</h2>
-                                <span className="text-sm font-medium text-indigo-100">
-                                  {mainClientGroup.totalHours.toFixed(1)} hours
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* Projects */}
-                            <div className="p-6 space-y-6">
-                              {mainClientGroup.projectsArray.map((projectGroup, projIdx) => (
-                                <div key={projIdx} className="border border-gray-200 rounded-lg overflow-hidden">
-                                  {/* Project Header */}
-                                  <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-3 border-b border-gray-200">
-                                    <div className="flex justify-between items-center">
-                                      <h3 className="font-semibold text-gray-900">{projectGroup.project}</h3>
-                                      <span className="text-sm font-medium text-gray-600">
-                                        {projectGroup.totalHours.toFixed(1)} hours
-                                      </span>
-                                    </div>
-                                  </div>
-
-                                  {/* Shifts Table */}
-                                  <div className="overflow-x-auto">
-                                    <table className="w-full">
-                                      <thead className="bg-gray-50 border-b border-gray-200">
-                                        <tr>
-                                          <th className="text-left py-3 px-4 text-xs font-semibold text-gray-700">Employee</th>
-                                          <th className="text-left py-3 px-4 text-xs font-semibold text-gray-700">Date</th>
-                                          <th className="text-left py-3 px-4 text-xs font-semibold text-gray-700">Day</th>
-                                          <th className="text-left py-3 px-4 text-xs font-semibold text-gray-700">Time</th>
-                                          <th className="text-right py-3 px-4 text-xs font-semibold text-gray-700">Hours</th>
-                                          <th className="text-left py-3 px-4 text-xs font-semibold text-gray-700">Details</th>
-                                        </tr>
-                                      </thead>
-                                      <tbody className="divide-y divide-gray-100">
-                                        {projectGroup.shifts.map((shift, shiftIdx) => (
-                                          <tr key={shiftIdx} className="hover:bg-gray-50 transition-colors">
-                                            <td className="py-3 px-4 text-sm text-gray-900">{shift.employee}</td>
-                                            <td className="py-3 px-4 text-sm text-gray-700">{formatDate(shift.date)}</td>
-                                            <td className="py-3 px-4 text-sm text-gray-600 font-medium">{getDayOfWeek(shift)}</td>
-                                            <td className="py-3 px-4 text-sm text-gray-700">{formatTime(shift)}</td>
-                                            <td className="py-3 px-4 text-sm text-gray-900 text-right font-medium">
-                                              {parseHours(shift).toFixed(1)}
-                                            </td>
-                                            <td className="py-3 px-4 text-sm text-gray-500 italic">
-                                              {shift.details || '—'}
-                                            </td>
-                                          </tr>
-                                        ))}
-                                      </tbody>
-                                    </table>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+          {/* GO-FORWARD SCHEDULE SECTION */}
+          {activeTab === 'schedule' && (() => {
+            // Get schedule data for selected week (use first selected period)
+            const selectedWeek = selectedPeriods[0] || 'Jan 4 – Jan 10, 2026';
+            const scheduleRows = SCHEDULE_DATA_BY_WEEK[selectedWeek] || [];
+            
+            if (scheduleRows.length === 0) {
+              return (
+                <div className="col-span-12 bg-white rounded-xl shadow-lg p-6 mt-6">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-4">Go-Forward Schedule</h2>
+                  <div className="text-center py-12 text-gray-500">
+                    <Calendar className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                    <p>No schedule data available for the selected week.</p>
                   </div>
-                );
-              })()}
-            </div>
-          )}
+                </div>
+              );
+            }
+
+            // Parse today date and get end of selected week
+            const todayDate = new Date(goForwardToday + 'T00:00:00');
+            const weekRange = selectedWeek.split(' – ');
+            const weekEndStr = weekRange[1]?.split(',')[0]?.trim();
+            
+            // Parse week end date
+            let weekEndDate = new Date();
+            if (weekEndStr) {
+              const year = selectedWeek.match(/\d{4}/)?.[0] || new Date().getFullYear();
+              weekEndDate = new Date(`${weekEndStr}, ${year}T23:59:59`);
+            }
+
+            // Filter to remaining schedule (dates AFTER today, within selected week)
+            // SIMPLIFIED FILTER - Show all future shifts with minimal filtering
+            const remainingSchedule = scheduleRows.filter(row => {
+              if (!row.date) return false;
+              
+              const shiftDate = new Date(row.date + 'T00:00:00');
+              const isSelectedDate = shiftDate.toDateString() === todayDate.toDateString();
+              
+              // Apply employee filter from "View metrics for" dropdown
+              if (goForwardEmployeeFilter !== 'all') {
+                if (row.employee !== goForwardEmployeeFilter) return false;
+              }
+              
+              // Only apply team filter if not 'all' - uses GLOBAL teamFilter from top of page
+              if (teamFilter !== 'all') {
+                const employeeName = row.employee || '';
+                const isCDS = CDS_TEAM_MEMBERS.includes(employeeName);
+                if (teamFilter === 'cds' && !isCDS) return false;
+                if (teamFilter === 'tas' && isCDS) return false;
+              }
+              
+              // Only apply project search if there's actual search text
+              if (goForwardProjectSearch && goForwardProjectSearch.trim()) {
+                const searchLower = goForwardProjectSearch.toLowerCase();
+                const projectMatch = (row.customer || '').toLowerCase().includes(searchLower);
+                const employeeMatch = (row.employee || '').toLowerCase().includes(searchLower);
+                if (!projectMatch && !employeeMatch) return false;
+              }
+              
+              return isSelectedDate; // Show only the selected date
+            });
+
+            // Group by CLIENT (extract prefix like "AEG", "SALT", "CPC", etc.)
+            const projectGroups = {};
+            remainingSchedule.forEach(row => {
+              const fullCustomer = row.customer || 'Unassigned';
+              // Extract client prefix (e.g., "AEG - South Shore" -> "AEG")
+              const client = fullCustomer.includes(' - ') 
+                ? fullCustomer.split(' - ')[0].trim() 
+                : fullCustomer;
+              
+              if (!projectGroups[client]) {
+                projectGroups[client] = {
+                  project: client,
+                  totalHours: 0,
+                  shifts: []
+                };
+              }
+              
+              const hours = parseFloat(row.hours) || 0;
+              projectGroups[client].totalHours += hours;
+              projectGroups[client].shifts.push({
+                employee: row.employee || '',
+                project: fullCustomer, // Keep full project name for display
+                date: row.date,
+                day: row.day,
+                startTime: row.start_time,
+                endTime: row.end_time,
+                hours
+              });
+            });
+
+            // Sort clients by total hours (desc)
+            const sortedProjects = Object.values(projectGroups).sort(
+              (a, b) => b.totalHours - a.totalHours
+            );
+
+            // Sort shifts within each client by project, then date, then time
+            sortedProjects.forEach(group => {
+              group.shifts.sort((a, b) => {
+                // First sort by project name
+                if (a.project !== b.project) return a.project.localeCompare(b.project);
+                // Then by date
+                if (a.date !== b.date) return a.date.localeCompare(b.date);
+                // Finally by start time
+                return (a.startTime || '').localeCompare(b.startTime || '');
+              });
+            });
+
+            // Helper: Check if a date is a weekday (Mon-Fri)
+            const isWeekday = (date) => {
+              const day = date.getDay();
+              return day >= 1 && day <= 5; // 1=Mon, 5=Fri
+            };
+
+            // Helper: Get business days remaining in current week
+            const getBusinessDaysRemaining = (todayStr) => {
+              const today = new Date(todayStr + 'T00:00:00');
+              const dayOfWeek = today.getDay();
+              
+              // If Sat (6) or Sun (0), no business days remaining
+              if (dayOfWeek === 0 || dayOfWeek === 6) return 0;
+              
+              // If Fri (5), no business days remaining
+              if (dayOfWeek === 5) return 0;
+              
+              // Mon=1, Tue=2, Wed=3, Thu=4
+              // Remaining business days = 5 - dayOfWeek (e.g., if Mon=1, then 5-1=4 days left: Tue-Fri)
+              return 5 - dayOfWeek;
+            };
+
+            // Get all unique employees from schedule data for the dropdown
+            const allEmployeesInSchedule = [...new Set(scheduleRows.map(r => r.employee || '').filter(e => e))].sort();
+
+            // Calculate KPIs with employee filter and business-day logic
+            const businessDaysRemaining = getBusinessDaysRemaining(goForwardToday);
+            
+            // Filter schedule for KPI calculations (employee filter + selected date and future business days)
+            // Metrics show "remaining" work from the selected date forward
+            const scheduleForMetrics = scheduleRows.filter(row => {
+              if (!row.date) return false;
+              
+              // Include selected date and future dates
+              const shiftDate = new Date(row.date + 'T00:00:00');
+              if (shiftDate < todayDate) return false; // Exclude past dates only
+              
+              // Apply employee filter for metrics
+              if (goForwardEmployeeFilter !== 'all' && row.employee !== goForwardEmployeeFilter) {
+                return false;
+              }
+              
+              // Only include weekdays for metrics
+              if (!isWeekday(shiftDate)) return false;
+              
+              return true;
+            });
+            
+            const totalRemainingHours = scheduleForMetrics.reduce((sum, r) => 
+              sum + (parseFloat(r.hours) || 0), 0
+            );
+            const uniqueEmployees = new Set(scheduleForMetrics.map(r => r.employee || '')).size;
+
+            return (
+              <div className="col-span-12 bg-white rounded-xl shadow-lg p-6 mt-6">
+                {/* Header with filters */}
+                <div className="flex justify-between items-center mb-6">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Go-Forward Schedule</h2>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Work scheduled for {new Date(goForwardToday).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </p>
+                  </div>
+                  
+                  {/* Filters */}
+                  <div className="flex items-center gap-3">
+                    {/* Date Control */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-600 font-medium">Date:</span>
+                      <input
+                        type="date"
+                        value={goForwardToday}
+                        onChange={(e) => setGoForwardToday(e.target.value)}
+                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    
+                    {/* Project Search */}
+                    <div className="relative w-64">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Search projects or employees..."
+                        value={goForwardProjectSearch}
+                        onChange={(e) => setGoForwardProjectSearch(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Employee Filter for Metrics */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    View metrics for:
+                  </label>
+                  <select
+                    value={goForwardEmployeeFilter}
+                    onChange={(e) => setGoForwardEmployeeFilter(e.target.value)}
+                    className="w-full max-w-md border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="all">All Employees</option>
+                    {allEmployeesInSchedule.map(emp => (
+                      <option key={emp} value={emp}>{emp}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* KPIs - Always show */}
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="bg-blue-50 rounded-lg p-4">
+                    <div className="text-sm text-blue-600 font-medium">Business Days Remaining</div>
+                    <div className="text-2xl font-bold text-blue-900 mt-1">{businessDaysRemaining}</div>
+                    <p className="text-xs text-blue-700 mt-1">Mon-Fri only</p>
+                  </div>
+                  <div className="bg-green-50 rounded-lg p-4">
+                    <div className="text-sm text-green-600 font-medium">Scheduled Hours Remaining</div>
+                    <div className="text-2xl font-bold text-green-900 mt-1">{totalRemainingHours.toFixed(1)}</div>
+                    <p className="text-xs text-green-700 mt-1">Future business days only</p>
+                  </div>
+                  <div className="bg-purple-50 rounded-lg p-4">
+                    <div className="text-sm text-purple-600 font-medium">
+                      {goForwardEmployeeFilter === 'all' ? 'Unique People' : 'Employee'}
+                    </div>
+                    <div className="text-2xl font-bold text-purple-900 mt-1">
+                      {goForwardEmployeeFilter === 'all' ? uniqueEmployees : '1'}
+                    </div>
+                    <p className="text-xs text-purple-700 mt-1">
+                      {goForwardEmployeeFilter === 'all' ? 'In schedule' : goForwardEmployeeFilter}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Schedule by Project */}
+                {sortedProjects.length === 0 ? (
+                  <div className="text-center py-12 text-gray-500">
+                    <Calendar className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                    <p className="text-lg font-medium text-gray-700 mb-2">No remaining scheduled work found</p>
+                    <div className="text-sm space-y-1">
+                      <p>• Make sure "Jan 4 – Jan 10, 2026" week is selected at the top</p>
+                      <p>• Try setting "Today" to Jan 5 or earlier</p>
+                      <p>• Check that Team filter is set to "All Teams"</p>
+                      <p>• Clear the project search box if it has text</p>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-4">Raw schedule rows available: {scheduleRows.length}</p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {sortedProjects.map((group, idx) => (
+                      <div key={idx} className="border border-gray-200 rounded-lg overflow-hidden">
+                        {/* Client Header */}
+                        <div className="bg-gradient-to-r from-blue-50 to-blue-100 px-4 py-3 border-b border-blue-200">
+                          <div className="flex justify-between items-center">
+                            <h3 className="text-lg font-bold text-gray-900">{group.project}</h3>
+                            <span className="text-sm font-semibold text-blue-700">
+                              {group.totalHours.toFixed(1)} hours total
+                            </span>
+                          </div>
+                        </div>
+                        
+                        {/* Shifts Table */}
+                        <table className="w-full">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Project</th>
+                              <th className="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Employee</th>
+                              <th className="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Date</th>
+                              <th className="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Day</th>
+                              <th className="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Time</th>
+                              <th className="py-3 px-4 text-right text-xs font-semibold text-gray-600 uppercase">Hours</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-200">
+                            {group.shifts.map((shift, sIdx) => (
+                              <tr key={sIdx} className="hover:bg-gray-50">
+                                <td className="py-3 px-4 text-sm text-gray-700">
+                                  {shift.project}
+                                </td>
+                                <td className="py-3 px-4 text-sm text-gray-900 font-medium">
+                                  {shift.employee}
+                                </td>
+                                <td className="py-3 px-4 text-sm text-gray-700">
+                                  {new Date(shift.date + 'T00:00:00').toLocaleDateString('en-US', { 
+                                    month: 'short', 
+                                    day: 'numeric' 
+                                  })}
+                                </td>
+                                <td className="py-3 px-4 text-sm text-gray-600 font-medium">
+                                  {shift.day}
+                                </td>
+                                <td className="py-3 px-4 text-sm text-gray-700">
+                                  {shift.startTime && shift.endTime 
+                                    ? `${shift.startTime} – ${shift.endTime}`
+                                    : '—'}
+                                </td>
+                                <td className="py-3 px-4 text-sm text-gray-900 text-right font-medium">
+                                  {shift.hours.toFixed(1)}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
         </div>
       </div>
     </div>
