@@ -1,12 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import {
-  Calendar, Users, DollarSign, Activity, Clock,
-  Search, RefreshCw, AlertCircle,
-  ChevronDown, ChevronRight, AlertTriangle, UserCheck, Target, ArrowRight
-} from 'lucide-react';
+import { Calendar, Search, RefreshCw, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Cell, ReferenceLine
+  ResponsiveContainer, Cell
 } from 'recharts';
 
 // ─────────────────────────────────────────────────────────
@@ -21,7 +17,29 @@ const CDS_TEAM = new Set([
 ]);
 
 // ─────────────────────────────────────────────────────────
-// DATA HELPERS  (unchanged logic)
+// DESIGN TOKENS — one place to change everything
+// ─────────────────────────────────────────────────────────
+const C = {
+  billable:  '#16A34A',   // green-600
+  internal:  '#7C3AED',   // violet-600
+  ooo:       '#94A3B8',   // slate-400
+  avail:     '#E2E8F0',   // slate-200
+  burn:      '#DC2626',   // red-600
+  burnBg:    '#FEF2F2',
+  under:     '#2563EB',   // blue-600
+  underBg:   '#EFF6FF',
+  healthy:   '#15803D',   // green-700
+  healthyBg: '#F0FDF4',
+  border:    '#E2E8F0',
+  headerBg:  '#F8FAFC',
+  rowAlt:    '#FAFAFA',
+  text:      '#0F172A',
+  muted:     '#64748B',
+  faint:     '#94A3B8',
+};
+
+// ─────────────────────────────────────────────────────────
+// DATA HELPERS
 // ─────────────────────────────────────────────────────────
 const normalizeClient = (j) => {
   if (!j) return 'Other';
@@ -35,9 +53,9 @@ const normalizeClient = (j) => {
   if (/^SP\s*USA[\s\-–]/i.test(j)||/^SPUSA[\s\-–]/i.test(j)||/^SP\s*USA$/i.test(j)) return 'SP USA';
   if (/^CPC[\s\-–]/i.test(j)  || /^CPC$/i.test(j))    return 'CPC';
   if (/^RIATA[\s\-–]/i.test(j)||/^RIATA$/i.test(j))   return 'Riata';
-  if (/^BEACON/i.test(j))   return 'Beacon';
-  if (/^ARCHWAY/i.test(j))  return 'Archway';
-  if (/^BUDGET/i.test(j))   return 'Budget';
+  if (/^BEACON/i.test(j))  return 'Beacon';
+  if (/^ARCHWAY/i.test(j)) return 'Archway';
+  if (/^BUDGET/i.test(j))  return 'Budget';
   const m = j.match(/^(.+?)\s*[-–]\s*/);
   if (m) return m[1].trim();
   return j.trim();
@@ -53,96 +71,165 @@ const catOf = (j) => {
 
 const parseCSV = (text) => {
   const clean = text.replace(/^\uFEFF/,'').replace(/\r\n/g,'\n').replace(/\r/g,'\n');
-  const lines = clean.split('\n').filter(l => l.trim());
+  const lines = clean.split('\n').filter(l=>l.trim());
   if (lines.length < 2) return [];
   const parseLine = (line) => {
-    const r = []; let cur = '', inQ = false;
-    for (let i = 0; i < line.length; i++) {
-      const ch = line[i];
-      if (ch === '"') { if (inQ && line[i+1]==='"') { cur+='"'; i++; } else inQ=!inQ; }
-      else if (ch === ',' && !inQ) { r.push(cur.trim()); cur=''; }
-      else cur += ch;
+    const r=[]; let cur='',inQ=false;
+    for (let i=0;i<line.length;i++) {
+      const ch=line[i];
+      if(ch==='"'){if(inQ&&line[i+1]==='"'){cur+='"';i++;}else inQ=!inQ;}
+      else if(ch===','&&!inQ){r.push(cur.trim());cur='';}
+      else cur+=ch;
     }
     r.push(cur.trim()); return r;
   };
-  const hdrs = parseLine(lines[0]).map(h => h.toLowerCase().replace(/\s+/g,'_'));
+  const hdrs=parseLine(lines[0]).map(h=>h.toLowerCase().replace(/\s+/g,'_'));
   return lines.slice(1)
-    .map(line => { const v=parseLine(line); const row={}; hdrs.forEach((h,i)=>{ row[h]=v[i]??''; }); return row; })
-    .filter(r => r.fname||r.lname||r.username);
+    .map(line=>{const v=parseLine(line);const row={};hdrs.forEach((h,i)=>{row[h]=v[i]??'';});return row;})
+    .filter(r=>r.fname||r.lname||r.username);
 };
 
 const detectWeeks = (rows) => {
-  const m = {};
-  rows.forEach(r => {
-    const d = new Date(r.local_date); if (isNaN(d)) return;
-    const day=d.getDay(); const diff=day===0?-6:1-day;
-    const mon=new Date(d); mon.setDate(d.getDate()+diff);
-    const sun=new Date(mon); sun.setDate(mon.getDate()+6);
+  const m={};
+  rows.forEach(r=>{
+    const d=new Date(r.local_date);if(isNaN(d))return;
+    const day=d.getDay();const diff=day===0?-6:1-day;
+    const mon=new Date(d);mon.setDate(d.getDate()+diff);
+    const sun=new Date(mon);sun.setDate(mon.getDate()+6);
     const fmt=dt=>dt.toLocaleDateString('en-US',{month:'short',day:'numeric'});
     const key=mon.toISOString().slice(0,10);
-    if (!m[key]) m[key]={key,label:`${fmt(mon)} – ${fmt(sun)}, ${sun.getFullYear()}`};
+    if(!m[key]) m[key]={key,label:`${fmt(mon)} – ${fmt(sun)}, ${sun.getFullYear()}`};
   });
   return Object.values(m).sort((a,b)=>b.key.localeCompare(a.key));
 };
 
-const riskOf  = (u) => u>=95?'Burnout Risk':u<60?'Underutilized':'Healthy';
-const pct     = (n,d) => d>0?Math.round((n/d)*100):0;
-
-// Colour tokens — used everywhere consistently
-const RISK = {
-  'Burnout Risk':  { rowBg:'bg-red-50',   badge:'bg-red-100 text-red-800',   dot:'bg-red-500',  bar:'#EF4444', label:'text-red-700'  },
-  'Underutilized': { rowBg:'bg-sky-50',   badge:'bg-sky-100 text-sky-800',   dot:'bg-sky-400',  bar:'#38BDF8', label:'text-sky-700'  },
-  'Healthy':       { rowBg:'',            badge:'bg-emerald-100 text-emerald-800', dot:'bg-emerald-500', bar:'#10B981', label:'text-emerald-700' },
-};
+const riskOf = (u) => u>=95?'Over':u<60?'Under':'OK';
 
 // ─────────────────────────────────────────────────────────
-// SMALL REUSABLE COMPONENTS
+// SHARED UI PRIMITIVES
 // ─────────────────────────────────────────────────────────
 
-// Consistent table header cell
-const TH = ({ children, right, onClick, sorted }) => (
+// Plain bordered table header
+const Th = ({children, right, sort, onClick}) => (
   <th
     onClick={onClick}
-    className={`px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500 bg-gray-50 border-b border-gray-200 whitespace-nowrap select-none
-      ${right ? 'text-right' : 'text-left'}
-      ${onClick ? 'cursor-pointer hover:bg-gray-100 hover:text-gray-700' : ''}`}
-  >
-    {children}{sorted}
+    style={{
+      padding:'8px 12px',
+      fontSize:11,
+      fontWeight:600,
+      textTransform:'uppercase',
+      letterSpacing:'0.06em',
+      color:C.muted,
+      background:C.headerBg,
+      borderBottom:`2px solid ${C.border}`,
+      textAlign: right?'right':'left',
+      whiteSpace:'nowrap',
+      cursor: onClick?'pointer':'default',
+      userSelect:'none',
+    }}>
+    {children}{sort}
   </th>
 );
 
-// Consistent table data cell
-const TD = ({ children, right, muted, bold, className='' }) => (
-  <td className={`px-4 py-3 text-sm whitespace-nowrap
-    ${right ? 'text-right tabular-nums' : ''}
-    ${muted ? 'text-gray-400' : 'text-gray-700'}
-    ${bold  ? 'font-semibold text-gray-900' : ''}
-    ${className}`}>
+// Plain table cell
+const Td = ({children, right, bold, muted, color, style={}}) => (
+  <td style={{
+    padding:'9px 12px',
+    fontSize:13,
+    color: color||(muted?C.faint:bold?C.text:C.muted),
+    fontWeight: bold?600:400,
+    textAlign: right?'right':'left',
+    fontVariantNumeric: right?'tabular-nums':'normal',
+    verticalAlign:'middle',
+    ...style,
+  }}>
     {children}
   </td>
 );
 
-// Risk badge pill
-const RiskBadge = ({ level }) => (
-  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${RISK[level]?.badge}`}>
-    <span className={`w-1.5 h-1.5 rounded-full ${RISK[level]?.dot}`}/>
-    {level}
-  </span>
-);
-
-// Utilization bar (inline, fixed width)
-const UtilBar = ({ value }) => {
-  const capped = Math.min(value, 120);
-  const color  = value>=95?'bg-red-400':value<60?'bg-sky-400':'bg-emerald-400';
+// Risk pill — small and functional
+const RiskPill = ({level}) => {
+  const map = {
+    Over:  {bg:'#FEE2E2',color:'#B91C1C',text:'At risk'},
+    Under: {bg:'#DBEAFE',color:'#1D4ED8',text:'Under'},
+    OK:    {bg:'#DCFCE7',color:'#15803D',text:'Healthy'},
+  };
+  const s=map[level]||map.OK;
   return (
-    <div className="flex items-center gap-2 min-w-[100px]">
-      <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-        <div className={`h-2 rounded-full ${color}`} style={{width:`${Math.min(capped,100)}%`}}/>
+    <span style={{
+      display:'inline-block',
+      padding:'2px 8px',
+      borderRadius:4,
+      fontSize:11,
+      fontWeight:600,
+      background:s.bg,
+      color:s.color,
+      letterSpacing:'0.02em',
+    }}>
+      {s.text}
+    </span>
+  );
+};
+
+// Inline stacked bar — THE key visualization building block
+const CapacityBar = ({billable, internal, ooo, avail, total=40, height=20, showTooltip=true}) => {
+  const [hovered, setHovered] = useState(null);
+  const bW = Math.min((billable/total)*100, 100);
+  const iW = Math.min((internal/total)*100, Math.max(0, 100-bW));
+  const oW = Math.min((ooo/total)*100, Math.max(0, 100-bW-iW));
+  const aW = Math.max(0, 100-bW-iW-oW);
+  const overRatio = (billable+internal)/total;
+  const isOver = overRatio > 1;
+
+  const segments = [
+    {key:'billable',  w:bW, color:C.billable,  label:'Billable',  value:billable},
+    {key:'internal',  w:iW, color:C.internal,  label:'Internal/BD',value:internal},
+    {key:'ooo',       w:oW, color:C.ooo,       label:'OOO',       value:ooo},
+    {key:'avail',     w:aW, color:C.avail,     label:'Available', value:Math.max(0,avail)},
+  ];
+
+  return (
+    <div style={{position:'relative',width:'100%'}}>
+      <div style={{
+        display:'flex',
+        height,
+        borderRadius:3,
+        overflow:'hidden',
+        border:`1px solid ${isOver?C.burn:C.border}`,
+        boxShadow: isOver?`0 0 0 1px ${C.burn}20`:'none',
+      }}>
+        {segments.map(seg=>seg.w>0&&(
+          <div
+            key={seg.key}
+            onMouseEnter={()=>showTooltip&&setHovered(seg)}
+            onMouseLeave={()=>setHovered(null)}
+            style={{
+              width:`${seg.w}%`,
+              background:seg.color,
+              transition:'opacity 0.1s',
+              opacity: hovered&&hovered.key!==seg.key?0.7:1,
+              flexShrink:0,
+            }}
+          />
+        ))}
+        {/* overflow stripe */}
+        {isOver && (
+          <div style={{
+            position:'absolute',right:0,top:0,bottom:0,width:4,
+            background:`repeating-linear-gradient(45deg,${C.burn},${C.burn} 2px,transparent 2px,transparent 4px)`,
+          }}/>
+        )}
       </div>
-      <span className={`text-xs font-semibold tabular-nums w-9 text-right
-        ${value>=95?'text-red-600':value<60?'text-sky-600':'text-emerald-600'}`}>
-        {value.toFixed(0)}%
-      </span>
+      {/* Tooltip */}
+      {hovered && (
+        <div style={{
+          position:'absolute',bottom:'calc(100% + 6px)',left:'50%',transform:'translateX(-50%)',
+          background:C.text,color:'#fff',padding:'4px 10px',borderRadius:4,fontSize:11,
+          whiteSpace:'nowrap',zIndex:100,pointerEvents:'none',
+        }}>
+          {hovered.label}: {hovered.value.toFixed(1)}h
+        </div>
+      )}
     </div>
   );
 };
@@ -151,427 +238,631 @@ const UtilBar = ({ value }) => {
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────
 export default function StocStaffingDashboard() {
-
-  // ── state ──
   const [allRows,     setAllRows]    = useState([]);
   const [loading,     setLoading]    = useState(true);
   const [error,       setError]      = useState(null);
   const [lastUpdated, setLastUpdated]= useState(null);
 
-  const [tab,         setTab]        = useState('projects');
-  const [teamFilter,  setTeamFilter] = useState('all');
-  const [selWeeks,    setSelWeeks]   = useState([]);
-  const [weekDD,      setWeekDD]     = useState(false);
+  const [tab,        setTab]       = useState('dashboard');
+  const [teamFilter, setTeamFilter]= useState('all');
+  const [selWeeks,   setSelWeeks]  = useState([]);
+  const [weekDD,     setWeekDD]    = useState(false);
 
-  const [projSearch,  setProjSearch]   = useState('');
-  const [projFilter,  setProjFilter]   = useState('all');
-  const [projSort,    setProjSort]     = useState({ k:'hours', d:'desc' });
-  const [collapsed,   setCollapsed]    = useState({});   // client groups
+  const [projSearch, setProjSearch] = useState('');
+  const [projFilter, setProjFilter] = useState('all');
+  const [projSort,   setProjSort]   = useState({k:'hours',d:'desc'});
+  const [collapsed,  setCollapsed]  = useState({});
 
-  const [teamSearch,  setTeamSearch]   = useState('');
-  const [teamSort,    setTeamSort]     = useState({ k:'utilized', d:'desc' });
-  const [openMember,  setOpenMember]   = useState(null);
+  const [teamSearch, setTeamSearch] = useState('');
+  const [teamSort,   setTeamSort]   = useState({k:'utilized',d:'desc'});
+  const [openMember, setOpenMember] = useState(null);
 
-  const [riskFilter,  setRiskFilter]   = useState('all');
+  const [dashSort,   setDashSort]   = useState('util-desc');
+  const [dashFilter, setDashFilter] = useState('all');
 
   // ── fetch ──
   const load = async () => {
     setLoading(true); setError(null);
     try {
-      const res  = await fetch(SHEET_CSV_URL);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const text = await res.text();
-      const rows = parseCSV(text);
-      if (!rows.length) throw new Error('No data rows found. Check the sheet is publicly shared.');
+      const res=await fetch(SHEET_CSV_URL);
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
+      const rows=parseCSV(await res.text());
+      if(!rows.length) throw new Error('No rows found. Is the sheet publicly shared?');
       setAllRows(rows);
       setLastUpdated(new Date());
-      const w = detectWeeks(rows);
-      if (w.length) setSelWeeks([w[0].key]);
-    } catch(e) { setError(e.message); }
-    finally    { setLoading(false); }
+      const w=detectWeeks(rows);
+      if(w.length) setSelWeeks([w[0].key]);
+    } catch(e){setError(e.message);}
+    finally{setLoading(false);}
   };
-  useEffect(() => { load(); }, []);
-  useEffect(() => {
-    const h = e => { if (!e.target.closest('.week-dd')) setWeekDD(false); };
-    document.addEventListener('mousedown', h);
-    return () => document.removeEventListener('mousedown', h);
-  }, []);
+  useEffect(()=>{load();},[]);
+  useEffect(()=>{
+    const h=e=>{if(!e.target.closest('.week-dd'))setWeekDD(false);};
+    document.addEventListener('mousedown',h);
+    return()=>document.removeEventListener('mousedown',h);
+  },[]);
 
-  const weeks = useMemo(() => detectWeeks(allRows), [allRows]);
+  const weeks = useMemo(()=>detectWeeks(allRows),[allRows]);
 
-  // ── filter rows to selected weeks ──
-  const filteredRows = useMemo(() => {
-    if (!selWeeks.length) return allRows;
-    return allRows.filter(r => {
-      const d = new Date(r.local_date); if (isNaN(d)) return false;
-      const day=d.getDay(); const diff=day===0?-6:1-day;
-      const mon=new Date(d); mon.setDate(d.getDate()+diff);
+  const filteredRows = useMemo(()=>{
+    if(!selWeeks.length) return allRows;
+    return allRows.filter(r=>{
+      const d=new Date(r.local_date);if(isNaN(d))return false;
+      const day=d.getDay();const diff=day===0?-6:1-day;
+      const mon=new Date(d);mon.setDate(d.getDate()+diff);
       return selWeeks.includes(mon.toISOString().slice(0,10));
     });
-  }, [allRows, selWeeks]);
+  },[allRows,selWeeks]);
 
   // ── core aggregation ──
-  const { members, projectsMap } = useMemo(() => {
-    const tm={}, pm={};
-    const nW = Math.max(selWeeks.length, 1);
+  const {members,projectsMap} = useMemo(()=>{
+    const tm={},pm={};
+    const nW=Math.max(selWeeks.length,1);
+    filteredRows.forEach(r=>{
+      const name=`${(r.fname||'').trim()} ${(r.lname||'').trim()}`.trim();
+      const hrs=parseFloat(r.hours)||0;
+      const jc=(r.jobcode||'').trim();
+      if(!name||!hrs||!jc) return;
+      const cat=catOf(jc),client=normalizeClient(jc),isCDS=CDS_TEAM.has(name);
+      if(teamFilter==='cds'&&!isCDS) return;
+      if(teamFilter==='tas'&& isCDS) return;
 
-    filteredRows.forEach(r => {
-      const name = `${(r.fname||'').trim()} ${(r.lname||'').trim()}`.trim();
-      const hrs  = parseFloat(r.hours) || 0;
-      const jc   = (r.jobcode||'').trim();
-      if (!name || !hrs || !jc) return;
+      if(!tm[name]) tm[name]={name,isCDS,total:0,billable:0,ooo:0,internal:0,utilized:0,jobs:{},entries:[]};
+      tm[name].total+=hrs;tm[name].entries.push({jc,hrs,cat,client});
+      if(cat==='OOO')         {tm[name].ooo+=hrs;}
+      else if(cat==='Internal/BD'){tm[name].internal+=hrs;tm[name].utilized+=hrs;}
+      else                    {tm[name].billable+=hrs;tm[name].utilized+=hrs;}
+      tm[name].jobs[jc]=(tm[name].jobs[jc]||0)+hrs;
 
-      const cat    = catOf(jc);
-      const client = normalizeClient(jc);
-      const isCDS  = CDS_TEAM.has(name);
-
-      if (teamFilter==='cds' && !isCDS) return;
-      if (teamFilter==='tas' &&  isCDS) return;
-
-      // members
-      if (!tm[name]) tm[name]={ name, isCDS, total:0, billable:0, ooo:0, internal:0, utilized:0, jobs:{}, entries:[] };
-      tm[name].total    += hrs;
-      tm[name].entries.push({ jc, hrs, cat, client });
-      if      (cat==='OOO')         tm[name].ooo      += hrs;
-      else if (cat==='Internal/BD') { tm[name].internal += hrs; tm[name].utilized += hrs; }
-      else                          { tm[name].billable  += hrs; tm[name].utilized += hrs; }
-      tm[name].jobs[jc] = (tm[name].jobs[jc]||0) + hrs;
-
-      // projects — OOO entries are NOT projects
-      if (cat==='OOO') return;
-      if (!pm[jc]) pm[jc]={ name:jc, cat, client, hrs:0, mems:{} };
-      pm[jc].hrs += hrs;
-      pm[jc].mems[name] = (pm[jc].mems[name]||0) + hrs;
+      if(cat==='OOO') return;
+      if(!pm[jc]) pm[jc]={name:jc,cat,client,hrs:0,mems:{}};
+      pm[jc].hrs+=hrs;pm[jc].mems[name]=(pm[jc].mems[name]||0)+hrs;
     });
-
-    Object.values(tm).forEach(m => {
-      m.effCap = 40*nW - m.ooo;
-      m.avail  = m.effCap - m.utilized;
-      m.util   = m.effCap>0 ? (m.utilized/m.effCap)*100 : 0;
-      m.risk   = riskOf(m.util);
+    Object.values(tm).forEach(m=>{
+      m.effCap=40*nW-m.ooo;
+      m.avail =m.effCap-m.utilized;
+      m.util  =m.effCap>0?(m.utilized/m.effCap)*100:0;
+      m.risk  =riskOf(m.util);
     });
-    return { members:tm, projectsMap:pm };
-  }, [filteredRows, teamFilter, selWeeks]);
+    return{members:tm,projectsMap:pm};
+  },[filteredRows,teamFilter,selWeeks]);
 
-  // ── summary stats ──
-  const stats = useMemo(() => {
+  const stats = useMemo(()=>{
     const ms=Object.values(members);
-    return {
-      n:    ms.length,
-      tB:   ms.reduce((s,m)=>s+m.billable,0),
-      tI:   ms.reduce((s,m)=>s+m.internal,0),
-      tO:   ms.reduce((s,m)=>s+m.ooo,0),
-      tU:   ms.reduce((s,m)=>s+m.utilized,0),
-      tA:   ms.reduce((s,m)=>s+m.avail,0),
-      tC:   ms.reduce((s,m)=>s+m.effCap,0),
-      avgU: ms.reduce((s,m)=>s+m.effCap,0)>0
-              ? (ms.reduce((s,m)=>s+m.utilized,0)/ms.reduce((s,m)=>s+m.effCap,0))*100
-              : 0,
+    const tC=ms.reduce((s,m)=>s+m.effCap,0);
+    const tU=ms.reduce((s,m)=>s+m.utilized,0);
+    return{
+      n:ms.length,
+      tB:ms.reduce((s,m)=>s+m.billable,0),
+      tI:ms.reduce((s,m)=>s+m.internal,0),
+      tO:ms.reduce((s,m)=>s+m.ooo,0),
+      tU,tC,tA:ms.reduce((s,m)=>s+m.avail,0),
+      avgU:tC>0?(tU/tC)*100:0,
+      atRisk:ms.filter(m=>m.risk==='Over').length,
+      under:ms.filter(m=>m.risk==='Under').length,
     };
-  }, [members]);
+  },[members]);
 
-  const totalBillableHrs = useMemo(() =>
+  const totalBillableHrs=useMemo(()=>
     Object.values(projectsMap).filter(p=>p.cat==='Billable').reduce((s,p)=>s+p.hrs,0)
-  , [projectsMap]);
+  ,[projectsMap]);
 
-  // ── projects by client ──
-  const clientGroups = useMemo(() => {
+  // Dashboard: sorted/filtered member list
+  const dashMembers = useMemo(()=>{
+    let ms=Object.values(members).filter(m=>m.total>0);
+    if(dashFilter==='over')  ms=ms.filter(m=>m.risk==='Over');
+    if(dashFilter==='under') ms=ms.filter(m=>m.risk==='Under');
+    if(dashFilter==='ok')    ms=ms.filter(m=>m.risk==='OK');
+    const [key,dir]=dashSort.split('-');
+    return ms.sort((a,b)=>dir==='desc'?b[key]-a[key]:a[key]-b[key]);
+  },[members,dashSort,dashFilter]);
+
+  // Client hours for chart
+  const clientHours = useMemo(()=>{
+    const ch={};
+    Object.values(projectsMap)
+      .filter(p=>p.cat==='Billable')
+      .forEach(p=>{ ch[p.client]=(ch[p.client]||0)+p.hrs; });
+    return Object.entries(ch)
+      .map(([client,hrs])=>({client,hrs:parseFloat(hrs.toFixed(1))}))
+      .sort((a,b)=>b.hrs-a.hrs)
+      .slice(0,12);
+  },[projectsMap]);
+
+  // Projects grouped by client
+  const clientGroups = useMemo(()=>{
     const g={};
-    Object.values(projectsMap).forEach(p => {
-      if (projFilter==='billable'    && p.cat!=='Billable')    return;
-      if (projFilter==='internal-bd' && p.cat!=='Internal/BD') return;
-      if (projSearch && !p.name.toLowerCase().includes(projSearch.toLowerCase()) &&
-          !p.client.toLowerCase().includes(projSearch.toLowerCase())) return;
-      if (!g[p.client]) g[p.client]={ client:p.client, total:0, projs:[] };
-      g[p.client].projs.push(p);
-      g[p.client].total += p.hrs;
+    Object.values(projectsMap).forEach(p=>{
+      if(projFilter==='billable'    &&p.cat!=='Billable')    return;
+      if(projFilter==='internal-bd' &&p.cat!=='Internal/BD') return;
+      if(projSearch&&!p.name.toLowerCase().includes(projSearch.toLowerCase())&&
+         !p.client.toLowerCase().includes(projSearch.toLowerCase())) return;
+      if(!g[p.client]) g[p.client]={client:p.client,total:0,projs:[]};
+      g[p.client].projs.push(p);g[p.client].total+=p.hrs;
     });
-    Object.values(g).forEach(cg =>
-      cg.projs.sort((a,b) =>
-        projSort.k==='hours'
-          ? (projSort.d==='desc' ? b.hrs-a.hrs : a.hrs-b.hrs)
-          : (projSort.d==='desc' ? b.name.localeCompare(a.name) : a.name.localeCompare(b.name))
-      )
-    );
-    return Object.values(g).sort((a,b) => b.total-a.total);
-  }, [projectsMap, projFilter, projSearch, projSort]);
+    Object.values(g).forEach(cg=>cg.projs.sort((a,b)=>
+      projSort.k==='hours'?(projSort.d==='desc'?b.hrs-a.hrs:a.hrs-b.hrs):
+      (projSort.d==='desc'?b.name.localeCompare(a.name):a.name.localeCompare(b.name))
+    ));
+    return Object.values(g).sort((a,b)=>b.total-a.total);
+  },[projectsMap,projFilter,projSearch,projSort]);
 
-  // ── sorted team members ──
-  const sortedMembers = useMemo(() => {
-    let ms = Object.values(members);
-    if (teamSearch.trim()) ms = ms.filter(m => m.name.toLowerCase().includes(teamSearch.toLowerCase()));
-    return ms.sort((a,b) => {
-      const av=a[teamSort.k]??a.util, bv=b[teamSort.k]??b.util;
-      return teamSort.d==='asc' ? (av>bv?1:-1) : (av>bv?-1:1);
+  const sortedTeam=useMemo(()=>{
+    let ms=Object.values(members);
+    if(teamSearch.trim()) ms=ms.filter(m=>m.name.toLowerCase().includes(teamSearch.toLowerCase()));
+    const[k,d]=teamSort.k.split('__');
+    return ms.sort((a,b)=>{
+      const av=a[teamSort.k]??a.util,bv=b[teamSort.k]??b.util;
+      return teamSort.d==='asc'?(av>bv?1:-1):(av>bv?-1:1);
     });
-  }, [members, teamSearch, teamSort]);
+  },[members,teamSearch,teamSort]);
 
-  // ── risk members ──
-  const riskMembers = useMemo(() => {
-    let ms = Object.values(members).filter(m => m.utilized>0);
-    if (riskFilter!=='all') ms = ms.filter(m => m.risk===riskFilter);
-    return ms.sort((a,b) => b.util-a.util);
-  }, [members, riskFilter]);
+  const togglePS=k=>setProjSort(p=>({k,d:p.k===k&&p.d==='desc'?'asc':'desc'}));
+  const toggleTS=k=>setTeamSort(p=>({k,d:p.k===k&&p.d==='desc'?'asc':'desc'}));
+  const arr=(cfg,k)=>cfg.k===k?(cfg.d==='desc'?' ↓':' ↑'):'';
 
-  // ── sort helpers ──
-  const toggleProjSort = k => setProjSort(p=>({k, d:p.k===k&&p.d==='desc'?'asc':'desc'}));
-  const toggleTeamSort = k => setTeamSort(p=>({k, d:p.k===k&&p.d==='desc'?'asc':'desc'}));
-  const arr = (cfg, k) => cfg.k===k ? (cfg.d==='desc'?' ↓':' ↑') : '';
-
-  const weekLabel = () => {
-    if (!selWeeks.length || selWeeks.length===weeks.length) return 'All Weeks';
-    if (selWeeks.length===1) return weeks.find(w=>w.key===selWeeks[0])?.label || '1 week';
+  const weekLabel=()=>{
+    if(!selWeeks.length||selWeeks.length===weeks.length) return 'All Weeks';
+    if(selWeeks.length===1) return weeks.find(w=>w.key===selWeeks[0])?.label||'1 week';
     return `${selWeeks.length} weeks`;
   };
-  const toggleWeek = k => setSelWeeks(p =>
-    p.includes(k) ? (p.length===1 ? p : p.filter(x=>x!==k)) : [...p,k]
+  const toggleWeek=k=>setSelWeeks(p=>
+    p.includes(k)?(p.length===1?p:p.filter(x=>x!==k)):[...p,k]
   );
 
-  // ─────────────────────── LOADING / ERROR ───────────────────────
-  if (loading) return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="text-center space-y-3">
-        <RefreshCw className="w-8 h-8 text-blue-500 mx-auto animate-spin"/>
-        <p className="text-base font-medium text-gray-600">Loading staffing data…</p>
-        <p className="text-sm text-gray-400">Fetching from Google Sheets</p>
+  // ── LOADING / ERROR ──
+  if(loading) return(
+    <div style={{minHeight:'100vh',background:'#F8FAFC',display:'flex',alignItems:'center',justifyContent:'center'}}>
+      <div style={{textAlign:'center',color:C.muted}}>
+        <div style={{width:32,height:32,border:`3px solid ${C.border}`,borderTopColor:C.under,borderRadius:'50%',
+          animation:'spin 0.8s linear infinite',margin:'0 auto 12px'}}/>
+        <p style={{fontSize:14,fontWeight:500}}>Loading from Google Sheets…</p>
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       </div>
     </div>
   );
 
-  if (error) return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="bg-white rounded-2xl shadow-lg border border-red-100 p-8 max-w-md w-full text-center space-y-4">
-        <AlertCircle className="w-10 h-10 text-red-400 mx-auto"/>
-        <h2 className="text-lg font-semibold text-gray-800">Could not load data</h2>
-        <p className="text-sm text-gray-500">{error}</p>
-        <button onClick={load} className="px-6 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700">
+  if(error) return(
+    <div style={{minHeight:'100vh',background:'#F8FAFC',display:'flex',alignItems:'center',justifyContent:'center'}}>
+      <div style={{background:'#fff',border:`1px solid #FECACA`,borderRadius:8,padding:32,maxWidth:420,textAlign:'center'}}>
+        <AlertCircle size={32} color={C.burn} style={{margin:'0 auto 12px'}}/>
+        <p style={{fontSize:15,fontWeight:600,marginBottom:8}}>Could not load data</p>
+        <p style={{fontSize:13,color:C.muted,marginBottom:16}}>{error}</p>
+        <button onClick={load} style={{padding:'8px 20px',background:C.under,color:'#fff',border:'none',borderRadius:6,fontSize:13,fontWeight:500,cursor:'pointer'}}>
           Try again
         </button>
-        <div className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg p-3 text-left space-y-1">
-          <p className="font-semibold">Checklist</p>
-          <p>• Sheet shared as "Anyone with the link"</p>
-          <p>• Columns: fname, lname, hours, jobcode, local_date</p>
-        </div>
       </div>
     </div>
   );
 
-  // ─────────────────────── MAIN RENDER ───────────────────────
-  return (
-    <div className="min-h-screen bg-gray-50" style={{fontFamily:'system-ui,-apple-system,sans-serif'}}>
+  // ── shared table style ──
+  const tableStyle={width:'100%',borderCollapse:'collapse',fontSize:13};
+  const trStyle=(i,risk)=>({
+    background: risk==='Over'?'#FFF5F5':risk==='Under'?'#F8FAFF':i%2===1?C.rowAlt:'#fff',
+    borderBottom:`1px solid ${C.border}`,
+  });
 
-      {/* ══════════ TOP NAVIGATION BAR ══════════ */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-30">
-        <div className="max-w-screen-xl mx-auto px-6 h-14 flex items-center justify-between gap-6">
+  // ─────────────────────── RENDER ───────────────────────
+  return(
+    <div style={{minHeight:'100vh',background:'#F8FAFC',fontFamily:'system-ui,-apple-system,sans-serif',color:C.text}}>
 
-          {/* Left: title + tabs */}
-          <div className="flex items-center gap-6 min-w-0">
-            <span className="text-base font-bold text-gray-900 shrink-0">STOC Staffing</span>
-            <nav className="flex gap-1">
+      {/* ══ TOPBAR ══ */}
+      <div style={{
+        background:'#fff',borderBottom:`1px solid ${C.border}`,
+        position:'sticky',top:0,zIndex:30,
+      }}>
+        <div style={{maxWidth:1400,margin:'0 auto',padding:'0 24px',height:48,display:'flex',alignItems:'center',justifyContent:'space-between',gap:24}}>
+
+          {/* Title + tabs */}
+          <div style={{display:'flex',alignItems:'center',gap:24}}>
+            <span style={{fontSize:14,fontWeight:700,color:C.text,letterSpacing:'-0.01em',whiteSpace:'nowrap'}}>
+              STOC Staffing
+            </span>
+            <nav style={{display:'flex',gap:2}}>
               {[
-                ['projects',  'Projects'],
-                ['teams',     'Teams'],
-                ['risk',      'Risk'],
-                ['capacity',  'Capacity'],
+                ['dashboard','Dashboard'],
+                ['projects', 'Projects'],
+                ['team',     'Team'],
                 ['exceptions','Exceptions'],
-              ].map(([id, label]) => (
-                <button key={id} onClick={() => setTab(id)}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors
-                    ${tab===id
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}`}>
+              ].map(([id,label])=>(
+                <button key={id} onClick={()=>setTab(id)} style={{
+                  padding:'4px 12px',fontSize:13,fontWeight:tab===id?600:400,
+                  color:tab===id?C.under:C.muted,
+                  background:tab===id?'#EFF6FF':'transparent',
+                  border:'none',borderRadius:5,cursor:'pointer',
+                  borderBottom:tab===id?`2px solid ${C.under}`:'2px solid transparent',
+                  transition:'all 0.1s',
+                }}>
                   {label}
                 </button>
               ))}
             </nav>
           </div>
 
-          {/* Right: controls */}
-          <div className="flex items-center gap-2 shrink-0">
-            <select value={teamFilter} onChange={e=>setTeamFilter(e.target.value)}
-              className="h-8 px-3 text-sm border border-gray-200 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-300">
+          {/* Controls */}
+          <div style={{display:'flex',alignItems:'center',gap:8}}>
+            <select value={teamFilter} onChange={e=>setTeamFilter(e.target.value)} style={{
+              height:30,padding:'0 10px',fontSize:12,border:`1px solid ${C.border}`,
+              borderRadius:5,background:'#fff',color:C.text,cursor:'pointer',outline:'none',
+            }}>
               <option value="all">All Teams</option>
               <option value="tas">TAS</option>
               <option value="cds">CDS</option>
             </select>
 
-            <div className="relative week-dd">
-              <button onClick={() => setWeekDD(v=>!v)}
-                className="h-8 px-3 text-sm border border-gray-200 rounded-lg bg-white text-gray-700 flex items-center gap-1.5 hover:bg-gray-50">
-                <Calendar className="w-3.5 h-3.5 text-gray-400"/>
-                <span>{weekLabel()}</span>
-                <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${weekDD?'rotate-180':''}`}/>
+            {/* Week picker */}
+            <div className="week-dd" style={{position:'relative'}}>
+              <button onClick={()=>setWeekDD(v=>!v)} style={{
+                height:30,padding:'0 10px',fontSize:12,border:`1px solid ${C.border}`,
+                borderRadius:5,background:'#fff',color:C.text,cursor:'pointer',
+                display:'flex',alignItems:'center',gap:6,
+              }}>
+                <Calendar size={13} color={C.faint}/>
+                {weekLabel()}
+                <ChevronDown size={12} color={C.faint} style={{transform:weekDD?'rotate(180deg)':'none',transition:'transform 0.15s'}}/>
               </button>
-              {weekDD && (
-                <div className="absolute right-0 top-full mt-1 w-64 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
-                  <div className="max-h-56 overflow-y-auto p-1">
-                    {weeks.map(w => (
-                      <label key={w.key} className="flex items-center gap-2.5 px-3 py-2 hover:bg-gray-50 rounded-lg cursor-pointer">
+              {weekDD&&(
+                <div style={{
+                  position:'absolute',right:0,top:'calc(100% + 4px)',
+                  background:'#fff',border:`1px solid ${C.border}`,
+                  borderRadius:8,boxShadow:'0 8px 24px rgba(0,0,0,0.10)',
+                  zIndex:50,minWidth:240,overflow:'hidden',
+                }}>
+                  <div style={{maxHeight:224,overflowY:'auto',padding:4}}>
+                    {weeks.map(w=>(
+                      <label key={w.key} style={{
+                        display:'flex',alignItems:'center',gap:8,
+                        padding:'6px 10px',cursor:'pointer',borderRadius:5,
+                        background:selWeeks.includes(w.key)?'#EFF6FF':'transparent',
+                      }}>
                         <input type="checkbox" checked={selWeeks.includes(w.key)} onChange={()=>toggleWeek(w.key)}
-                          className="w-4 h-4 rounded text-blue-600"/>
-                        <span className="text-sm text-gray-700">{w.label}</span>
+                          style={{width:14,height:14,accentColor:C.under,cursor:'pointer'}}/>
+                        <span style={{fontSize:12,color:C.text}}>{w.label}</span>
                       </label>
                     ))}
                   </div>
-                  <div className="border-t border-gray-100 flex p-1 gap-1">
-                    <button onClick={()=>setSelWeeks(weeks.map(w=>w.key))}
-                      className="flex-1 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 rounded-md">All</button>
-                    <button onClick={()=>setSelWeeks(weeks.length?[weeks[0].key]:[])}
-                      className="flex-1 py-1 text-xs font-medium text-gray-500 hover:bg-gray-50 rounded-md">Latest</button>
+                  <div style={{borderTop:`1px solid ${C.border}`,display:'flex',padding:4,gap:4}}>
+                    <button onClick={()=>setSelWeeks(weeks.map(w=>w.key))} style={{flex:1,padding:'4px 0',fontSize:11,fontWeight:500,color:C.under,background:'transparent',border:'none',cursor:'pointer',borderRadius:4}}>All</button>
+                    <button onClick={()=>setSelWeeks(weeks.length?[weeks[0].key]:[])} style={{flex:1,padding:'4px 0',fontSize:11,fontWeight:500,color:C.muted,background:'transparent',border:'none',cursor:'pointer',borderRadius:4}}>Latest</button>
                   </div>
                 </div>
               )}
             </div>
 
-            <button onClick={load}
-              className="h-8 px-3 text-sm border border-gray-200 rounded-lg bg-white text-gray-700 flex items-center gap-1.5 hover:bg-gray-50">
-              <RefreshCw className="w-3.5 h-3.5 text-gray-400"/>
-              Refresh
+            <button onClick={load} style={{
+              height:30,padding:'0 12px',fontSize:12,fontWeight:500,
+              border:`1px solid ${C.border}`,borderRadius:5,
+              background:'#fff',color:C.muted,cursor:'pointer',
+              display:'flex',alignItems:'center',gap:5,
+            }}>
+              <RefreshCw size={12}/>Refresh
             </button>
           </div>
         </div>
       </div>
 
-      {/* ══════════ SUMMARY STRIP ══════════ */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-screen-xl mx-auto px-6 py-3 flex items-center gap-8 overflow-x-auto">
+      {/* ══ STAT BAR ══ */}
+      <div style={{background:'#fff',borderBottom:`1px solid ${C.border}`}}>
+        <div style={{maxWidth:1400,margin:'0 auto',padding:'0 24px',height:40,display:'flex',alignItems:'center',gap:0}}>
           {[
-            { label:'Members',    value: stats.n,              unit:'',  color:'text-gray-900' },
-            { label:'Billable',   value: stats.tB.toFixed(0),  unit:'h', color:'text-emerald-600' },
-            { label:'Internal',   value: stats.tI.toFixed(0),  unit:'h', color:'text-violet-600' },
-            { label:'OOO',        value: stats.tO.toFixed(0),  unit:'h', color:'text-gray-400' },
-            { label:'Avg Util',   value: stats.avgU.toFixed(0),unit:'%',
-              color: stats.avgU>=95?'text-red-600':stats.avgU<60?'text-sky-600':'text-emerald-600' },
-            { label:'Bandwidth',  value: stats.tA.toFixed(0),  unit:'h',
-              color: stats.tA<0?'text-red-600':'text-gray-900' },
-          ].map((s,i) => (
-            <div key={i} className="flex items-baseline gap-1.5 shrink-0">
-              <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">{s.label}</span>
-              <span className={`text-base font-bold tabular-nums ${s.color}`}>{s.value}{s.unit}</span>
-            </div>
+            {label:'Members',    val:stats.n,              unit:'',  color:C.text},
+            {label:'Billable',   val:stats.tB.toFixed(0), unit:'h', color:C.billable},
+            {label:'Internal',   val:stats.tI.toFixed(0), unit:'h', color:C.internal},
+            {label:'OOO',        val:stats.tO.toFixed(0), unit:'h', color:C.faint},
+            {label:'Avg Util',   val:stats.avgU.toFixed(0),unit:'%',
+              color:stats.avgU>=95?C.burn:stats.avgU<60?C.under:C.healthy},
+            {label:'At Risk',    val:stats.atRisk,        unit:'',  color:stats.atRisk>0?C.burn:C.faint},
+            {label:'Bandwidth',  val:stats.tA.toFixed(0), unit:'h', color:stats.tA<0?C.burn:C.text},
+          ].map((s,i)=>(
+            <React.Fragment key={i}>
+              {i>0&&<div style={{width:1,height:20,background:C.border,margin:'0 20px'}}/>}
+              <div style={{display:'flex',alignItems:'baseline',gap:5,whiteSpace:'nowrap'}}>
+                <span style={{fontSize:10,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em',color:C.faint}}>{s.label}</span>
+                <span style={{fontSize:15,fontWeight:700,color:s.color,fontVariantNumeric:'tabular-nums'}}>{s.val}{s.unit}</span>
+              </div>
+            </React.Fragment>
           ))}
-          {lastUpdated && (
-            <span className="ml-auto text-xs text-gray-400 shrink-0">
+          {lastUpdated&&(
+            <span style={{marginLeft:'auto',fontSize:11,color:C.faint,whiteSpace:'nowrap'}}>
               Data as of {lastUpdated.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}, {lastUpdated.toLocaleTimeString()}
             </span>
           )}
         </div>
       </div>
 
-      {/* ══════════ PAGE CONTENT ══════════ */}
-      <div className="max-w-screen-xl mx-auto px-6 py-6 space-y-4">
+      {/* ══ CONTENT ══ */}
+      <div style={{maxWidth:1400,margin:'0 auto',padding:'20px 24px',display:'flex',flexDirection:'column',gap:16}}>
 
-        {/* ──────────────────────────────────────
+        {/* ─────────────────────────────
+            DASHBOARD TAB
+            The big visualization: capacity lanes + client chart
+        ───────────────────────────── */}
+        {tab==='dashboard'&&(
+          <div style={{display:'grid',gridTemplateColumns:'1fr 320px',gap:16,alignItems:'start'}}>
+
+            {/* LEFT: CAPACITY LANE VIEW */}
+            <div style={{background:'#fff',border:`1px solid ${C.border}`,borderRadius:6,overflow:'hidden'}}>
+              {/* Header */}
+              <div style={{
+                padding:'10px 16px',borderBottom:`1px solid ${C.border}`,
+                display:'flex',alignItems:'center',justifyContent:'space-between',
+                background:C.headerBg,
+              }}>
+                <div>
+                  <span style={{fontSize:13,fontWeight:600,color:C.text}}>Capacity Overview</span>
+                  <span style={{fontSize:11,color:C.faint,marginLeft:8}}>Each bar = 40h weekly target</span>
+                </div>
+                <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                  {[
+                    {color:C.billable,label:'Billable'},
+                    {color:C.internal,label:'Internal/BD'},
+                    {color:C.ooo,label:'OOO'},
+                    {color:C.avail,label:'Available',border:`1px solid ${C.border}`},
+                  ].map(s=>(
+                    <div key={s.label} style={{display:'flex',alignItems:'center',gap:4}}>
+                      <div style={{width:10,height:10,borderRadius:2,background:s.color,border:s.border||'none',flexShrink:0}}/>
+                      <span style={{fontSize:10,color:C.muted}}>{s.label}</span>
+                    </div>
+                  ))}
+                  <div style={{width:1,height:14,background:C.border,margin:'0 4px'}}/>
+                  <select value={dashFilter} onChange={e=>setDashFilter(e.target.value)} style={{
+                    height:24,padding:'0 6px',fontSize:11,border:`1px solid ${C.border}`,
+                    borderRadius:4,background:'#fff',color:C.text,cursor:'pointer',outline:'none',
+                  }}>
+                    <option value="all">All</option>
+                    <option value="over">At Risk</option>
+                    <option value="under">Under</option>
+                    <option value="ok">Healthy</option>
+                  </select>
+                  <select value={dashSort} onChange={e=>setDashSort(e.target.value)} style={{
+                    height:24,padding:'0 6px',fontSize:11,border:`1px solid ${C.border}`,
+                    borderRadius:4,background:'#fff',color:C.text,cursor:'pointer',outline:'none',
+                  }}>
+                    <option value="util-desc">Sort: Highest util</option>
+                    <option value="util-asc">Sort: Lowest util</option>
+                    <option value="billable-desc">Sort: Most billable</option>
+                    <option value="avail-desc">Sort: Most available</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Column labels */}
+              <div style={{
+                display:'grid',gridTemplateColumns:'160px 1fr 52px 80px',
+                padding:'6px 16px',borderBottom:`1px solid ${C.border}`,
+                background:C.headerBg,gap:12,
+              }}>
+                {['Name','',  'Util %',''].map((h,i)=>(
+                  <span key={i} style={{fontSize:10,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em',color:C.faint,textAlign:i===2?'right':'left'}}>
+                    {h}
+                  </span>
+                ))}
+              </div>
+
+              {/* Rows */}
+              {dashMembers.length===0&&(
+                <div style={{padding:40,textAlign:'center',color:C.faint,fontSize:13}}>No members match filter</div>
+              )}
+              {dashMembers.map((m,i)=>{
+                const isOver=m.risk==='Over';
+                const isUnder=m.risk==='Under';
+                return(
+                  <div key={i} style={{
+                    display:'grid',gridTemplateColumns:'160px 1fr 52px 80px',
+                    padding:'8px 16px',gap:12,alignItems:'center',
+                    borderBottom:`1px solid ${C.border}`,
+                    background:isOver?'#FFF8F8':isUnder?'#F8FBFF':i%2===1?C.rowAlt:'#fff',
+                    transition:'background 0.1s',
+                  }}>
+                    {/* Name */}
+                    <div>
+                      <div style={{fontSize:13,fontWeight:500,color:C.text,lineHeight:'1.2'}}>{m.name}</div>
+                      <div style={{fontSize:10,color:C.faint,marginTop:1}}>
+                        {m.isCDS?'CDS':'TAS'}
+                        {m.ooo>0&&<> · {m.ooo.toFixed(0)}h OOO</>}
+                      </div>
+                    </div>
+                    {/* Bar */}
+                    <CapacityBar
+                      billable={m.billable} internal={m.internal}
+                      ooo={m.ooo} avail={Math.max(0,m.avail)}
+                      total={Math.max(40*Math.max(selWeeks.length,1), m.total)}
+                    />
+                    {/* Util % */}
+                    <div style={{
+                      fontSize:13,fontWeight:700,textAlign:'right',
+                      color:isOver?C.burn:isUnder?C.under:C.healthy,
+                      fontVariantNumeric:'tabular-nums',
+                    }}>
+                      {m.util.toFixed(0)}%
+                    </div>
+                    {/* Status */}
+                    <RiskPill level={m.risk}/>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* RIGHT: CLIENT HOURS CHART */}
+            <div style={{display:'flex',flexDirection:'column',gap:16}}>
+
+              {/* Billable hours by client */}
+              <div style={{background:'#fff',border:`1px solid ${C.border}`,borderRadius:6,overflow:'hidden'}}>
+                <div style={{padding:'10px 16px',borderBottom:`1px solid ${C.border}`,background:C.headerBg}}>
+                  <span style={{fontSize:13,fontWeight:600,color:C.text}}>Billable Hours by Client</span>
+                </div>
+                <div style={{padding:'12px 8px 8px'}}>
+                  <ResponsiveContainer width="100%" height={clientHours.length*34+20}>
+                    <BarChart
+                      data={clientHours}
+                      layout="vertical"
+                      margin={{top:0,right:50,bottom:0,left:8}}
+                      barCategoryGap="25%">
+                      <CartesianGrid strokeDasharray="2 2" horizontal={false} stroke={C.border}/>
+                      <XAxis type="number" tick={{fontSize:10,fill:C.faint}} tickLine={false} axisLine={false}/>
+                      <YAxis type="category" dataKey="client" tick={{fontSize:12,fill:C.text}} tickLine={false} axisLine={false} width={80}/>
+                      <Tooltip
+                        formatter={v=>[`${v}h`,'Billable hours']}
+                        contentStyle={{fontSize:12,border:`1px solid ${C.border}`,borderRadius:6,boxShadow:'0 4px 12px rgba(0,0,0,0.08)'}}
+                        cursor={{fill:C.avail}}/>
+                      <Bar dataKey="hrs" radius={[0,3,3,0]} maxBarSize={18}>
+                        {clientHours.map((_,i)=><Cell key={i} fill={C.billable} fillOpacity={0.75+0.25*(1-i/clientHours.length)}/>)}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Quick stats */}
+              <div style={{background:'#fff',border:`1px solid ${C.border}`,borderRadius:6,overflow:'hidden'}}>
+                <div style={{padding:'10px 16px',borderBottom:`1px solid ${C.border}`,background:C.headerBg}}>
+                  <span style={{fontSize:13,fontWeight:600,color:C.text}}>This Period</span>
+                </div>
+                <div style={{padding:12,display:'flex',flexDirection:'column',gap:1}}>
+                  {[
+                    {label:'Billable hours',    val:`${stats.tB.toFixed(0)}h`,  color:C.billable},
+                    {label:'Internal / BD',     val:`${stats.tI.toFixed(0)}h`,  color:C.internal},
+                    {label:'OOO (Holiday/Vac)', val:`${stats.tO.toFixed(0)}h`,  color:C.faint},
+                    {label:'Team bandwidth',    val:`${Math.max(0,stats.tA).toFixed(0)}h`, color:C.under},
+                    {label:'Avg utilization',   val:`${stats.avgU.toFixed(0)}%`,color:stats.avgU>=95?C.burn:stats.avgU<60?C.under:C.healthy},
+                    {label:'At burnout risk',   val:`${stats.atRisk} people`,   color:stats.atRisk>0?C.burn:C.faint},
+                    {label:'Underutilized',     val:`${stats.under} people`,    color:stats.under>0?C.under:C.faint},
+                  ].map((r,i)=>(
+                    <div key={i} style={{
+                      display:'flex',justifyContent:'space-between',alignItems:'center',
+                      padding:'5px 4px',borderBottom:i<6?`1px solid ${C.border}`:'none',
+                    }}>
+                      <span style={{fontSize:12,color:C.muted}}>{r.label}</span>
+                      <span style={{fontSize:13,fontWeight:700,color:r.color,fontVariantNumeric:'tabular-nums'}}>{r.val}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ─────────────────────────────
             PROJECTS TAB
-        ────────────────────────────────────── */}
-        {tab==='projects' && (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-
+        ───────────────────────────── */}
+        {tab==='projects'&&(
+          <div style={{background:'#fff',border:`1px solid ${C.border}`,borderRadius:6,overflow:'hidden'}}>
             {/* Toolbar */}
-            <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-100 bg-gray-50">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"/>
+            <div style={{
+              display:'flex',alignItems:'center',gap:10,
+              padding:'8px 16px',borderBottom:`1px solid ${C.border}`,background:C.headerBg,
+            }}>
+              <div style={{position:'relative',flex:'0 0 260px'}}>
+                <Search size={13} color={C.faint} style={{position:'absolute',left:9,top:'50%',transform:'translateY(-50%)',pointerEvents:'none'}}/>
                 <input value={projSearch} onChange={e=>setProjSearch(e.target.value)}
                   placeholder="Filter projects or clients…"
-                  className="pl-9 pr-8 py-1.5 w-64 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-300"/>
-                {projSearch && (
-                  <button onClick={()=>setProjSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-base leading-none">×</button>
-                )}
+                  style={{
+                    width:'100%',height:30,paddingLeft:30,paddingRight:8,fontSize:12,
+                    border:`1px solid ${C.border}`,borderRadius:5,background:'#fff',
+                    color:C.text,outline:'none',boxSizing:'border-box',
+                  }}/>
               </div>
-              <select value={projFilter} onChange={e=>setProjFilter(e.target.value)}
-                className="h-8 px-3 text-sm border border-gray-200 rounded-lg bg-white text-gray-700 focus:outline-none">
+              <select value={projFilter} onChange={e=>setProjFilter(e.target.value)} style={{
+                height:30,padding:'0 8px',fontSize:12,border:`1px solid ${C.border}`,
+                borderRadius:5,background:'#fff',color:C.text,cursor:'pointer',outline:'none',
+              }}>
                 <option value="all">All types</option>
                 <option value="billable">Billable only</option>
-                <option value="internal-bd">Internal / BD only</option>
+                <option value="internal-bd">Internal / BD</option>
               </select>
-              <span className="ml-auto text-sm text-gray-400">
-                {clientGroups.reduce((s,g)=>s+g.projs.length,0)} projects across {clientGroups.length} clients
+              <span style={{marginLeft:'auto',fontSize:11,color:C.faint}}>
+                {clientGroups.reduce((s,g)=>s+g.projs.length,0)} projects · {clientGroups.length} clients
               </span>
             </div>
 
             {/* Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
+            <div style={{overflowX:'auto'}}>
+              <table style={tableStyle}>
                 <thead>
                   <tr>
-                    <TH>Project</TH>
-                    <TH right onClick={()=>toggleProjSort('hours')} sorted={arr(projSort,'hours')}>Hours</TH>
-                    <TH right>% of Billable</TH>
-                    <TH>Type</TH>
-                    <TH>People</TH>
-                    <TH right>Count</TH>
+                    <Th onClick={()=>togglePS('name')} sort={arr(projSort,'name')}>Project</Th>
+                    <Th right onClick={()=>togglePS('hours')} sort={arr(projSort,'hours')}>Hours</Th>
+                    <Th right>% Billable</Th>
+                    <Th>Type</Th>
+                    <Th>People on project</Th>
+                    <Th right>#</Th>
                   </tr>
                 </thead>
                 <tbody>
-                  {clientGroups.length===0 && (
-                    <tr><td colSpan={6} className="py-12 text-center text-sm text-gray-400">No projects match your filters</td></tr>
+                  {clientGroups.length===0&&(
+                    <tr><td colSpan={6} style={{padding:'40px 16px',textAlign:'center',color:C.faint,fontSize:13}}>No projects match</td></tr>
                   )}
-                  {clientGroups.map((cg, ci) => {
-                    const isCollapsed = collapsed[cg.client];
-                    const allMembers  = [...new Set(cg.projs.flatMap(p=>Object.keys(p.mems)))];
-                    return (
+                  {clientGroups.map((cg,ci)=>{
+                    const isCollapsed=collapsed[cg.client];
+                    return(
                       <React.Fragment key={ci}>
-                        {/* ── CLIENT GROUP ROW ── */}
+                        {/* Client row */}
                         <tr
-                          className="bg-slate-100 cursor-pointer hover:bg-slate-200 transition-colors"
-                          onClick={()=>setCollapsed(p=>({...p,[cg.client]:!p[cg.client]}))}>
-                          <td className="px-5 py-3" colSpan={1}>
-                            <div className="flex items-center gap-2">
+                          onClick={()=>setCollapsed(p=>({...p,[cg.client]:!p[cg.client]}))}
+                          style={{
+                            background:'#F1F5F9',cursor:'pointer',
+                            borderTop:`2px solid ${C.border}`,
+                          }}>
+                          <td style={{padding:'8px 12px'}}>
+                            <div style={{display:'flex',alignItems:'center',gap:6}}>
                               {isCollapsed
-                                ? <ChevronRight className="w-4 h-4 text-gray-500 shrink-0"/>
-                                : <ChevronDown  className="w-4 h-4 text-gray-500 shrink-0"/>}
-                              <span className="text-sm font-bold text-gray-900">{cg.client}</span>
-                              <span className="text-xs text-gray-500 font-normal">{cg.projs.length} project{cg.projs.length!==1?'s':''}</span>
+                                ?<ChevronRight size={14} color={C.muted}/>
+                                :<ChevronDown  size={14} color={C.muted}/>}
+                              <span style={{fontSize:13,fontWeight:700,color:C.text}}>{cg.client}</span>
+                              <span style={{fontSize:11,color:C.faint}}>({cg.projs.length})</span>
                             </div>
                           </td>
-                          <td className="px-4 py-3 text-right text-sm font-bold text-gray-900 tabular-nums">
+                          <td style={{padding:'8px 12px',textAlign:'right',fontSize:13,fontWeight:700,color:C.text,fontVariantNumeric:'tabular-nums'}}>
                             {cg.total.toFixed(1)}
                           </td>
-                          <td className="px-4 py-3 text-right text-sm text-gray-500 tabular-nums">
-                            {cg.projs[0]?.cat==='Billable' ? `${pct(cg.total,totalBillableHrs)}%` : '—'}
+                          <td style={{padding:'8px 12px',textAlign:'right',fontSize:12,color:C.muted}}>
+                            {cg.projs[0]?.cat==='Billable'?`${Math.round((cg.total/totalBillableHrs)*100)}%`:'—'}
                           </td>
-                          <td className="px-4 py-3"/>
-                          <td className="px-4 py-3 text-sm text-gray-500">{allMembers.length} people</td>
-                          <td className="px-4 py-3"/>
+                          <td colSpan={3} style={{padding:'8px 12px'}}/>
                         </tr>
 
-                        {/* ── PROJECT ROWS ── */}
-                        {!isCollapsed && cg.projs.map((p, pi) => {
-                          const memEntries = Object.entries(p.mems).sort(([,a],[,b])=>b-a);
-                          const typeBadge  =
-                            p.cat==='Billable'
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                              : 'bg-violet-50 text-violet-700 border border-violet-200';
-                          return (
-                            <tr key={pi} className={`border-t border-gray-100 hover:bg-blue-50 transition-colors ${pi%2===1?'bg-gray-50/50':''}`}>
-                              {/* Project name — indented */}
-                              <td className="px-5 py-3">
-                                <span className="pl-6 text-sm text-gray-800">{p.name}</span>
+                        {/* Project rows */}
+                        {!isCollapsed&&cg.projs.map((p,pi)=>{
+                          const mems=Object.entries(p.mems).sort(([,a],[,b])=>b-a);
+                          const isBillable=p.cat==='Billable';
+                          return(
+                            <tr key={pi} style={{
+                              ...trStyle(pi),
+                              borderLeft:`3px solid ${isBillable?C.billable:C.internal}`,
+                            }}>
+                              <td style={{padding:'8px 12px',paddingLeft:32,fontSize:13,color:C.text}}>{p.name}</td>
+                              <td style={{padding:'8px 12px',textAlign:'right',fontWeight:600,color:C.text,fontVariantNumeric:'tabular-nums',fontSize:13}}>
+                                {p.hrs.toFixed(1)}
                               </td>
-                              {/* Hours */}
-                              <TD right bold>{p.hrs.toFixed(1)}</TD>
-                              {/* % of billable */}
-                              <TD right muted>
-                                {p.cat==='Billable' ? `${pct(p.hrs,totalBillableHrs)}%` : '—'}
-                              </TD>
-                              {/* Type badge */}
-                              <td className="px-4 py-3">
-                                <span className={`text-xs px-2 py-0.5 rounded-md font-medium ${typeBadge}`}>
+                              <td style={{padding:'8px 12px',textAlign:'right',fontSize:12,color:C.faint,fontVariantNumeric:'tabular-nums'}}>
+                                {isBillable?`${Math.round((p.hrs/totalBillableHrs)*100)}%`:'—'}
+                              </td>
+                              <td style={{padding:'8px 12px'}}>
+                                <span style={{
+                                  fontSize:11,fontWeight:600,padding:'2px 7px',borderRadius:3,
+                                  background:isBillable?'#DCFCE7':'#EDE9FE',
+                                  color:isBillable?C.billable:C.internal,
+                                }}>
                                   {p.cat}
                                 </span>
                               </td>
-                              {/* Member names */}
-                              <td className="px-4 py-3">
-                                <div className="flex flex-wrap gap-1.5">
-                                  {memEntries.map(([n,h],mi)=>(
-                                    <span key={mi} className="text-xs bg-white border border-gray-200 rounded-md px-2 py-0.5 text-gray-600 whitespace-nowrap">
-                                      {n.split(' ')[0]} <span className="text-gray-400 font-medium tabular-nums">{h.toFixed(0)}h</span>
+                              <td style={{padding:'8px 12px'}}>
+                                <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
+                                  {mems.map(([n,h],mi)=>(
+                                    <span key={mi} style={{
+                                      fontSize:11,padding:'2px 7px',borderRadius:3,
+                                      background:'#F1F5F9',color:C.muted,whiteSpace:'nowrap',
+                                      border:`1px solid ${C.border}`,
+                                    }}>
+                                      {n.split(' ')[0]}
+                                      <span style={{marginLeft:4,color:C.faint,fontVariantNumeric:'tabular-nums'}}>
+                                        {h.toFixed(0)}h
+                                      </span>
                                     </span>
                                   ))}
                                 </div>
                               </td>
-                              {/* People count */}
-                              <TD right muted>{memEntries.length}</TD>
+                              <td style={{padding:'8px 12px',textAlign:'right',fontSize:12,color:C.faint}}>{mems.length}</td>
                             </tr>
                           );
                         })}
@@ -584,108 +875,122 @@ export default function StocStaffingDashboard() {
           </div>
         )}
 
-        {/* ──────────────────────────────────────
-            TEAMS TAB
-        ────────────────────────────────────── */}
-        {tab==='teams' && (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-
-            {/* Toolbar */}
-            <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-100 bg-gray-50">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"/>
+        {/* ─────────────────────────────
+            TEAM TAB
+        ───────────────────────────── */}
+        {tab==='team'&&(
+          <div style={{background:'#fff',border:`1px solid ${C.border}`,borderRadius:6,overflow:'hidden'}}>
+            <div style={{
+              display:'flex',alignItems:'center',gap:10,
+              padding:'8px 16px',borderBottom:`1px solid ${C.border}`,background:C.headerBg,
+            }}>
+              <div style={{position:'relative',flex:'0 0 220px'}}>
+                <Search size={13} color={C.faint} style={{position:'absolute',left:9,top:'50%',transform:'translateY(-50%)',pointerEvents:'none'}}/>
                 <input value={teamSearch} onChange={e=>setTeamSearch(e.target.value)}
                   placeholder="Search by name…"
-                  className="pl-9 pr-3 py-1.5 w-56 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-300"/>
+                  style={{width:'100%',height:30,paddingLeft:30,paddingRight:8,fontSize:12,border:`1px solid ${C.border}`,borderRadius:5,background:'#fff',color:C.text,outline:'none',boxSizing:'border-box'}}/>
               </div>
-              <span className="ml-auto text-sm text-gray-400">{sortedMembers.length} members</span>
+              <span style={{marginLeft:'auto',fontSize:11,color:C.faint}}>{sortedTeam.length} members</span>
             </div>
 
-            {/* Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
+            <div style={{overflowX:'auto'}}>
+              <table style={tableStyle}>
                 <thead>
                   <tr>
-                    <TH onClick={()=>toggleTeamSort('name')}    sorted={arr(teamSort,'name')}>Name</TH>
-                    <TH>Team</TH>
-                    <TH right onClick={()=>toggleTeamSort('billable')}  sorted={arr(teamSort,'billable')}>Billable</TH>
-                    <TH right onClick={()=>toggleTeamSort('internal')}  sorted={arr(teamSort,'internal')}>Internal / BD</TH>
-                    <TH right onClick={()=>toggleTeamSort('ooo')}       sorted={arr(teamSort,'ooo')}>OOO</TH>
-                    <TH right onClick={()=>toggleTeamSort('utilized')}  sorted={arr(teamSort,'utilized')}>Utilized</TH>
-                    <TH right onClick={()=>toggleTeamSort('avail')}     sorted={arr(teamSort,'avail')}>Available</TH>
-                    <TH onClick={()=>toggleTeamSort('util')}    sorted={arr(teamSort,'util')}>Utilization</TH>
-                    <TH>Status</TH>
+                    <Th onClick={()=>toggleTS('name')}     sort={arr(teamSort,'name')}>Name</Th>
+                    <Th>Team</Th>
+                    <Th right onClick={()=>toggleTS('billable')}  sort={arr(teamSort,'billable')}>Billable</Th>
+                    <Th right onClick={()=>toggleTS('internal')}  sort={arr(teamSort,'internal')}>Internal/BD</Th>
+                    <Th right onClick={()=>toggleTS('ooo')}       sort={arr(teamSort,'ooo')}>OOO</Th>
+                    <Th right onClick={()=>toggleTS('utilized')}  sort={arr(teamSort,'utilized')}>Utilized</Th>
+                    <Th right onClick={()=>toggleTS('avail')}     sort={arr(teamSort,'avail')}>Available</Th>
+                    <Th onClick={()=>toggleTS('util')}     sort={arr(teamSort,'util')}>Utilization</Th>
+                    <Th>Status</Th>
+                    <Th right>Projects</Th>
                   </tr>
                 </thead>
                 <tbody>
-                  {sortedMembers.map((m, i) => {
-                    const isOpen = openMember===m.name;
-                    const projs  = Object.entries(m.jobs)
-                      .filter(([jc])=>catOf(jc)!=='OOO')
-                      .sort(([,a],[,b])=>b-a);
-                    return (
+                  {sortedTeam.map((m,i)=>{
+                    const isOpen=openMember===m.name;
+                    const projs=Object.entries(m.jobs).filter(([jc])=>catOf(jc)!=='OOO').sort(([,a],[,b])=>b-a);
+                    return(
                       <React.Fragment key={i}>
                         <tr
-                          className={`border-t border-gray-100 cursor-pointer transition-colors
-                            ${isOpen ? 'bg-blue-50' : i%2===1 ? 'bg-gray-50/50 hover:bg-blue-50' : 'hover:bg-blue-50'}`}
-                          onClick={()=>setOpenMember(isOpen?null:m.name)}>
-                          {/* Name */}
-                          <td className="px-5 py-3">
-                            <div className="flex items-center gap-2">
-                              {isOpen
-                                ? <ChevronDown  className="w-3.5 h-3.5 text-gray-400 shrink-0"/>
-                                : <ChevronRight className="w-3.5 h-3.5 text-gray-400 shrink-0"/>}
-                              <span className="text-sm font-medium text-gray-900">{m.name}</span>
+                          onClick={()=>setOpenMember(isOpen?null:m.name)}
+                          style={{
+                            ...trStyle(i,m.risk),
+                            cursor:'pointer',
+                            background:isOpen?'#EFF6FF':m.risk==='Over'?'#FFF8F8':m.risk==='Under'?'#F8FBFF':i%2===1?C.rowAlt:'#fff',
+                          }}>
+                          <td style={{padding:'9px 12px'}}>
+                            <div style={{display:'flex',alignItems:'center',gap:6}}>
+                              {isOpen?<ChevronDown size={13} color={C.muted}/>:<ChevronRight size={13} color={C.muted}/>}
+                              <span style={{fontSize:13,fontWeight:500,color:C.text}}>{m.name}</span>
                             </div>
                           </td>
-                          {/* Team badge */}
-                          <td className="px-4 py-3">
-                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-md
-                              ${m.isCDS?'bg-purple-50 text-purple-700 border border-purple-200':'bg-blue-50 text-blue-700 border border-blue-200'}`}>
+                          <Td>
+                            <span style={{
+                              fontSize:10,fontWeight:700,padding:'2px 6px',borderRadius:3,
+                              background:m.isCDS?'#EDE9FE':'#DBEAFE',
+                              color:m.isCDS?C.internal:C.under,
+                            }}>
                               {m.isCDS?'CDS':'TAS'}
                             </span>
-                          </td>
-                          <TD right>{m.billable.toFixed(1)}</TD>
-                          <TD right>{m.internal.toFixed(1)}</TD>
-                          <TD right muted>{m.ooo.toFixed(1)}</TD>
-                          <TD right bold>{m.utilized.toFixed(1)}</TD>
-                          {/* Available — coloured */}
-                          <td className={`px-4 py-3 text-right text-sm font-semibold tabular-nums
-                            ${m.avail<0?'text-red-600':m.avail<8?'text-amber-600':'text-gray-700'}`}>
+                          </Td>
+                          <Td right>{m.billable.toFixed(1)}</Td>
+                          <Td right>{m.internal.toFixed(1)}</Td>
+                          <Td right muted>{m.ooo.toFixed(1)}</Td>
+                          <Td right bold>{m.utilized.toFixed(1)}</Td>
+                          <td style={{
+                            padding:'9px 12px',textAlign:'right',fontSize:13,
+                            fontWeight:700,fontVariantNumeric:'tabular-nums',
+                            color:m.avail<0?C.burn:m.avail<8?'#D97706':C.text,
+                          }}>
                             {m.avail.toFixed(1)}
                           </td>
                           {/* Util bar */}
-                          <td className="px-4 py-3 min-w-[140px]">
-                            <UtilBar value={m.util}/>
+                          <td style={{padding:'9px 12px',minWidth:160}}>
+                            <div style={{display:'flex',alignItems:'center',gap:8}}>
+                              <div style={{flex:1,height:6,background:C.avail,borderRadius:3,overflow:'hidden'}}>
+                                <div style={{
+                                  height:6,borderRadius:3,
+                                  width:`${Math.min(m.util,100)}%`,
+                                  background:m.risk==='Over'?C.burn:m.risk==='Under'?C.under:C.billable,
+                                }}/>
+                              </div>
+                              <span style={{
+                                fontSize:12,fontWeight:700,color:m.risk==='Over'?C.burn:m.risk==='Under'?C.under:C.healthy,
+                                fontVariantNumeric:'tabular-nums',minWidth:32,textAlign:'right',
+                              }}>
+                                {m.util.toFixed(0)}%
+                              </span>
+                            </div>
                           </td>
-                          {/* Risk badge */}
-                          <td className="px-4 py-3">
-                            <RiskBadge level={m.risk}/>
+                          <td style={{padding:'9px 12px'}}><RiskPill level={m.risk}/></td>
+                          <td style={{padding:'9px 12px',textAlign:'right',fontSize:13,color:C.faint}}>
+                            {projs.length}
                           </td>
                         </tr>
 
-                        {/* Expanded project breakdown */}
-                        {isOpen && (
-                          <tr className="border-t border-blue-100 bg-blue-50/60">
-                            <td colSpan={9} className="px-5 py-4">
-                              <div className="ml-6 max-w-xl">
-                                <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">
-                                  Project breakdown — % of utilized hours
-                                </p>
-                                <table className="w-full text-sm border-collapse">
+                        {/* Expanded breakdown */}
+                        {isOpen&&(
+                          <tr style={{borderBottom:`1px solid ${C.border}`}}>
+                            <td colSpan={10} style={{padding:'0 12px 12px',background:'#F0F7FF'}}>
+                              <div style={{marginLeft:24,marginTop:8,maxWidth:500}}>
+                                <table style={{...tableStyle,fontSize:12}}>
                                   <thead>
-                                    <tr className="border-b border-gray-200">
-                                      <th className="py-1.5 text-left font-semibold text-gray-600">Project</th>
-                                      <th className="py-1.5 text-right font-semibold text-gray-600 tabular-nums w-20">Hours</th>
-                                      <th className="py-1.5 text-right font-semibold text-gray-600 w-16">%</th>
+                                    <tr style={{borderBottom:`1px solid ${C.border}`}}>
+                                      <th style={{padding:'4px 8px',textAlign:'left',fontSize:10,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.05em',color:C.faint}}>Project</th>
+                                      <th style={{padding:'4px 8px',textAlign:'right',fontSize:10,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.05em',color:C.faint}}>Hours</th>
+                                      <th style={{padding:'4px 8px',textAlign:'right',fontSize:10,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.05em',color:C.faint}}>% of util</th>
                                     </tr>
                                   </thead>
                                   <tbody>
                                     {projs.map(([jc,hrs],j)=>(
-                                      <tr key={j} className={j%2===1?'bg-white/60':''}>
-                                        <td className="py-1.5 text-gray-700">{jc}</td>
-                                        <td className="py-1.5 text-right text-gray-900 font-medium tabular-nums">{hrs.toFixed(1)}</td>
-                                        <td className="py-1.5 text-right text-gray-400">{m.utilized>0?pct(hrs,m.utilized):0}%</td>
+                                      <tr key={j} style={{borderBottom:j<projs.length-1?`1px solid ${C.border}`:'none'}}>
+                                        <td style={{padding:'5px 8px',color:C.text}}>{jc}</td>
+                                        <td style={{padding:'5px 8px',textAlign:'right',fontWeight:600,color:C.text,fontVariantNumeric:'tabular-nums'}}>{hrs.toFixed(1)}</td>
+                                        <td style={{padding:'5px 8px',textAlign:'right',color:C.faint,fontVariantNumeric:'tabular-nums'}}>{m.utilized>0?Math.round((hrs/m.utilized)*100):0}%</td>
                                       </tr>
                                     ))}
                                   </tbody>
@@ -698,18 +1003,27 @@ export default function StocStaffingDashboard() {
                     );
                   })}
 
-                  {/* Totals row */}
-                  <tr className="border-t-2 border-gray-300 bg-gray-50">
-                    <td className="px-5 py-3 text-sm font-bold text-gray-900" colSpan={2}>Total</td>
-                    <TD right bold>{stats.tB.toFixed(1)}</TD>
-                    <TD right bold>{stats.tI.toFixed(1)}</TD>
-                    <TD right muted>{stats.tO.toFixed(1)}</TD>
-                    <TD right bold>{stats.tU.toFixed(1)}</TD>
-                    <td className={`px-4 py-3 text-right text-sm font-bold tabular-nums ${stats.tA<0?'text-red-600':'text-gray-900'}`}>
+                  {/* Totals */}
+                  <tr style={{background:C.headerBg,borderTop:`2px solid ${C.border}`}}>
+                    <td style={{padding:'9px 12px',fontSize:13,fontWeight:700,color:C.text}} colSpan={2}>Total</td>
+                    <Td right bold>{stats.tB.toFixed(1)}</Td>
+                    <Td right bold>{stats.tI.toFixed(1)}</Td>
+                    <Td right muted>{stats.tO.toFixed(1)}</Td>
+                    <Td right bold>{stats.tU.toFixed(1)}</Td>
+                    <td style={{padding:'9px 12px',textAlign:'right',fontSize:13,fontWeight:700,color:stats.tA<0?C.burn:C.text,fontVariantNumeric:'tabular-nums'}}>
                       {stats.tA.toFixed(1)}
                     </td>
-                    <td className="px-4 py-3 min-w-[140px]"><UtilBar value={stats.avgU}/></td>
-                    <td className="px-4 py-3"/>
+                    <td style={{padding:'9px 12px',minWidth:160}}>
+                      <div style={{display:'flex',alignItems:'center',gap:8}}>
+                        <div style={{flex:1,height:6,background:C.avail,borderRadius:3,overflow:'hidden'}}>
+                          <div style={{height:6,borderRadius:3,width:`${Math.min(stats.avgU,100)}%`,background:stats.avgU>=95?C.burn:stats.avgU<60?C.under:C.billable}}/>
+                        </div>
+                        <span style={{fontSize:12,fontWeight:700,color:C.text,fontVariantNumeric:'tabular-nums',minWidth:32,textAlign:'right'}}>
+                          {stats.avgU.toFixed(0)}%
+                        </span>
+                      </div>
+                    </td>
+                    <td colSpan={2}/>
                   </tr>
                 </tbody>
               </table>
@@ -717,276 +1031,50 @@ export default function StocStaffingDashboard() {
           </div>
         )}
 
-        {/* ──────────────────────────────────────
-            RISK TAB
-        ────────────────────────────────────── */}
-        {tab==='risk' && (() => {
-          const burnout  = Object.values(members).filter(m=>m.risk==='Burnout Risk');
-          const under    = Object.values(members).filter(m=>m.risk==='Underutilized');
-          const capacity = under.reduce((s,m)=>s+Math.max(0,m.effCap*0.60-m.utilized),0);
-          return (
-            <div className="space-y-4">
-              {/* Action banner */}
-              {(burnout.length>0||under.length>0) && (
-                <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4 flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5"/>
-                  <div>
-                    <p className="text-sm font-semibold text-amber-900 mb-1">Action needed this week</p>
-                    <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-amber-800">
-                      {burnout.length>0 && (
-                        <span>
-                          <strong>{burnout.length}</strong> at burnout risk —&nbsp;
-                          {burnout.map(m=>m.name.split(' ')[0]).join(', ')}
-                        </span>
-                      )}
-                      {under.length>0 && (
-                        <span>
-                          <strong>{under.length}</strong> underutilised with&nbsp;
-                          <strong>~{capacity.toFixed(0)}h</strong> available to absorb
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Bar chart */}
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-base font-semibold text-gray-900">Team Utilization</h2>
-                  <select value={riskFilter} onChange={e=>setRiskFilter(e.target.value)}
-                    className="h-8 px-3 text-sm border border-gray-200 rounded-lg bg-white text-gray-700 focus:outline-none">
-                    <option value="all">All</option>
-                    <option value="Burnout Risk">Burnout Risk</option>
-                    <option value="Healthy">Healthy</option>
-                    <option value="Underutilized">Underutilized</option>
-                  </select>
-                </div>
-                <ResponsiveContainer width="100%" height={Math.max(riskMembers.length*36, 120)}>
-                  <BarChart
-                    data={riskMembers.map(m=>({
-                      name: m.name,
-                      util: parseFloat(m.util.toFixed(1)),
-                      risk: m.risk,
-                    }))}
-                    layout="vertical"
-                    margin={{top:0,right:60,bottom:0,left:140}}>
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#F1F5F9"/>
-                    <XAxis type="number" domain={[0,120]} unit="%" tick={{fontSize:11,fill:'#94A3B8'}} tickLine={false} axisLine={false}/>
-                    <YAxis type="category" dataKey="name" tick={{fontSize:13,fill:'#374151'}} tickLine={false} axisLine={false} width={136}/>
-                    <Tooltip
-                      formatter={v=>[`${v}%`,'Utilization']}
-                      contentStyle={{fontSize:13,borderRadius:8,border:'1px solid #E2E8F0',boxShadow:'0 4px 6px -1px rgba(0,0,0,.07)'}}/>
-                    <ReferenceLine x={60}  stroke="#BAE6FD" strokeDasharray="5 3"
-                      label={{value:'60%',position:'insideTopRight',fontSize:10,fill:'#7DD3FC'}}/>
-                    <ReferenceLine x={95}  stroke="#FECACA" strokeDasharray="5 3"
-                      label={{value:'95%',position:'insideTopRight',fontSize:10,fill:'#F87171'}}/>
-                    <Bar dataKey="util" radius={[0,4,4,0]} maxBarSize={24}>
-                      {riskMembers.map((m,i)=>(<Cell key={i} fill={RISK[m.risk].bar} fillOpacity={0.9}/>))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-                <div className="flex justify-center gap-6 mt-3 pt-3 border-t border-gray-100">
-                  {Object.entries(RISK).map(([level,c])=>(
-                    <div key={level} className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full" style={{background:c.bar}}/>
-                      <span className="text-xs text-gray-500">{level}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Actionable table */}
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse">
-                    <thead>
-                      <tr>
-                        <TH>Name</TH>
-                        <TH>Status</TH>
-                        <TH right>Util %</TH>
-                        <TH right>Used hrs</TH>
-                        <TH right>Available</TH>
-                        <TH right>Billable</TH>
-                        <TH right>Internal / BD</TH>
-                        <TH>Suggested action</TH>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {riskMembers.map((m,i)=>{
-                        const avail  = m.effCap - m.utilized;
-                        const action =
-                          m.risk==='Burnout Risk'
-                            ? `Offload ~${Math.abs(avail).toFixed(0)}h — reassign to underutilised members`
-                            : m.risk==='Underutilized'
-                              ? `~${Math.max(0,m.effCap*0.60-m.utilized).toFixed(0)}h capacity available`
-                              : 'On track — no action needed';
-                        return (
-                          <tr key={i}
-                            className={`border-t border-gray-100 transition-colors
-                              ${i%2===1?'bg-gray-50/50':''}
-                              ${m.risk!=='Healthy'?RISK[m.risk].rowBg:''}
-                              hover:bg-blue-50`}>
-                            <td className="px-5 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">{m.name}</td>
-                            <td className="px-4 py-3"><RiskBadge level={m.risk}/></td>
-                            <td className="px-4 py-3 text-right">
-                              <span className={`text-sm font-bold tabular-nums ${RISK[m.risk].label}`}>
-                                {m.util.toFixed(0)}%
-                              </span>
-                            </td>
-                            <TD right>{(m.billable+m.internal).toFixed(1)}</TD>
-                            <td className={`px-4 py-3 text-right text-sm font-semibold tabular-nums
-                              ${avail<0?'text-red-600':avail<8?'text-amber-600':'text-gray-700'}`}>
-                              {avail.toFixed(1)}
-                            </td>
-                            <TD right muted>{m.billable.toFixed(1)}</TD>
-                            <TD right muted>{m.internal.toFixed(1)}</TD>
-                            <td className="px-4 py-3">
-                              <div className="flex items-center gap-1.5 text-sm text-gray-600">
-                                {m.risk!=='Healthy' && <ArrowRight className="w-3.5 h-3.5 text-gray-400 shrink-0"/>}
-                                {action}
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* ──────────────────────────────────────
-            CAPACITY TAB
-        ────────────────────────────────────── */}
-        {tab==='capacity' && (
-          <div className="space-y-4">
-            {/* Summary tiles */}
-            <div className="grid grid-cols-3 gap-4">
-              {[
-                { icon:<UserCheck className="w-5 h-5"/>, label:'Available', sub:'10+ hours remaining',
-                  count:Object.values(members).filter(m=>m.avail>=10).length,
-                  cls:'border-emerald-200 bg-emerald-50 text-emerald-600' },
-                { icon:<Target className="w-5 h-5"/>,    label:'Near Capacity', sub:'Under 10 hours left',
-                  count:Object.values(members).filter(m=>m.avail>=0&&m.avail<10).length,
-                  cls:'border-amber-200 bg-amber-50 text-amber-600' },
-                { icon:<AlertTriangle className="w-5 h-5"/>, label:'Overallocated', sub:'Exceeded weekly target',
-                  count:Object.values(members).filter(m=>m.avail<0).length,
-                  cls:'border-red-200 bg-red-50 text-red-600' },
-              ].map((c,i)=>(
-                <div key={i} className={`border rounded-xl p-5 flex items-center gap-4 ${c.cls}`}>
-                  {c.icon}
-                  <div>
-                    <p className="text-2xl font-bold">{c.count}</p>
-                    <p className="text-sm font-semibold mt-0.5">{c.label}</p>
-                    <p className="text-xs opacity-70 mt-0.5">{c.sub}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Table */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr>
-                      <TH>Team Member</TH>
-                      <TH right>Weekly Target</TH>
-                      <TH right>OOO</TH>
-                      <TH right>Effective Cap.</TH>
-                      <TH right>Utilized</TH>
-                      <TH right>Available</TH>
-                      <TH right>Util %</TH>
-                      <TH>Status</TH>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {Object.values(members)
-                      .sort((a,b)=>a.avail-b.avail)
-                      .map((m,i)=>(
-                        <tr key={i} className={`border-t border-gray-100 hover:bg-blue-50 transition-colors ${i%2===1?'bg-gray-50/50':''}`}>
-                          <td className="px-5 py-3 text-sm font-medium text-gray-900">{m.name}</td>
-                          <TD right muted>40.0</TD>
-                          <TD right muted>{m.ooo.toFixed(1)}</TD>
-                          <TD right>{m.effCap.toFixed(1)}</TD>
-                          <TD right>{m.utilized.toFixed(1)}</TD>
-                          <td className={`px-4 py-3 text-right text-sm font-semibold tabular-nums
-                            ${m.avail<0?'text-red-600':m.avail<8?'text-amber-600':'text-gray-700'}`}>
-                            {m.avail.toFixed(1)}
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <span className={`text-sm font-bold tabular-nums ${RISK[m.risk].label}`}>
-                              {m.util.toFixed(0)}%
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full
-                              ${m.avail<0?'bg-red-100 text-red-700':m.avail<8?'bg-amber-100 text-amber-700':'bg-emerald-100 text-emerald-700'}`}>
-                              {m.avail<0?'Overallocated':m.avail<8?'Near Capacity':'Available'}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ──────────────────────────────────────
+        {/* ─────────────────────────────
             EXCEPTIONS TAB
-        ────────────────────────────────────── */}
-        {tab==='exceptions' && (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr>
-                    <TH>Issue</TH>
-                    <TH>Team Member</TH>
-                    <TH>Details</TH>
-                    <TH>Action</TH>
+        ───────────────────────────── */}
+        {tab==='exceptions'&&(
+          <div style={{background:'#fff',border:`1px solid ${C.border}`,borderRadius:6,overflow:'hidden'}}>
+            <table style={tableStyle}>
+              <thead>
+                <tr>
+                  <Th>Issue</Th>
+                  <Th>Team Member</Th>
+                  <Th>Details</Th>
+                  <Th>Action</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.values(members).filter(m=>m.avail<0).map((m,i)=>(
+                  <tr key={`o${i}`} style={{...trStyle(i),background:'#FFF5F5',borderLeft:`3px solid ${C.burn}`}}>
+                    <td style={{padding:'9px 12px'}}>
+                      <span style={{fontSize:11,fontWeight:700,padding:'2px 8px',borderRadius:3,background:'#FEE2E2',color:C.burn}}>Overallocated</span>
+                    </td>
+                    <td style={{padding:'9px 12px',fontSize:13,fontWeight:500,color:C.text}}>{m.name}</td>
+                    <td style={{padding:'9px 12px',fontSize:13,color:C.muted}}>
+                      {Math.abs(m.avail).toFixed(1)}h over capacity · {m.util.toFixed(0)}% utilized
+                    </td>
+                    <td style={{padding:'9px 12px',fontSize:13,fontWeight:600,color:C.burn}}>Rebalance work</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {Object.values(members).filter(m=>m.avail<0).map((m,i)=>(
-                    <tr key={`o${i}`} className="border-t border-gray-100 bg-red-50 hover:bg-red-100 transition-colors">
-                      <td className="px-5 py-3">
-                        <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-red-100 text-red-700">Overallocated</span>
-                      </td>
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900">{m.name}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
-                        {Math.abs(m.avail).toFixed(1)}h over capacity · {m.util.toFixed(0)}% utilised
-                      </td>
-                      <td className="px-4 py-3 text-sm font-semibold text-red-700">Rebalance work</td>
-                    </tr>
-                  ))}
-                  {Object.values(members).filter(m=>m.total>0&&m.total<20).map((m,i)=>(
-                    <tr key={`l${i}`} className="border-t border-gray-100 bg-amber-50 hover:bg-amber-100 transition-colors">
-                      <td className="px-5 py-3">
-                        <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-700">Low Hours</span>
-                      </td>
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900">{m.name}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
-                        Only {m.total.toFixed(1)}h logged this period
-                      </td>
-                      <td className="px-4 py-3 text-sm font-semibold text-amber-700">Review entry</td>
-                    </tr>
-                  ))}
-                  {Object.values(members).filter(m=>m.avail<0||m.total<20).length===0 && (
-                    <tr>
-                      <td colSpan={4} className="py-14 text-center text-sm text-gray-400">
-                        No exceptions this period 🎉
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                ))}
+                {Object.values(members).filter(m=>m.total>0&&m.total<20).map((m,i)=>(
+                  <tr key={`l${i}`} style={{...trStyle(i),background:'#FFFBEB',borderLeft:'3px solid #D97706'}}>
+                    <td style={{padding:'9px 12px'}}>
+                      <span style={{fontSize:11,fontWeight:700,padding:'2px 8px',borderRadius:3,background:'#FEF3C7',color:'#B45309'}}>Low Hours</span>
+                    </td>
+                    <td style={{padding:'9px 12px',fontSize:13,fontWeight:500,color:C.text}}>{m.name}</td>
+                    <td style={{padding:'9px 12px',fontSize:13,color:C.muted}}>Only {m.total.toFixed(1)}h logged</td>
+                    <td style={{padding:'9px 12px',fontSize:13,fontWeight:600,color:'#B45309'}}>Review entry</td>
+                  </tr>
+                ))}
+                {Object.values(members).filter(m=>m.avail<0||m.total<20).length===0&&(
+                  <tr><td colSpan={4} style={{padding:40,textAlign:'center',fontSize:13,color:C.faint}}>
+                    No exceptions this period 🎉
+                  </td></tr>
+                )}
+              </tbody>
+            </table>
           </div>
         )}
 
