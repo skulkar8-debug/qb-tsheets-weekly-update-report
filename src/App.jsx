@@ -1,269 +1,128 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Calendar, Users, TrendingUp, AlertCircle, Clock, Briefcase, DollarSign, Activity, ChevronRight, ChevronDown, Filter, BarChart3, PieChart, Target, UserCheck, AlertTriangle, Search } from 'lucide-react';
+import { Calendar, Users, TrendingUp, AlertCircle, Clock, Briefcase, DollarSign, Activity, ChevronRight, ChevronDown, Filter, BarChart3, PieChart, Target, UserCheck, AlertTriangle, Search, RefreshCw } from 'lucide-react';
 import { BarChart, Bar, LineChart, Line, PieChart as RePieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ScatterChart, Scatter, ZAxis, Label, LabelList } from 'recharts';
 
 // ============================================================================
-// WEEKLY DATA - SINGLE SOURCE OF TRUTH
-// Add new week's CSV data here. Weeks are in descending order (latest first).
-// Schema: lname,fname,username,job_code,hours
+// LIVE DATA CONFIGURATION
+// Configure your Google Sheets data source
 // ============================================================================
 
-const WEEK_DATA = {
-  "Jan 4 – Jan 10, 2026": `lname,fname,username,job_code,hours
-Chiramkara,Jishnu,jchiramkara@stocadvisory.com,Administrative,2
-Chiramkara,Jishnu,jchiramkara@stocadvisory.com,Business Development,1
-Chiramkara,Jishnu,jchiramkara@stocadvisory.com,Holiday,8
-Chiramkara,Jishnu,jchiramkara@stocadvisory.com,Riata - Government Window,30
-D,Ramya,rdamani@stocadvisory.com,Business Development,32.85
-D,Ramya,rdamani@stocadvisory.com,Holiday,8
-Egan,Sean,segan@stocadvisory.com,ADP - Tearsheet,16
-Egan,Sean,segan@stocadvisory.com,CPC - Canine Country Club,4.5
-Egan,Sean,segan@stocadvisory.com,CPC - Home Away From Home,9
-Egan,Sean,segan@stocadvisory.com,SP USA - Sage Import & Closing Recon,5
-Egan,Sean,segan@stocadvisory.com,SPUSA - Holly Dental,2
-Garg,Vishal,vgarg@stocadvisory.com,ADP - Tearsheet,19.5
-Garg,Vishal,vgarg@stocadvisory.com,AEG - Child and Family Eye Care Center,8
-Garg,Vishal,vgarg@stocadvisory.com,Holiday,8
-Govind,Vaishnav,vgovind@stocadvisory.com,Business Development,44.46
-Govind,Vaishnav,vgovind@stocadvisory.com,Holiday,11
-Gupta,Kirti,kirti.g@bpsanalytics.co.in,SALT - Suffolk Pedo Dentistry & Ortho,7
-Hariram,Pradeep,phariram@stocadvisory.com,ADP - Corp Dev Support (Tearsheet),21
-Hariram,Pradeep,phariram@stocadvisory.com,ADP - Emma Wu and Associates,2
-Hariram,Pradeep,phariram@stocadvisory.com,ADP - Valhalla,1
-Hariram,Pradeep,phariram@stocadvisory.com,CPC - Home Away From Home,8
-Hottman,Matthew,mhottman@stocadvisory.com,Administrative,3.5
-Hottman,Matthew,mhottman@stocadvisory.com,Holiday,8
-Hottman,Matthew,mhottman@stocadvisory.com,Riata - Government Window,9
-Hottman,Matthew,mhottman@stocadvisory.com,SALT - Alden Bridge Pediatric Dentistry,0.5
-Hottman,Matthew,mhottman@stocadvisory.com,SALT - Chesapeake Pediatric Dental Group,1
-Hottman,Matthew,mhottman@stocadvisory.com,SALT - Haeger Orthodontics,2
-Hottman,Matthew,mhottman@stocadvisory.com,SALT - Houston OMS,5.5
-Hottman,Matthew,mhottman@stocadvisory.com,SALT - Suffolk Pedo Dentistry & Ortho,7.5
-Hottman,Matthew,mhottman@stocadvisory.com,Vacation,3
-Jadhav,Pravin,pjadhav@stocadvisory.com,Vacation,32
-Jhingan,Siddharth,siddharth.j@bpsanalytics.co.in,Business Development - STOC,10.5
-Jhingan,Siddharth,siddharth.j@bpsanalytics.co.in,CPC - Home Away From Home,6.5
-Jhingan,Siddharth,siddharth.j@bpsanalytics.co.in,SALT - Suffolk Pedo Dentistry & Ortho,0.5
-Jhingan,Siddharth,siddharth.j@bpsanalytics.co.in,SP USA - Weekly Sales Dashboard,0.5
-Joseph,Stefan,sjoseph@stocadvisory.com,Business Development,46.57
-Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Alta Loma Optometric (Dr. Morton),1.98
-Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Capital Plaza (Dr. Amin),2
-Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Child and Family Eye Care Center,1.5
-Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Federal Hill Eye Care,1
-Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Lifetime Vision Source,1
-Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Manhattan Vision & Queens Eye Associates,0.5
-Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Metropolitan Vision,0.5
-Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Optometric Images Vision Center (Drs. Ramsey & Ozaki),1
-Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Sandy & Draper Vision Care Center,1
-Luetgers,Sam,sluetgers@stocadvisory.com,Administrative,3.5
-Luetgers,Sam,sluetgers@stocadvisory.com,Beacon Behavioral - Hawkins Psychiatry,5
-Luetgers,Sam,sluetgers@stocadvisory.com,Sick,4
-Luetgers,Sam,sluetgers@stocadvisory.com,Vacation,8
-McFadden,Brandon,bmcfadden@stocadvisory.com,AEG - Canby Eyecare,1
-McFadden,Brandon,bmcfadden@stocadvisory.com,AEG - Child and Family Eye Care Center,6
-McFadden,Brandon,bmcfadden@stocadvisory.com,Administrative,6
-McFadden,Brandon,bmcfadden@stocadvisory.com,Holiday,8
-McFadden,Brandon,bmcfadden@stocadvisory.com,SALT - Houston OMS,3
-McFadden,Brandon,bmcfadden@stocadvisory.com,Vacation,16
-Nayak,Rakesh,rnayak@stocadvisory.com,Business Development,43.26
-Nayak,Rakesh,rnayak@stocadvisory.com,Holiday,10
-Nguyen,Hung,hnguyen@stocadvisory.com,Administrative,8
-Nguyen,Hung,hnguyen@stocadvisory.com,CPC - Home Away From Home,2.5
-Nguyen,Hung,hnguyen@stocadvisory.com,SP USA - Practice Analysis (Pre-LOI),21
-Pandey,Sharvan,spandey@stocadvisory.com,CDS - Tableau,41.6
-Pandey,Sharvan,spandey@stocadvisory.com,Holiday,8
-Saxena,Arjit,asaxena@stocadvisory.com,Administrative,3.5
-Saxena,Arjit,asaxena@stocadvisory.com,SALT - Alden Bridge Pediatric Dentistry,2.5
-Saxena,Arjit,asaxena@stocadvisory.com,SALT - Haeger Orthodontics,3
-Saxena,Arjit,asaxena@stocadvisory.com,SALT - Houston OMS,4
-Saxena,Arjit,asaxena@stocadvisory.com,SALT - MyOrthodontist,5
-Saxena,Arjit,asaxena@stocadvisory.com,SALT - Suffolk Pedo Dentistry & Ortho,30
-Sharma,Mohit,msharma@stocadvisory.com,Business Development,44.28
-Sharma,Mohit,msharma@stocadvisory.com,Holiday,10
-Sheehy,Aidan,asheehy@stocadvisory.com,Administrative,5
-Sheehy,Aidan,asheehy@stocadvisory.com,ADP - Tearsheet,32
-Sheehy,Aidan,asheehy@stocadvisory.com,Holiday,9
-Siddiqui,Saqib,ssiddiqui@stocadvisory.com,Administrative,12
-Siddiqui,Saqib,ssiddiqui@stocadvisory.com,AEG - Chicago Eye Care Center,12
-Singh,Jogendra,jrathore@stocadvisory.com,Business Development,44.88
-Singh,Jogendra,jrathore@stocadvisory.com,Holiday,10
-Sundar,Barath,bsundar@stocadvisory.com,SP USA - Practice Analysis (Pre-LOI),25
-Tuli,Rahul,rtuli@stocadvisory.com,Vacation,32`,
-
-  "Dec 28, 2025 – Jan 3, 2026": `lname,fname,username,job_code,hours
-D,Ramya,rdamani@stocadvisory.com,Business Development,22.05
-Egan,Sean,segan@stocadvisory.com,Holiday,16
-Govind,Vaishnav,vgovind@stocadvisory.com,Business Development,11.56
-Hottman,Matthew,mhottman@stocadvisory.com,Riata - Government Window,3
-Hottman,Matthew,mhottman@stocadvisory.com,SALT - Berkeley & Orinda Orthodontics,1.5
-Hottman,Matthew,mhottman@stocadvisory.com,SALT - Chesapeake Pediatric Dental Group,0.5
-Hottman,Matthew,mhottman@stocadvisory.com,SALT - Haeger Orthodontics,0.5
-Hottman,Matthew,mhottman@stocadvisory.com,SALT - Houston OMS,2
-Hottman,Matthew,mhottman@stocadvisory.com,SALT - Suffolk Pedo Dentistry & Ortho,1.5
-Jadhav,Pravin,pjadhav@stocadvisory.com,AEG - Alta Loma Optometric (Dr. Morton),1.98
-Jadhav,Pravin,pjadhav@stocadvisory.com,AEG - Sandy & Draper Vision Care Center,18.91
-Joseph,Stefan,sjoseph@stocadvisory.com,Business Development,25.36
-Luetgers,Sam,sluetgers@stocadvisory.com,Administrative,1
-Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Child and Family Eye Care Center,3
-McFadden,Brandon,bmcfadden@stocadvisory.com,AEG - Child and Family Eye Care Center,4.5
-McFadden,Brandon,bmcfadden@stocadvisory.com,AEG - South Shore Eye Center,2.5
-Nayak,Rakesh,rnayak@stocadvisory.com,Business Development,22.15
-Pandey,Sharvan,spandey@stocadvisory.com,CDS - Tableau,21.69
-Saxena,Arjit,asaxena@stocadvisory.com,Administrative,2
-Saxena,Arjit,asaxena@stocadvisory.com,SALT - Alden Bridge Pediatric Dentistry,1
-Saxena,Arjit,asaxena@stocadvisory.com,SALT - Spokane Pediatric,5
-Sharma,Mohit,msharma@stocadvisory.com,Business Development,23.37
-Sheehy,Aidan,asheehy@stocadvisory.com,ADP - Tearsheet,27
-Singh,Jogendra,jrathore@stocadvisory.com,Business Development,10.78
-Sundar,Barath,bsundar@stocadvisory.com,Holiday,24
-Tuli,Rahul,rtuli@stocadvisory.com,Administrative,1.55
-Tuli,Rahul,rtuli@stocadvisory.com,Riata - Government Window,6.98
-Tuli,Rahul,rtuli@stocadvisory.com,SALT - Suffolk Pedo Dentistry & Ortho,10.53`,
-
-  "Dec 21 – Dec 27, 2025": `lname,fname,username,job_code,hours
-D,Ramya,rdamani@stocadvisory.com,Business Development,25.15
-Egan,Sean,segan@stocadvisory.com,CPC - Home Away From Home,2.5
-Egan,Sean,segan@stocadvisory.com,Holiday,8
-Govind,Vaishnav,vgovind@stocadvisory.com,Administrative,3
-Govind,Vaishnav,vgovind@stocadvisory.com,Business Development,30.55
-Hariram,Pradeep,phariram@stocadvisory.com,ADP - Emma Wu and Associates,1
-Hariram,Pradeep,phariram@stocadvisory.com,ADP - Tearsheet,16
-Hottman,Matthew,mhottman@stocadvisory.com,Riata - Government Window,15
-Hottman,Matthew,mhottman@stocadvisory.com,SALT - Berkeley & Orinda Orthodontics,6
-Hottman,Matthew,mhottman@stocadvisory.com,SALT - Suffolk Pedo Dentistry & Ortho,5.5
-Jadhav,Pravin,pjadhav@stocadvisory.com,AEG - Alta Loma Optometric (Dr. Morton),2.5
-Jadhav,Pravin,pjadhav@stocadvisory.com,AEG - Sandy & Draper Vision Care Center,10
-Joseph,Stefan,sjoseph@stocadvisory.com,Business Development,35.05
-Luetgers,Sam,sluetgers@stocadvisory.com,Administrative,8
-Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Child and Family Eye Care Center,3
-McFadden,Brandon,bmcfadden@stocadvisory.com,Administrative,8
-McFadden,Brandon,bmcfadden@stocadvisory.com,AEG - Child and Family Eye Care Center,3
-Nayak,Rakesh,rnayak@stocadvisory.com,Business Development,32.55
-Pandey,Sharvan,spandey@stocadvisory.com,CDS - Tableau,16
-Saxena,Arjit,asaxena@stocadvisory.com,Administrative,4
-Saxena,Arjit,asaxena@stocadvisory.com,SALT - MyOrthodontist,8
-Saxena,Arjit,asaxena@stocadvisory.com,SALT - Suffolk Pedo Dentistry & Ortho,10
-Sharma,Mohit,msharma@stocadvisory.com,Business Development,36
-Sheehy,Aidan,asheehy@stocadvisory.com,ADP - Tearsheet,2
-Singh,Jogendra,jrathore@stocadvisory.com,Business Development,35
-Sundar,Barath,bsundar@stocadvisory.com,Holiday,16
-Tuli,Rahul,rtuli@stocadvisory.com,Administrative,8
-Tuli,Rahul,rtuli@stocadvisory.com,Riata - Government Window,8
-Tuli,Rahul,rtuli@stocadvisory.com,SALT - Suffolk Pedo Dentistry & Ortho,4.5`,
-
-  "Dec 14 – Dec 20, 2025": `lname,fname,username,job_code,hours
-D,Ramya,rdamani@stocadvisory.com,Business Development,20
-Egan,Sean,segan@stocadvisory.com,Holiday,8
-Garg,Vishal,vgarg@stocadvisory.com,AEG - Child and Family Eye Care Center,8
-Govind,Vaishnav,vgovind@stocadvisory.com,Business Development,28
-Hariram,Pradeep,phariram@stocadvisory.com,ADP - Corp Dev Support (Tearsheet),21
-Hariram,Pradeep,phariram@stocadvisory.com,ADP - Emma Wu and Associates,2
-Hariram,Pradeep,phariram@stocadvisory.com,ADP - Tearsheet,9
-Hottman,Matthew,mhottman@stocadvisory.com,Administrative,3.5
-Hottman,Matthew,mhottman@stocadvisory.com,Riata - Government Window,9
-Hottman,Matthew,mhottman@stocadvisory.com,SALT - Suffolk Pedo Dentistry & Ortho,7.5
-Jadhav,Pravin,pjadhav@stocadvisory.com,AEG - Alta Loma Optometric (Dr. Morton),46.78
-Joseph,Stefan,sjoseph@stocadvisory.com,Business Development,40
-Luetgers,Sam,sluetgers@stocadvisory.com,Administrative,3.5
-Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Alta Loma Optometric (Dr. Morton),1
-Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Capital Plaza (Dr. Amin),2
-Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Child and Family Eye Care Center,1.5
-Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Federal Hill Eye Care,1
-Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Lifetime Vision Source,1
-Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Manhattan Vision & Queens Eye Associates,0.5
-Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Metropolitan Vision,0.5
-Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Optometric Images Vision Center (Drs. Ramsey & Ozaki),1
-Luetgers,Sam,sluetgers@stocadvisory.com,AEG - Sandy & Draper Vision Care Center,1
-Luetgers,Sam,sluetgers@stocadvisory.com,Beacon Behavioral - Hawkins Psychiatry,5
-Luetgers,Sam,sluetgers@stocadvisory.com,Sick,4
-Luetgers,Sam,sluetgers@stocadvisory.com,Vacation,8
-McFadden,Brandon,bmcfadden@stocadvisory.com,Administrative,6
-McFadden,Brandon,bmcfadden@stocadvisory.com,AEG - Canby Eyecare,46.78
-McFadden,Brandon,bmcfadden@stocadvisory.com,AEG - Child and Family Eye Care Center,6
-McFadden,Brandon,bmcfadden@stocadvisory.com,Holiday,8
-McFadden,Brandon,bmcfadden@stocadvisory.com,Vacation,16
-Nayak,Rakesh,rnayak@stocadvisory.com,Business Development,28
-Nguyen,Hung,hnguyen@stocadvisory.com,Administrative,8
-Nguyen,Hung,hnguyen@stocadvisory.com,CPC - Home Away From Home,2.5
-Nguyen,Hung,hnguyen@stocadvisory.com,SP USA - Practice Analysis (Pre-LOI),21
-Pandey,Sharvan,spandey@stocadvisory.com,CDS - Tableau,32
-Pandey,Sharvan,spandey@stocadvisory.com,Holiday,8
-Saxena,Arjit,asaxena@stocadvisory.com,Administrative,3.5
-Saxena,Arjit,asaxena@stocadvisory.com,SALT - Suffolk Pedo Dentistry & Ortho,30
-Sharma,Mohit,msharma@stocadvisory.com,Business Development,35
-Sheehy,Aidan,asheehy@stocadvisory.com,ADP - Tearsheet,9
-Sheehy,Aidan,asheehy@stocadvisory.com,Holiday,9
-Siddiqui,Saqib,ssiddiqui@stocadvisory.com,Administrative,12
-Siddiqui,Saqib,ssiddiqui@stocadvisory.com,AEG - Chicago Eye Care Center,12
-Singh,Jogendra,jrathore@stocadvisory.com,Business Development,22
-Sundar,Barath,bsundar@stocadvisory.com,Holiday,8
-Tuli,Rahul,rtuli@stocadvisory.com,Vacation,32`
+const GOOGLE_SHEETS_CONFIG = {
+  // Your Google Sheet ID (from the URL)
+  sheetId: '18vkNRZv5A2Xz3CVAFDExX5vbgM_jyLu0bPh0XzoQYDA',
+  // Default sheet name - will try this first
+  sheetName: 'Sheet1',
+  // Direct CSV export URL for your sheet
+  directUrl: 'https://docs.google.com/spreadsheets/d/18vkNRZv5A2Xz3CVAFDExX5vbgM_jyLu0bPh0XzoQYDA/export?format=csv'
 };
 
 // ============================================================================
-// SCHEDULE DATA - DAY-LEVEL ASSIGNMENTS
-// Schedule data by week showing daily assignments with times and customers
+// DATA FETCHING FUNCTIONS
 // ============================================================================
-const SCHEDULE_DATA_BY_WEEK = {
-  "Jan 4 – Jan 10, 2026": [
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-06", end_date: "2026-01-06", day: "Tue", customer: "Lake Worth and Town & Country", employee: "Brandon McFadden", start_time: "8:30a", end_time: "10:30a", hours: 2, details: "(customer inferred from cell text; row label not visible)", start_datetime: "2026-01-06 8:30a", end_datetime: "2026-01-06 10:30a" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-07", day: "Wed", customer: "SP - Southern Smiles", employee: "Hung Nguyen", start_time: "9:00a", end_time: "11:00a", hours: 2, details: "", start_datetime: "2026-01-07 9:00a", end_datetime: "2026-01-07 11:00a" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-05", end_date: "2026-01-05", day: "Mon", customer: "AEG - Child and Family Eye Care Center", employee: "Brandon McFadden", start_time: "8:30a", end_time: "1:30p", hours: 5, details: "", start_datetime: "2026-01-05 8:30a", end_datetime: "2026-01-05 1:30p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-09", end_date: "2026-01-09", day: "Fri", customer: "AEG - Metropolitan Vision", employee: "Brandon McFadden", start_time: "8:30a", end_time: "12:30p", hours: 4, details: "", start_datetime: "2026-01-09 8:30a", end_datetime: "2026-01-09 12:30p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-05", end_date: "2026-01-06", day: "Mon", customer: "AEG - Sandy & Draper Vision", employee: "Pravin Jadhav", start_time: "10:30p", end_time: "3:30a", hours: 5, details: "Lake Worth and Town & Country (overnight)", start_datetime: "2026-01-05 10:30p", end_datetime: "2026-01-06 3:30a" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-06", end_date: "2026-01-07", day: "Tue", customer: "AEG - Sandy & Draper Vision", employee: "Pravin Jadhav", start_time: "10:30p", end_time: "3:30a", hours: 5, details: "Lake Worth and Town & Country (overnight)", start_datetime: "2026-01-06 10:30p", end_datetime: "2026-01-07 3:30a" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-08", day: "Wed", customer: "AEG - Sandy & Draper Vision", employee: "Pravin Jadhav", start_time: "10:30p", end_time: "3:30a", hours: 5, details: "AEG - Pascarella Eye Care and Contact Lenses (Dr. Pascarella) (overnight)", start_datetime: "2026-01-07 10:30p", end_datetime: "2026-01-08 3:30a" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-09", day: "Thu", customer: "AEG - Sandy & Draper Vision", employee: "Pravin Jadhav", start_time: "10:30p", end_time: "3:30a", hours: 5, details: "AEG - Pascarella Eye Care and Contact Lenses (Dr. Pascarella) (overnight)", start_datetime: "2026-01-08 10:30p", end_datetime: "2026-01-09 3:30a" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-05", end_date: "2026-01-05", day: "Mon", customer: "AEG - South Shore Eye Center", employee: "Brandon McFadden", start_time: "1:30p", end_time: "4:30p", hours: 3, details: "", start_datetime: "2026-01-05 1:30p", end_datetime: "2026-01-05 4:30p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-06", end_date: "2026-01-06", day: "Tue", customer: "AEG - South Shore Eye Center", employee: "Brandon McFadden", start_time: "12:30p", end_time: "4:30p", hours: 4, details: "", start_datetime: "2026-01-06 12:30p", end_datetime: "2026-01-06 4:30p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-07", day: "Wed", customer: "AEG - South Shore Eye Center", employee: "Brandon McFadden", start_time: "8:30a", end_time: "12:30p", hours: 4, details: "", start_datetime: "2026-01-07 8:30a", end_datetime: "2026-01-07 12:30p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-08", day: "Thu", customer: "AEG - South Shore Eye Center", employee: "Brandon McFadden", start_time: "12:30p", end_time: "4:30p", hours: 4, details: "", start_datetime: "2026-01-08 12:30p", end_datetime: "2026-01-08 4:30p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-07", day: "Wed", customer: "Archway - Connecticut Dental (Archway - DP)", employee: "Leah Hudson", start_time: "8:30a", end_time: "5:00p", hours: 8.5, details: "Archway - DP", start_datetime: "2026-01-07 8:30a", end_datetime: "2026-01-07 5:00p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-08", day: "Thu", customer: "Archway - Connecticut Dental (Archway - DP)", employee: "Leah Hudson", start_time: "8:30a", end_time: "5:00p", hours: 8.5, details: "Archway - DP", start_datetime: "2026-01-08 8:30a", end_datetime: "2026-01-08 5:00p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-09", end_date: "2026-01-09", day: "Fri", customer: "Archway - Connecticut Dental (Archway - DP)", employee: "Leah Hudson", start_time: "8:30a", end_time: "5:00p", hours: 8.5, details: "Archway - DP", start_datetime: "2026-01-09 8:30a", end_datetime: "2026-01-09 5:00p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-05", end_date: "2026-01-05", day: "Mon", customer: "Holiday", employee: "Sean Egan", start_time: "", end_time: "", hours: 8, details: "8hrs", start_datetime: "2026-01-05", end_datetime: "2026-01-05" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-06", end_date: "2026-01-06", day: "Tue", customer: "Holiday", employee: "Sean Egan", start_time: "", end_time: "", hours: 8, details: "8hrs", start_datetime: "2026-01-06", end_datetime: "2026-01-06" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-07", day: "Wed", customer: "Holiday", employee: "Barath Sundar", start_time: "", end_time: "", hours: 8, details: "8hrs", start_datetime: "2026-01-07", end_datetime: "2026-01-07" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-08", day: "Thu", customer: "Holiday", employee: "Barath Sundar", start_time: "", end_time: "", hours: 8, details: "8hrs", start_datetime: "2026-01-08", end_datetime: "2026-01-08" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-09", end_date: "2026-01-09", day: "Fri", customer: "Holiday", employee: "Barath Sundar", start_time: "", end_time: "", hours: 8, details: "8hrs", start_datetime: "2026-01-09", end_datetime: "2026-01-09" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-07", day: "Wed", customer: "Budget - FP&A", employee: "Jishnu Chiramkara", start_time: "9:00a", end_time: "5:00p", hours: 8, details: "", start_datetime: "2026-01-07 9:00a", end_datetime: "2026-01-07 5:00p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-08", day: "Thu", customer: "Budget - FP&A", employee: "Jishnu Chiramkara", start_time: "9:00a", end_time: "5:00p", hours: 8, details: "", start_datetime: "2026-01-08 9:00a", end_datetime: "2026-01-08 5:00p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-09", end_date: "2026-01-09", day: "Fri", customer: "Budget - FP&A", employee: "Jishnu Chiramkara", start_time: "9:00a", end_time: "5:00p", hours: 8, details: "", start_datetime: "2026-01-09 9:00a", end_datetime: "2026-01-09 5:00p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-07", day: "Wed", customer: "SALT - Alden Bridge Pediatric", employee: "Brandon McFadden", start_time: "1:00p", end_time: "4:30p", hours: 3.5, details: "", start_datetime: "2026-01-07 1:00p", end_datetime: "2026-01-07 4:30p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-09", day: "Thu", customer: "SALT - Alden Bridge Pediatric", employee: "Arjit Saxena", start_time: "10:30p", end_time: "7:30a", hours: 9, details: "Alden bridge (overnight)", start_datetime: "2026-01-08 10:30p", end_datetime: "2026-01-09 7:30a" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-08", day: "Thu", customer: "SALT - Chesapeake Pediatric", employee: "Matthew Hottman", start_time: "8:30a", end_time: "4:30p", hours: 8, details: "", start_datetime: "2026-01-08 8:30a", end_datetime: "2026-01-08 4:30p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-07", day: "Wed", customer: "SALT - Haeger Orthodontics", employee: "Matthew Hottman", start_time: "8:30a", end_time: "4:30p", hours: 8, details: "", start_datetime: "2026-01-07 8:30a", end_datetime: "2026-01-07 4:30p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-08", day: "Thu", customer: "SALT - Haeger Orthodontics", employee: "Brandon McFadden", start_time: "8:30a", end_time: "12:30p", hours: 4, details: "", start_datetime: "2026-01-08 8:30a", end_datetime: "2026-01-08 12:30p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-09", end_date: "2026-01-09", day: "Fri", customer: "SALT - Haeger Orthodontics", employee: "Brandon McFadden", start_time: "8:30a", end_time: "12:30p", hours: 4, details: "", start_datetime: "2026-01-09 8:30a", end_datetime: "2026-01-09 12:30p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-07", end_date: "2026-01-08", day: "Wed", customer: "SALT - Haeger Orthodontics", employee: "Arjit Saxena", start_time: "10:30p", end_time: "7:30a", hours: 9, details: "Myortho and Haeger Ortho (overnight)", start_datetime: "2026-01-07 10:30p", end_datetime: "2026-01-08 7:30a" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-06", end_date: "2026-01-06", day: "Tue", customer: "SALT - Houston OMS", employee: "Matthew Hottman", start_time: "8:30a", end_time: "4:30p", hours: 8, details: "", start_datetime: "2026-01-06 8:30a", end_datetime: "2026-01-06 4:30p" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-08", end_date: "2026-01-09", day: "Thu", customer: "SALT - Houston OMS", employee: "Rahul Tuli", start_time: "10:30p", end_time: "7:30a", hours: 9, details: "(overnight)", start_datetime: "2026-01-08 10:30p", end_datetime: "2026-01-09 7:30a" },
-    { week: "Jan 4 – Jan 10, 2026", date: "2026-01-09", end_date: "2026-01-09", day: "Fri", customer: "SALT - MyOrthodontist", employee: "Matthew Hottman", start_time: "8:30a", end_time: "4:30p", hours: 8, details: "", start_datetime: "2026-01-09 8:30a", end_datetime: "2026-01-09 4:30p" }
-  ],
-  "Dec 28, 2025 – Jan 3, 2026": [],
-  "Dec 21 – Dec 27, 2025": [],
-  "Dec 14 – Dec 20, 2025": []
+
+// Data fetching functions
+const fetchGoogleSheetData = async (config) => {
+  try {
+    let url;
+    if (config.directUrl) {
+      url = config.directUrl;
+    } else {
+      // Construct Google Sheets CSV export URL
+      url = `https://docs.google.com/spreadsheets/d/${config.sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(config.sheetName)}`;
+    }
+    
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const csvText = await response.text();
+    return parseCSV(csvText);
+  } catch (error) {
+    console.error('Error fetching Google Sheets data:', error);
+    throw error;
+  }
 };
 
-
-// Backward compatibility: Keep rawData1 and rawData2 for any code that still references them
-const rawData1 = WEEK_DATA["Jan 4 – Jan 10, 2026"];
-const rawData2 = WEEK_DATA["Dec 28, 2025 – Jan 3, 2026"];
-
-// Parse CSV data
+// Parse CSV data with better error handling
 const parseCSV = (csvText) => {
-  const lines = csvText.trim().split('\n');
-  const headers = lines[0].split(',');
-  return lines.slice(1).map(line => {
-    const values = line.split(',');
-    return headers.reduce((obj, header, index) => {
-      obj[header] = values[index];
-      return obj;
-    }, {});
-  });
+  try {
+    const lines = csvText.trim().split('\n').filter(line => line.trim());
+    if (lines.length === 0) return [];
+    
+    // Clean headers (remove quotes and extra spaces)
+    const headers = lines[0].split(',').map(header => 
+      header.replace(/"/g, '').trim().toLowerCase()
+    );
+    
+    return lines.slice(1).map((line, index) => {
+      try {
+        // Handle CSV parsing with quoted values
+        const values = line.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || [];
+        const cleanValues = values.map(value => 
+          value.replace(/^"(.*)"$/, '$1').trim()
+        );
+        
+        const row = {};
+        headers.forEach((header, i) => {
+          row[header] = cleanValues[i] || '';
+        });
+        
+        // Normalize column names for compatibility
+        if (row.first_name && !row.fname) row.fname = row.first_name;
+        if (row.firstname && !row.fname) row.fname = row.firstname;
+        if (row.last_name && !row.lname) row.lname = row.last_name;
+        if (row.lastname && !row.lname) row.lname = row.lastname;
+        if (row.email && !row.username) row.username = row.email;
+        if (row.project && !row.job_code) row.job_code = row.project;
+        if (row.task && !row.job_code) row.job_code = row.task;
+        if (row.time && !row.hours) row.hours = row.time;
+        if (row.duration && !row.hours) row.hours = row.duration;
+        
+        return row;
+      } catch (err) {
+        console.warn(`Error parsing row ${index + 2}:`, line, err);
+        return null;
+      }
+    }).filter(row => row !== null);
+  } catch (error) {
+    console.error('Error parsing CSV:', error);
+    return [];
+  }
 };
 
-// CDS Team Members (final reconciled roster)
+// Smart date period detection from live data
+const detectDatePeriods = (data) => {
+  // Look for date-related fields in the data
+  const dateFields = ['date', 'week', 'period', 'week_start', 'week_end'];
+  const detectedPeriods = new Set();
+  
+  data.forEach(row => {
+    dateFields.forEach(field => {
+      if (row[field]) {
+        detectedPeriods.add(row[field]);
+      }
+    });
+  });
+  
+  // If no explicit date fields, create periods based on data grouping patterns
+  // For now, return a single period representing "Current Data"
+  if (detectedPeriods.size === 0) {
+    const now = new Date();
+    const weekStart = new Date(now.setDate(now.getDate() - now.getDay() + 1)); // Monday
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6); // Sunday
+    
+    const periodLabel = `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+    return [periodLabel];
+  }
+  
+  return Array.from(detectedPeriods).sort().reverse(); // Latest first
+};
+
+// ============================================================================
+// CDS TEAM MEMBERS (adjust based on your actual team structure)
+// ============================================================================
 const CDS_TEAM_MEMBERS = [
   'Mohit Sharma',
   'Rakesh Nayak',
@@ -276,17 +135,17 @@ const CDS_TEAM_MEMBERS = [
 
 const StocStaffingDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
-  const [selectedPeriods, setSelectedPeriods] = useState(['Jan 4 – Jan 10, 2026']); // Array for multiselect, default to latest
+  const [selectedPeriods, setSelectedPeriods] = useState([]); // Will be populated after data load
   const [selectedTeamMember, setSelectedTeamMember] = useState('all');
   const [selectedProject, setSelectedProject] = useState('all');
   const [expandedProjects, setExpandedProjects] = useState({});
   const [expandedTeamMembers, setExpandedTeamMembers] = useState({});
-  const [teamMemberProjectSearch, setTeamMemberProjectSearch] = useState({}); // Search per team member
-  const [teamMemberSearch, setTeamMemberSearch] = useState(''); // Search for team members by name
-  const [projectsSearch, setProjectsSearch] = useState(''); // Global projects search
+  const [teamMemberProjectSearch, setTeamMemberProjectSearch] = useState({});
+  const [teamMemberSearch, setTeamMemberSearch] = useState('');
+  const [projectsSearch, setProjectsSearch] = useState('');
   const [showOnlyActive, setShowOnlyActive] = useState(false);
-  const [teamFilter, setTeamFilter] = useState('all'); // Global filter: all, tas, cds
-  const [projectsFilter, setProjectsFilter] = useState('all'); // Projects section filter
+  const [teamFilter, setTeamFilter] = useState('all');
+  const [projectsFilter, setProjectsFilter] = useState('all');
   const [teamsSortConfig, setTeamsSortConfig] = useState({ key: 'utilized', direction: 'desc' });
   const [projectsSortConfig, setProjectsSortConfig] = useState({ key: 'totalHours', direction: 'desc' });
   const [capacitySortConfig, setCapacitySortConfig] = useState({ key: 'availableBandwidth', direction: 'desc' });
@@ -300,36 +159,58 @@ const StocStaffingDashboard = () => {
   const [riskTableSortConfig, setRiskTableSortConfig] = useState({ key: 'utilization', direction: 'desc' });
 
   // Schedule section state
-  const [goForwardToday, setGoForwardToday] = useState('2026-01-05'); // Set to Jan 5 to show remaining schedule (Jan 6-9)
+  const [goForwardToday, setGoForwardToday] = useState('2026-01-05');
   const [goForwardProjectSearch, setGoForwardProjectSearch] = useState('');
-  const [goForwardEmployeeFilter, setGoForwardEmployeeFilter] = useState('all'); // Employee filter for metrics
-  const [showAvailablePeople, setShowAvailablePeople] = useState(false); // Toggle for available people dropdown
+  const [goForwardEmployeeFilter, setGoForwardEmployeeFilter] = useState('all');
+  const [showAvailablePeople, setShowAvailablePeople] = useState(false);
 
-  // Parse data
-  const week1Data = useMemo(() => parseCSV(rawData1), []);
-  const week2Data = useMemo(() => parseCSV(rawData2), []);
+  // Data state management
+  const [rawData, setRawData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [availablePeriods, setAvailablePeriods] = useState(['all']);
   
-  // Time periods configuration (automatically generated from WEEK_DATA, sorted descending - latest first)
+  // Time periods (dynamically generated from live data)
   const timePeriods = useMemo(() => {
-    return Object.keys(WEEK_DATA).map(weekLabel => ({
-      id: weekLabel, // Use the week label as the ID
-      label: weekLabel,
-      data: parseCSV(WEEK_DATA[weekLabel])
+    if (!rawData || rawData.length === 0) return [];
+    
+    const periods = detectDatePeriods(rawData);
+    return periods.map(period => ({
+      id: period,
+      label: period,
+      data: rawData // For simplicity, all data is in one period for now
     }));
-  }, []);
-  
-  // Combine data from selected periods
-  const allData = useMemo(() => {
-    const combined = [];
-    timePeriods.forEach(period => {
-      if (selectedPeriods.includes(period.id)) {
-        period.data.forEach(entry => {
-          combined.push({ ...entry, period: period.id, weekLabel: period.label });
-        });
+  }, [rawData]);
+
+  // Load data from Google Sheets
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const data = await fetchGoogleSheetData(GOOGLE_SHEETS_CONFIG);
+      setRawData(data);
+      setLastUpdated(new Date());
+      
+      // Set initial selected periods (latest only)
+      const periods = detectDatePeriods(data);
+      if (periods.length > 0 && selectedPeriods.length === 0) {
+        setSelectedPeriods([periods[0]]); // Select latest period by default
       }
-    });
-    return combined;
-  }, [selectedPeriods, timePeriods]);
+      
+    } catch (err) {
+      setError(err.message);
+      console.error('Failed to load data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load data on component mount
+  useEffect(() => {
+    loadData();
+  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -343,16 +224,30 @@ const StocStaffingDashboard = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showPeriodDropdown]);
 
+  // Combine data from selected periods
+  const allData = useMemo(() => {
+    if (!rawData || rawData.length === 0) return [];
+    
+    // For now, since we're pulling from a single sheet, just add period metadata
+    return rawData.map(entry => ({
+      ...entry,
+      period: timePeriods[0]?.id || 'Current Data',
+      weekLabel: timePeriods[0]?.label || 'Current Data'
+    }));
+  }, [rawData, timePeriods]);
+
   // Categorization function - STEP 1: Standardize project categorization
   const categorizeEntry = (jobCode) => {
+    const jobLower = jobCode.toLowerCase();
+    
     // A. OOO
-    if (jobCode === 'Holiday' || jobCode === 'Vacation' || jobCode === 'Sick') {
+    if (jobLower.includes('holiday') || jobLower.includes('vacation') || jobLower.includes('sick')) {
       return 'OOO';
     }
     
     // B. Internal/BD
-    if (jobCode === 'Administrative' || jobCode === 'Business Development' || 
-        jobCode === 'Business Development - STOC' || jobCode === 'CDS - Tableau') {
+    if (jobLower.includes('administrative') || jobLower.includes('business development') || 
+        jobLower.includes('cds') || jobLower.includes('tableau')) {
       return 'Internal/BD';
     }
     
@@ -362,23 +257,39 @@ const StocStaffingDashboard = () => {
 
   // Get client from job code
   const getClient = (jobCode) => {
+    const jobLower = jobCode.toLowerCase();
+    
     // Special buckets
-    if (jobCode === 'Holiday' || jobCode === 'Vacation' || jobCode === 'Sick') {
+    if (jobLower.includes('holiday') || jobLower.includes('vacation') || jobLower.includes('sick')) {
       return 'OOO';
     }
-    if (jobCode === 'Administrative') {
+    if (jobLower.includes('administrative')) {
       return 'Administrative';
     }
-    if (jobCode === 'Business Development' || jobCode === 'Business Development - STOC') {
+    if (jobLower.includes('business development')) {
       return 'Business Development';
     }
-    if (jobCode === 'CDS - Tableau') {
+    if (jobLower.includes('cds') || jobLower.includes('tableau')) {
       return 'CDS';
     }
     
-    // Standard client extraction
+    // Standard client extraction (e.g., "AEG - Child and Family" -> "AEG")
     const parts = jobCode.split(' - ');
-    return parts[0] || 'Other';
+    if (parts.length > 1) {
+      return parts[0].trim();
+    }
+    
+    // Extract client patterns
+    const upperJob = jobCode.toUpperCase();
+    if (upperJob.includes('AEG')) return 'AEG';
+    if (upperJob.includes('SALT')) return 'SALT';
+    if (upperJob.includes('ADP')) return 'ADP';
+    if (upperJob.includes('SP USA') || upperJob.includes('SPUSA')) return 'SP USA';
+    if (upperJob.includes('CPC')) return 'CPC';
+    if (upperJob.includes('RIATA')) return 'RIATA';
+    if (upperJob.includes('BEACON')) return 'BEACON';
+    
+    return 'Other';
   };
 
   // Check if a person is in CDS team
@@ -388,14 +299,28 @@ const StocStaffingDashboard = () => {
 
   // Process data with proper categorization
   const processedData = useMemo(() => {
+    if (!allData || allData.length === 0) {
+      return { 
+        teamMembers: {}, 
+        projects: {}, 
+        periodData: {} 
+      };
+    }
+
     const teamMembers = {};
     const projects = {};
     const periodData = {};
     
     allData.forEach((entry) => {
-      const hours = parseFloat(entry.hours) || 0;
-      const name = `${entry.fname} ${entry.lname}`;
-      const jobCode = entry.job_code;
+      // Handle different possible column names
+      const firstName = entry.fname || entry.first_name || entry.firstname || '';
+      const lastName = entry.lname || entry.last_name || entry.lastname || '';
+      const name = `${firstName} ${lastName}`.trim();
+      const hours = parseFloat(entry.hours || entry.time || entry.duration || 0);
+      const jobCode = entry.job_code || entry.project || entry.task || 'Unknown Project';
+      
+      if (!name || name === ' ' || hours === 0) return; // Skip invalid rows
+      
       const category = categorizeEntry(jobCode);
       const client = getClient(jobCode);
       const isCDS = isCDSMember(name);
@@ -527,11 +452,11 @@ const StocStaffingDashboard = () => {
   const getRiskColor = (riskLevel) => {
     switch (riskLevel) {
       case 'Burnout Risk':
-        return '#DC2626'; // muted red
+        return '#DC2626';
       case 'Underutilized':
-        return '#2563EB'; // muted blue
+        return '#2563EB';
       case 'Healthy':
-        return '#059669'; // muted green
+        return '#059669';
       default:
         return '#6B7280';
     }
@@ -547,18 +472,121 @@ const StocStaffingDashboard = () => {
     }
   };
 
-  const getRiskAction = (riskLevel) => {
-    switch (riskLevel) {
-      case 'Burnout Risk':
-        return 'Rebalance workload: shift tasks to underutilized team members or extend timelines to protect capacity.';
-      case 'Underutilized':
-        return 'Assign additional work: pull into active projects or allocate to upcoming initiatives.';
-      case 'Healthy':
-        return 'Maintain current allocation and monitor for changes in upcoming periods.';
-      default:
-        return 'Review allocation.';
+  // Calculate summary statistics
+  const summaryStats = useMemo(() => {
+    const members = Object.values(processedData.teamMembers);
+    const totalBillable = members.reduce((sum, m) => sum + m.billableHours, 0);
+    const totalInternal = members.reduce((sum, m) => sum + m.internalHours, 0);
+    const totalOOO = members.reduce((sum, m) => sum + m.oooHours, 0);
+    const totalUtilized = members.reduce((sum, m) => sum + m.utilized, 0);
+    const totalAvailable = members.reduce((sum, m) => sum + m.availableBandwidth, 0);
+    const totalCapacity = members.reduce((sum, m) => sum + m.effectiveCapacity, 0);
+    
+    return {
+      totalTeamMembers: members.length,
+      totalBillableHours: totalBillable,
+      totalInternalHours: totalInternal,
+      totalOOOHours: totalOOO,
+      totalUtilized: totalUtilized,
+      totalAvailable: totalAvailable,
+      totalCapacity: totalCapacity,
+      avgUtilization: totalCapacity > 0 ? (totalUtilized / totalCapacity) * 100 : 0
+    };
+  }, [processedData.teamMembers]);
+
+  // Utilization Risk Dashboard calculations
+  const riskDashboardData = useMemo(() => {
+    const weeklyTargetHours = 40;
+    const numPeriods = selectedPeriods.length || 1;
+    
+    const riskMembers = Object.values(processedData.teamMembers)
+      .map(member => {
+        // Used Hours = Billable + Internal/BD
+        const usedHours = member.billableHours + member.internalHours;
+        
+        // Available Hours = (WeeklyTargetHours × number_of_selected_periods) − OOO Hours
+        const targetHours = weeklyTargetHours * numPeriods;
+        const availableHours = targetHours - member.oooHours;
+        
+        // Utilization % = Used / Available
+        const utilization = availableHours > 0 ? (usedHours / availableHours) * 100 : 0;
+        
+        // Risk category
+        let riskLevel = 'Healthy';
+        if (utilization >= 95) {
+          riskLevel = 'Burnout Risk';
+        } else if (utilization < 60) {
+          riskLevel = 'Underutilized';
+        }
+        
+        // Get client from projects (most common client)
+        const clientCounts = {};
+        member.entries.forEach(entry => {
+          const client = getClient(entry.jobCode);
+          clientCounts[client] = (clientCounts[client] || 0) + entry.hours;
+        });
+        const primaryClient = Object.entries(clientCounts)
+          .sort(([,a], [,b]) => b - a)[0]?.[0] || 'Multiple';
+        
+        // Role assignment
+        const role = member.isCDS ? 'CDS' : 'TAS';
+        
+        return {
+          name: member.name,
+          isCDS: member.isCDS,
+          usedHours,
+          billableHours: member.billableHours,
+          internalHours: member.internalHours,
+          oooHours: member.oooHours,
+          availableHours,
+          targetHours,
+          utilization,
+          riskLevel,
+          primaryClient,
+          role,
+          entries: member.entries
+        };
+      })
+      .filter(m => m.usedHours > 0);
+    
+    // Apply filters
+    let filteredMembers = riskMembers;
+    
+    if (riskRoleFilter !== 'all') {
+      filteredMembers = filteredMembers.filter(m => m.role === riskRoleFilter);
     }
-  };
+    
+    if (riskClientFilter !== 'all') {
+      filteredMembers = filteredMembers.filter(m => m.primaryClient === riskClientFilter);
+    }
+    
+    if (riskLevelFilter !== 'all') {
+      filteredMembers = filteredMembers.filter(m => m.riskLevel === riskLevelFilter);
+    }
+    
+    // Calculate KPIs
+    const avgUtilization = filteredMembers.length > 0 
+      ? filteredMembers.reduce((sum, m) => sum + m.utilization, 0) / filteredMembers.length 
+      : 0;
+    
+    const burnoutCount = filteredMembers.filter(m => m.riskLevel === 'Burnout Risk').length;
+    const underutilizedCount = filteredMembers.filter(m => m.riskLevel === 'Underutilized').length;
+    const healthyCount = filteredMembers.filter(m => m.riskLevel === 'Healthy').length;
+    
+    // Get unique roles and clients for filters
+    const roles = [...new Set(riskMembers.map(m => m.role))].sort();
+    const clients = [...new Set(riskMembers.map(m => m.primaryClient))].sort();
+    
+    return {
+      members: filteredMembers,
+      avgUtilization,
+      burnoutCount,
+      underutilizedCount,
+      healthyCount,
+      roles,
+      clients
+    };
+  }, [processedData.teamMembers, selectedPeriods, teamFilter, riskRoleFilter, riskClientFilter, riskLevelFilter]);
 
   // Custom scatter chart tooltip
   const CustomScatterTooltip = ({ active, payload }) => {
@@ -609,126 +637,10 @@ const StocStaffingDashboard = () => {
     return null;
   };
 
-  // Calculate summary statistics
-  const summaryStats = useMemo(() => {
-    const members = Object.values(processedData.teamMembers);
-    const totalBillable = members.reduce((sum, m) => sum + m.billableHours, 0);
-    const totalInternal = members.reduce((sum, m) => sum + m.internalHours, 0);
-    const totalOOO = members.reduce((sum, m) => sum + m.oooHours, 0);
-    const totalUtilized = members.reduce((sum, m) => sum + m.utilized, 0);
-    const totalAvailable = members.reduce((sum, m) => sum + m.availableBandwidth, 0);
-    const totalCapacity = members.reduce((sum, m) => sum + m.effectiveCapacity, 0);
-    
-    return {
-      totalTeamMembers: members.length,
-      totalBillableHours: totalBillable,
-      totalInternalHours: totalInternal,
-      totalOOOHours: totalOOO,
-      totalUtilized: totalUtilized,
-      totalAvailable: totalAvailable,
-      totalCapacity: totalCapacity,
-      avgUtilization: totalCapacity > 0 ? (totalUtilized / totalCapacity) * 100 : 0
-    };
-  }, [processedData.teamMembers]);
-
-  // Utilization Risk Dashboard calculations
-  const riskDashboardData = useMemo(() => {
-    const weeklyTargetHours = 40;
-    const numPeriods = selectedPeriods.length;
-    
-    const riskMembers = Object.values(processedData.teamMembers)
-      .map(member => {
-        // Used Hours = Billable + Internal/BD
-        const usedHours = member.billableHours + member.internalHours;
-        
-        // Available Hours = (WeeklyTargetHours × number_of_selected_periods) − OOO Hours
-        const targetHours = weeklyTargetHours * numPeriods;
-        const availableHours = targetHours - member.oooHours;
-        
-        // Utilization % = Used / Available
-        const utilization = availableHours > 0 ? (usedHours / availableHours) * 100 : 0;
-        
-        // Risk category
-        let riskLevel = 'Healthy';
-        if (utilization >= 95) {
-          riskLevel = 'Burnout Risk';
-        } else if (utilization < 60) {
-          riskLevel = 'Underutilized';
-        }
-        
-        // Get client from projects (most common client)
-        const clientCounts = {};
-        member.entries.forEach(entry => {
-          const client = getClient(entry.jobCode);
-          clientCounts[client] = (clientCounts[client] || 0) + entry.hours;
-        });
-        const primaryClient = Object.entries(clientCounts)
-          .sort(([,a], [,b]) => b - a)[0]?.[0] || 'Multiple';
-        
-        // Role assignment (simplified - can be enhanced)
-        const role = member.isCDS ? 'CDS' : 'TAS';
-        
-        return {
-          name: member.name,
-          isCDS: member.isCDS,
-          usedHours,
-          billableHours: member.billableHours,
-          internalHours: member.internalHours,
-          oooHours: member.oooHours,
-          availableHours,
-          targetHours,
-          utilization,
-          riskLevel,
-          primaryClient,
-          role,
-          entries: member.entries
-        };
-      })
-      .filter(m => m.usedHours > 0); // Hide people with 0 Used Hours
-    
-    // Apply filters
-    let filteredMembers = riskMembers;
-    
-    if (riskRoleFilter !== 'all') {
-      filteredMembers = filteredMembers.filter(m => m.role === riskRoleFilter);
-    }
-    
-    if (riskClientFilter !== 'all') {
-      filteredMembers = filteredMembers.filter(m => m.primaryClient === riskClientFilter);
-    }
-    
-    if (riskLevelFilter !== 'all') {
-      filteredMembers = filteredMembers.filter(m => m.riskLevel === riskLevelFilter);
-    }
-    
-    // Calculate KPIs
-    const avgUtilization = filteredMembers.length > 0 
-      ? filteredMembers.reduce((sum, m) => sum + m.utilization, 0) / filteredMembers.length 
-      : 0;
-    
-    const burnoutCount = filteredMembers.filter(m => m.riskLevel === 'Burnout Risk').length;
-    const underutilizedCount = filteredMembers.filter(m => m.riskLevel === 'Underutilized').length;
-    const healthyCount = filteredMembers.filter(m => m.riskLevel === 'Healthy').length;
-    
-    // Get unique roles and clients for filters
-    const roles = [...new Set(riskMembers.map(m => m.role))].sort();
-    const clients = [...new Set(riskMembers.map(m => m.primaryClient))].sort();
-    
-    return {
-      members: filteredMembers,
-      avgUtilization,
-      burnoutCount,
-      underutilizedCount,
-      healthyCount,
-      roles,
-      clients
-    };
-  }, [processedData.teamMembers, selectedPeriods, teamFilter, riskRoleFilter, riskClientFilter, riskLevelFilter]);
-
   // Chart data
   const utilizationData = useMemo(() => {
     return Object.values(processedData.teamMembers)
-      .filter(member => member.totalHours > 0) // Hide team members with 0 logged hours
+      .filter(member => member.totalHours > 0)
       .sort((a, b) => b.utilized - a.utilized)
       .slice(0, 10)
       .map(member => ({
@@ -748,13 +660,6 @@ const StocStaffingDashboard = () => {
     });
     
     return Object.entries(categoryTotals).map(([name, value]) => ({ name, value }));
-  }, [processedData.projects]);
-
-  // Top projects table data
-  const topProjectsData = useMemo(() => {
-    return Object.values(processedData.projects)
-      .sort((a, b) => b.totalHours - a.totalHours)
-      .slice(0, 10);
   }, [processedData.projects]);
 
   // Sorting handlers
@@ -833,16 +738,6 @@ const StocStaffingDashboard = () => {
     });
   }, [riskDashboardData.members, riskTableSortConfig]);
 
-  // Clear selected team member if they get filtered out by search
-  useEffect(() => {
-    if (selectedTeamMember !== 'all') {
-      const isStillVisible = sortedTeamMembers.some(member => member.name === selectedTeamMember);
-      if (!isStillVisible) {
-        setSelectedTeamMember('all');
-      }
-    }
-  }, [sortedTeamMembers, selectedTeamMember]);
-
   // Handle period selection toggle
   const togglePeriodSelection = (periodId) => {
     setSelectedPeriods(prev => {
@@ -863,7 +758,7 @@ const StocStaffingDashboard = () => {
     }
     if (selectedPeriods.length === 1) {
       const period = timePeriods.find(p => p.id === selectedPeriods[0]);
-      return period ? period.label : '';
+      return period ? period.label : 'Current Data';
     }
     return `${selectedPeriods.length} Periods Selected`;
   };
@@ -885,20 +780,61 @@ const StocStaffingDashboard = () => {
     return null;
   };
 
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <RefreshCw className="w-12 h-12 text-blue-500 mx-auto mb-4 animate-spin" />
+          <h2 className="text-xl font-semibold text-gray-700">Loading STOC Staffing Data...</h2>
+          <p className="text-gray-500 mt-2">Fetching live data from Google Sheets</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="max-w-md mx-auto text-center bg-white rounded-lg shadow-lg p-6 border border-red-200">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Unable to Load Data</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button 
+            onClick={loadData}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+          >
+            Try Again
+          </button>
+          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
+            <p><strong>Setup Checklist:</strong></p>
+            <p>1. Make your Google Sheet public</p>
+            <p>2. Verify columns: fname, lname, username, job_code, hours</p>
+            <p>3. Check the GOOGLE_SHEETS_CONFIG in code</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-white p-6">
-
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6">
           <div className="flex justify-between items-start mb-4">
-<div className="flex items-center gap-4">
-  <img src="/logo.png" className="h-10 w-auto" />
-  <div>
-    <h1 className="text-3xl font-bold text-gray-900">STOC Staffing Tool</h1>
-    <p className="text-gray-500 mt-1">Real-time visibility into team utilization and project allocation</p>
-  </div>
-</div>
+            <div className="flex items-center gap-4">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">STOC Staffing Tool</h1>
+                <p className="text-gray-500 mt-1">Real-time visibility into team utilization and project allocation</p>
+                {lastUpdated && (
+                  <p className="text-sm text-gray-400 mt-1">
+                    Last updated: {lastUpdated.toLocaleString()}
+                  </p>
+                )}
+              </div>
+            </div>
             <div className="flex items-center gap-4">
               {/* Global Team Filter */}
               <div className="bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200">
@@ -916,65 +852,24 @@ const StocStaffingDashboard = () => {
                 </div>
               </div>
               
-              {/* Time Period Multiselect Dropdown */}
-              <div className="relative period-dropdown-container">
-                <div 
-                  className="bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200 cursor-pointer hover:bg-gray-50"
-                  onClick={() => setShowPeriodDropdown(!showPeriodDropdown)}
+              {/* Data Source Controls */}
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={loadData}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2"
+                  disabled={loading}
+                  title="Refresh data from Google Sheets"
                 >
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-gray-500" />
-                    <span className="font-medium text-gray-700">{getSelectedPeriodsLabel()}</span>
-                    <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${showPeriodDropdown ? 'rotate-180' : ''}`} />
-                  </div>
-                </div>
-                
-                {showPeriodDropdown && (
-                  <div className="absolute right-0 mt-2 w-72 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
-                    <div className="p-2">
-                      {timePeriods.map((period) => (
-                        <div
-                          key={period.id}
-                          className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer"
-                          onClick={() => togglePeriodSelection(period.id)}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selectedPeriods.includes(period.id)}
-                            onChange={() => {}}
-                            className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                          />
-                          <span className="text-sm text-gray-700">{period.label}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="border-t border-gray-200 p-2">
-                      <button
-                        onClick={() => {
-                          setSelectedPeriods(timePeriods.map(p => p.id));
-                        }}
-                        className="w-full text-left px-2 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded"
-                      >
-                        Select All
-                      </button>
-                      <button
-                        onClick={() => {
-                          setSelectedPeriods([timePeriods[0].id]); // Reset to latest only
-                        }}
-                        className="w-full text-left px-2 py-1 text-sm text-gray-600 hover:bg-gray-50 rounded"
-                      >
-                        Reset to Latest
-                      </button>
-                    </div>
-                  </div>
-                )}
+                  <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </button>
               </div>
             </div>
           </div>
 
           {/* Navigation Tabs */}
           <div className="flex gap-2 border-b border-gray-200">
-            {['overview', 'teams', 'projects', 'capacity', 'exceptions', 'schedule'].map((tab) => (
+            {['overview', 'teams', 'projects', 'capacity', 'exceptions'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -1170,9 +1065,6 @@ const StocStaffingDashboard = () => {
                           }}
                         />
                       </Scatter>
-                      {/* Reference lines for risk zones */}
-                      <line x1="60%" y1="0" x2="60%" y2="100%" stroke="#6B7280" strokeDasharray="5 5" />
-                      <line x1="95%" y1="0" x2="95%" y2="100%" stroke="#6B7280" strokeDasharray="5 5" />
                     </ScatterChart>
                   </ResponsiveContainer>
                   
@@ -1290,7 +1182,7 @@ const StocStaffingDashboard = () => {
                 </div>
               )}
 
-              {/* Utilization Risk Table - Always Visible */}
+              {/* Utilization Risk Table */}
               <div className="col-span-12 bg-white rounded-xl shadow-lg p-6">
                 <h3 className="text-xl font-bold mb-4">Utilization Risk Table</h3>
                 <div className="overflow-x-auto">
@@ -1363,28 +1255,6 @@ const StocStaffingDashboard = () => {
                             )}
                           </div>
                         </th>
-                        <th 
-                          className="text-right py-3 px-4 font-semibold text-gray-700 cursor-pointer hover:bg-gray-100"
-                          onClick={() => handleRiskTableSort('internalHours')}
-                        >
-                          <div className="flex items-center justify-end gap-1">
-                            Internal/BD Hours
-                            {riskTableSortConfig.key === 'internalHours' && (
-                              <span className="text-xs">{riskTableSortConfig.direction === 'asc' ? '↑' : '↓'}</span>
-                            )}
-                          </div>
-                        </th>
-                        <th 
-                          className="text-right py-3 px-4 font-semibold text-gray-700 cursor-pointer hover:bg-gray-100"
-                          onClick={() => handleRiskTableSort('oooHours')}
-                        >
-                          <div className="flex items-center justify-end gap-1">
-                            OOO Hours
-                            {riskTableSortConfig.key === 'oooHours' && (
-                              <span className="text-xs">{riskTableSortConfig.direction === 'asc' ? '↑' : '↓'}</span>
-                            )}
-                          </div>
-                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1418,12 +1288,6 @@ const StocStaffingDashboard = () => {
                           <td className="py-3 px-4 text-sm text-gray-700 text-right">
                             {member.billableHours.toFixed(1)}
                           </td>
-                          <td className="py-3 px-4 text-sm text-gray-700 text-right">
-                            {member.internalHours.toFixed(1)}
-                          </td>
-                          <td className="py-3 px-4 text-sm text-gray-700 text-right">
-                            {member.oooHours.toFixed(1)}
-                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -1435,41 +1299,10 @@ const StocStaffingDashboard = () => {
                   )}
                 </div>
               </div>
-
-              {/* Existing Overview Content Below */}
-
-              {/* Key Metrics */}
-              <div className="col-span-12 grid grid-cols-3 gap-4">
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow-lg p-6 border border-blue-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <TrendingUp className="w-8 h-8 text-blue-600" />
-                    <span className="text-sm text-blue-700 font-medium">Total</span>
-                  </div>
-                  <div className="text-3xl font-bold text-blue-900">{summaryStats.totalUtilized.toFixed(0)}</div>
-                  <p className="text-sm text-blue-700 mt-1">Utilized Hours</p>
-                </div>
-
-                <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl shadow-lg p-6 border border-purple-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <Briefcase className="w-8 h-8 text-purple-600" />
-                    <span className="text-sm text-purple-700 font-medium">Internal</span>
-                  </div>
-                  <div className="text-3xl font-bold text-purple-900">{summaryStats.totalInternalHours.toFixed(0)}</div>
-                  <p className="text-sm text-purple-700 mt-1">Non-Billable Hours</p>
-                </div>
-
-                <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl shadow-lg p-6 border border-gray-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <Calendar className="w-8 h-8 text-gray-600" />
-                    <span className="text-sm text-gray-700 font-medium">Time Off</span>
-                  </div>
-                  <div className="text-3xl font-bold text-gray-900">{summaryStats.totalOOOHours.toFixed(0)}</div>
-                  <p className="text-sm text-gray-700 mt-1">OOO Hours</p>
-                </div>
-              </div>
             </>
           )}
 
+          {/* Teams Tab */}
           {activeTab === 'teams' && (
             <div className="col-span-12 bg-white rounded-xl shadow-lg p-6">
               <div className="flex justify-between items-center mb-4">
@@ -1543,9 +1376,9 @@ const StocStaffingDashboard = () => {
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {sortedTeamMembers.map((member, index) => {
-                      // Get distinct projects (unique by job_code)
+                      // Get distinct projects
                       const distinctProjects = Object.entries(member.projects)
-                        .filter(([jobCode]) => categorizeEntry(jobCode) !== 'OOO') // Exclude OOO from percentage calc
+                        .filter(([jobCode]) => categorizeEntry(jobCode) !== 'OOO')
                         .map(([jobCode, hours]) => ({
                           jobCode,
                           hours,
@@ -1656,7 +1489,7 @@ const StocStaffingDashboard = () => {
                                       <div className="space-y-1">
                                         {filteredProjects.map((proj, pIdx) => (
                                           <div key={pIdx} className="flex justify-between text-sm py-1">
-                                            <span className="text-gray-700">{proj.jobCode}</span>
+                                            <span className="text-gray-700">{highlightText(proj.jobCode, searchTerm)}</span>
                                             <span className="text-gray-900 font-medium">
                                               {proj.hours.toFixed(1)}h ({proj.percentage.toFixed(1)}%)
                                             </span>
@@ -1693,6 +1526,7 @@ const StocStaffingDashboard = () => {
             </div>
           )}
 
+          {/* Projects Tab */}
           {activeTab === 'projects' && (
             <div className="col-span-12 bg-white rounded-xl shadow-lg p-6">
               <div className="flex justify-between items-center mb-4">
@@ -1804,6 +1638,7 @@ const StocStaffingDashboard = () => {
             </div>
           )}
 
+          {/* Capacity Tab */}
           {activeTab === 'capacity' && (
             <>
               <div className="col-span-12 bg-white rounded-xl shadow-lg p-6">
@@ -1879,17 +1714,6 @@ const StocStaffingDashboard = () => {
                           </tr>
                         );
                       })}
-                      <tr className="bg-gray-50 font-semibold">
-                        <td className="py-3 px-4 text-gray-900">Total</td>
-                        <td className="py-3 px-4 text-right text-gray-900">
-                          {(Object.keys(processedData.teamMembers).length * 40).toFixed(1)}
-                        </td>
-                        <td className="py-3 px-4 text-right text-gray-900">{summaryStats.totalOOOHours.toFixed(1)}</td>
-                        <td className="py-3 px-4 text-right text-gray-900">{summaryStats.totalCapacity.toFixed(1)}</td>
-                        <td className="py-3 px-4 text-right text-gray-900">{summaryStats.totalUtilized.toFixed(1)}</td>
-                        <td className="py-3 px-4 text-right text-gray-900">{summaryStats.totalAvailable.toFixed(1)}</td>
-                        <td className="py-3 px-4"></td>
-                      </tr>
                     </tbody>
                   </table>
                 </div>
@@ -1921,31 +1745,10 @@ const StocStaffingDashboard = () => {
                   <p className="text-sm text-gray-600 mt-1">Over Capacity</p>
                 </div>
               </div>
-
-              <div className="col-span-12 bg-white rounded-xl shadow-lg p-6">
-                <h3 className="font-semibold mb-3">Capacity Alerts</h3>
-                <div className="space-y-2">
-                  {Object.values(processedData.teamMembers)
-                    .filter(m => m.availableBandwidth < 0)
-                    .map((member, index) => (
-                      <div key={index} className="flex items-center gap-2 p-2 bg-red-50 rounded-lg">
-                        <AlertCircle className="w-4 h-4 text-red-600" />
-                        <span className="text-sm">
-                          <span className="font-medium">{member.name}</span> is overallocated by {Math.abs(member.availableBandwidth).toFixed(1)} hours ({member.utilizationRate.toFixed(0)}% utilized)
-                        </span>
-                      </div>
-                    ))}
-                  {Object.values(processedData.teamMembers).filter(m => m.availableBandwidth < 0).length === 0 && (
-                    <div className="flex items-center gap-2 p-2 bg-green-50 rounded-lg">
-                      <UserCheck className="w-4 h-4 text-green-600" />
-                      <span className="text-sm text-gray-600">No overallocated team members</span>
-                    </div>
-                  )}
-                </div>
-              </div>
             </>
           )}
 
+          {/* Exceptions Tab */}
           {activeTab === 'exceptions' && (
             <div className="col-span-12 bg-white rounded-xl shadow-lg p-6">
               <h2 className="text-xl font-bold mb-4">Time Entry Exceptions & Alerts</h2>
@@ -2040,424 +1843,21 @@ const StocStaffingDashboard = () => {
                 <div className="flex items-start gap-3">
                   <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
                   <div>
-                    <p className="font-semibold text-blue-900">Data Quality Score: {
-                      (100 - (Object.values(processedData.teamMembers).filter(m => m.availableBandwidth < 0).length * 5) - 
-                      (Object.values(processedData.teamMembers).filter(m => m.totalHours > 0 && m.totalHours < 20).length * 2)).toFixed(0)
-                    }%</p>
+                    <p className="font-semibold text-blue-900">
+                      Data Quality Score: {
+                        (100 - (Object.values(processedData.teamMembers).filter(m => m.availableBandwidth < 0).length * 5) - 
+                        (Object.values(processedData.teamMembers).filter(m => m.totalHours > 0 && m.totalHours < 20).length * 2)).toFixed(0)
+                      }%
+                    </p>
                     <p className="text-sm text-blue-700 mt-1">
-                      Time entries are tracked. Monitor capacity allocation and address overallocated team members.
+                      Data refreshed from Google Sheets. 
+                      Last update: {lastUpdated?.toLocaleTimeString()}
                     </p>
                   </div>
                 </div>
               </div>
             </div>
           )}
-
-          {/* GO-FORWARD SCHEDULE SECTION */}
-          {activeTab === 'schedule' && (() => {
-            // Get schedule data for selected week (use first selected period)
-            const selectedWeek = selectedPeriods[0] || 'Jan 4 – Jan 10, 2026';
-            const scheduleRows = SCHEDULE_DATA_BY_WEEK[selectedWeek] || [];
-            
-            if (scheduleRows.length === 0) {
-              return (
-                <div className="col-span-12 bg-white rounded-xl shadow-lg p-6 mt-6">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-4">Go-Forward Schedule</h2>
-                  <div className="text-center py-12 text-gray-500">
-                    <Calendar className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                    <p>No schedule data available for the selected week.</p>
-                  </div>
-                </div>
-              );
-            }
-
-            // Parse today date and get end of selected week
-            const todayDate = new Date(goForwardToday + 'T00:00:00');
-            const weekRange = selectedWeek.split(' – ');
-            const weekEndStr = weekRange[1]?.split(',')[0]?.trim();
-            
-            // Parse week end date
-            let weekEndDate = new Date();
-            if (weekEndStr) {
-              const year = selectedWeek.match(/\d{4}/)?.[0] || new Date().getFullYear();
-              weekEndDate = new Date(`${weekEndStr}, ${year}T23:59:59`);
-            }
-
-            // Filter to remaining schedule (dates AFTER today, within selected week)
-            // SIMPLIFIED FILTER - Show all future shifts with minimal filtering
-            const remainingSchedule = scheduleRows.filter(row => {
-              if (!row.date) return false;
-              
-              const shiftDate = new Date(row.date + 'T00:00:00');
-              const isSelectedDate = shiftDate.toDateString() === todayDate.toDateString();
-              
-              // Apply employee filter from "View metrics for" dropdown
-              if (goForwardEmployeeFilter !== 'all') {
-                if (row.employee !== goForwardEmployeeFilter) return false;
-              }
-              
-              // Only apply team filter if not 'all' - uses GLOBAL teamFilter from top of page
-              if (teamFilter !== 'all') {
-                const employeeName = row.employee || '';
-                const isCDS = CDS_TEAM_MEMBERS.includes(employeeName);
-                if (teamFilter === 'cds' && !isCDS) return false;
-                if (teamFilter === 'tas' && isCDS) return false;
-              }
-              
-              // Only apply project search if there's actual search text
-              if (goForwardProjectSearch && goForwardProjectSearch.trim()) {
-                const searchLower = goForwardProjectSearch.toLowerCase();
-                const projectMatch = (row.customer || '').toLowerCase().includes(searchLower);
-                const employeeMatch = (row.employee || '').toLowerCase().includes(searchLower);
-                if (!projectMatch && !employeeMatch) return false;
-              }
-              
-              return isSelectedDate; // Show only the selected date
-            });
-
-            // Group by CLIENT (extract prefix like "AEG", "SALT", "CPC", etc.)
-            const projectGroups = {};
-            remainingSchedule.forEach(row => {
-              const fullCustomer = row.customer || 'Unassigned';
-              // Extract client prefix (e.g., "AEG - South Shore" -> "AEG")
-              const client = fullCustomer.includes(' - ') 
-                ? fullCustomer.split(' - ')[0].trim() 
-                : fullCustomer;
-              
-              if (!projectGroups[client]) {
-                projectGroups[client] = {
-                  project: client,
-                  totalHours: 0,
-                  shifts: []
-                };
-              }
-              
-              const hours = parseFloat(row.hours) || 0;
-              projectGroups[client].totalHours += hours;
-              projectGroups[client].shifts.push({
-                employee: row.employee || '',
-                project: fullCustomer, // Keep full project name for display
-                date: row.date,
-                day: row.day,
-                startTime: row.start_time,
-                endTime: row.end_time,
-                hours
-              });
-            });
-
-            // Sort clients by total hours (desc)
-            const sortedProjects = Object.values(projectGroups).sort(
-              (a, b) => b.totalHours - a.totalHours
-            );
-
-            // Sort shifts within each client by project, then date, then time
-            sortedProjects.forEach(group => {
-              group.shifts.sort((a, b) => {
-                // First sort by project name
-                if (a.project !== b.project) return a.project.localeCompare(b.project);
-                // Then by date
-                if (a.date !== b.date) return a.date.localeCompare(b.date);
-                // Finally by start time
-                return (a.startTime || '').localeCompare(b.startTime || '');
-              });
-            });
-
-            // Helper: Check if a date is a weekday (Mon-Fri)
-            const isWeekday = (date) => {
-              const day = date.getDay();
-              return day >= 1 && day <= 5; // 1=Mon, 5=Fri
-            };
-
-            // Helper: Get business days remaining in current week
-            const getBusinessDaysRemaining = (todayStr) => {
-              const today = new Date(todayStr + 'T00:00:00');
-              const dayOfWeek = today.getDay();
-              
-              // If Sat (6) or Sun (0), no business days remaining
-              if (dayOfWeek === 0 || dayOfWeek === 6) return 0;
-              
-              // If Fri (5), no business days remaining
-              if (dayOfWeek === 5) return 0;
-              
-              // Mon=1, Tue=2, Wed=3, Thu=4
-              // Remaining business days = 5 - dayOfWeek (e.g., if Mon=1, then 5-1=4 days left: Tue-Fri)
-              return 5 - dayOfWeek;
-            };
-
-            // Get all unique employees from schedule data for the dropdown
-            const allEmployeesInSchedule = [...new Set(scheduleRows.map(r => r.employee || '').filter(e => e))].sort();
-
-            // Calculate KPIs with employee filter and business-day logic
-            const businessDaysRemaining = getBusinessDaysRemaining(goForwardToday);
-            
-            // Filter schedule for KPI calculations (employee filter + selected date and future business days)
-            // Metrics show "remaining" work from the selected date forward
-            const scheduleForMetrics = scheduleRows.filter(row => {
-              if (!row.date) return false;
-              
-              // Include selected date and future dates
-              const shiftDate = new Date(row.date + 'T00:00:00');
-              if (shiftDate < todayDate) return false; // Exclude past dates only
-              
-              // Apply employee filter for metrics
-              if (goForwardEmployeeFilter !== 'all' && row.employee !== goForwardEmployeeFilter) {
-                return false;
-              }
-              
-              // Only include weekdays for metrics
-              if (!isWeekday(shiftDate)) return false;
-              
-              return true;
-            });
-            
-            const totalRemainingHours = scheduleForMetrics.reduce((sum, r) => 
-              sum + (parseFloat(r.hours) || 0), 0
-            );
-            const uniqueEmployees = new Set(scheduleForMetrics.map(r => r.employee || '')).size;
-
-            // Calculate available employees for the selected date
-            // Get all unique employees from all weeks in SCHEDULE_DATA_BY_WEEK
-            const allEmployeesEver = new Set();
-            Object.values(SCHEDULE_DATA_BY_WEEK).forEach(weekData => {
-              if (Array.isArray(weekData)) {
-                weekData.forEach(row => {
-                  if (row.employee) allEmployeesEver.add(row.employee);
-                });
-              }
-            });
-
-            // Calculate hours scheduled on the selected date for each employee
-            // NOTE: This correctly sums ALL shifts for each employee on the date (handles multiple clients per day)
-            const employeeHoursOnDate = {};
-            scheduleRows.forEach(row => {
-              if (row.date === goForwardToday && row.employee) {
-                const hours = parseFloat(row.hours) || 0;
-                // Accumulate hours - handles multiple shifts per employee per day
-                employeeHoursOnDate[row.employee] = (employeeHoursOnDate[row.employee] || 0) + hours;
-              }
-            });
-
-            // Build list of available employees
-            const availableEmployees = [];
-            allEmployeesEver.forEach(employee => {
-              const scheduledHours = employeeHoursOnDate[employee] || 0;
-              if (scheduledHours < 8) {
-                const availableHours = 8 - scheduledHours;
-                const note = scheduledHours === 0 ? '(no data registered)' : '';
-                availableEmployees.push({
-                  name: employee,
-                  availableHours,
-                  scheduledHours,
-                  note
-                });
-              }
-            });
-
-            // Sort by available hours (descending)
-            availableEmployees.sort((a, b) => b.availableHours - a.availableHours);
-
-            return (
-              <div className="col-span-12 bg-white rounded-xl shadow-lg p-6 mt-6">
-                {/* Header with filters */}
-                <div className="flex justify-between items-center mb-6">
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Go-Forward Schedule</h2>
-                    <p className="text-sm text-gray-600 mt-1">
-                      Work scheduled for {new Date(goForwardToday + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </p>
-                  </div>
-                  
-                  {/* Filters */}
-                  <div className="flex items-center gap-3">
-                    {/* Date Control */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-600 font-medium">Date:</span>
-                      <input
-                        type="date"
-                        value={goForwardToday}
-                        onChange={(e) => setGoForwardToday(e.target.value)}
-                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    
-                    {/* Project Search */}
-                    <div className="relative w-64">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <input
-                        type="text"
-                        placeholder="Search projects or employees..."
-                        value={goForwardProjectSearch}
-                        onChange={(e) => setGoForwardProjectSearch(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Employee Filter for Metrics */}
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    View metrics for:
-                  </label>
-                  <select
-                    value={goForwardEmployeeFilter}
-                    onChange={(e) => setGoForwardEmployeeFilter(e.target.value)}
-                    className="w-full max-w-md border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="all">All Employees</option>
-                    {allEmployeesInSchedule.map(emp => (
-                      <option key={emp} value={emp}>{emp}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* KPIs - Always show */}
-                <div className="grid grid-cols-4 gap-4 mb-6">
-                  <div className="bg-blue-50 rounded-lg p-4">
-                    <div className="text-sm text-blue-600 font-medium">Business Days Remaining</div>
-                    <div className="text-2xl font-bold text-blue-900 mt-1">{businessDaysRemaining}</div>
-                    <p className="text-xs text-blue-700 mt-1">Mon-Fri only</p>
-                  </div>
-                  <div className="bg-green-50 rounded-lg p-4">
-                    <div className="text-sm text-green-600 font-medium">Scheduled Hours Remaining</div>
-                    <div className="text-2xl font-bold text-green-900 mt-1">{totalRemainingHours.toFixed(1)}</div>
-                    <p className="text-xs text-green-700 mt-1">Including today</p>
-                  </div>
-                  <div className="bg-purple-50 rounded-lg p-4">
-                    <div className="text-sm text-purple-600 font-medium">
-                      {goForwardEmployeeFilter === 'all' ? 'Unique People' : 'Employee'}
-                    </div>
-                    <div className="text-2xl font-bold text-purple-900 mt-1">
-                      {goForwardEmployeeFilter === 'all' ? uniqueEmployees : '1'}
-                    </div>
-                    <p className="text-xs text-purple-700 mt-1">
-                      {goForwardEmployeeFilter === 'all' ? 'In schedule' : goForwardEmployeeFilter}
-                    </p>
-                  </div>
-                  <div className="bg-orange-50 rounded-lg p-4 relative">
-                    <div 
-                      className="cursor-pointer"
-                      onClick={() => setShowAvailablePeople(!showAvailablePeople)}
-                    >
-                      <div className="text-sm text-orange-600 font-medium">Available People</div>
-                      <div className="text-2xl font-bold text-orange-900 mt-1">{availableEmployees.length}</div>
-                      <p className="text-xs text-orange-700 mt-1">Click to view details</p>
-                    </div>
-                    
-                    {/* Dropdown */}
-                    {showAvailablePeople && (
-                      <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-96 overflow-y-auto">
-                        <div className="p-3 border-b border-gray-200 bg-gray-50">
-                          <h4 className="font-semibold text-gray-900 text-sm">
-                            Available on {new Date(goForwardToday + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                          </h4>
-                        </div>
-                        <div className="p-2">
-                          {availableEmployees.length === 0 ? (
-                            <div className="text-center py-4 text-gray-500 text-sm">
-                              No available people found
-                            </div>
-                          ) : (
-                            availableEmployees.map((emp, idx) => (
-                              <div 
-                                key={idx} 
-                                className="px-3 py-2 hover:bg-gray-50 rounded flex justify-between items-center text-sm"
-                              >
-                                <span className="font-medium text-gray-900">{emp.name}</span>
-                                <div className="text-right">
-                                  <span className="text-orange-700 font-semibold">
-                                    {emp.availableHours.toFixed(1)} hrs
-                                  </span>
-                                  {emp.note && (
-                                    <div className="text-xs text-gray-500">{emp.note}</div>
-                                  )}
-                                </div>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Schedule by Project */}
-                {sortedProjects.length === 0 ? (
-                  <div className="text-center py-12 text-gray-500">
-                    <Calendar className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                    <p className="text-lg font-medium text-gray-700 mb-2">No remaining scheduled work found</p>
-                    <div className="text-sm space-y-1">
-                      <p>• Make sure "Jan 4 – Jan 10, 2026" week is selected at the top</p>
-                      <p>• Try setting "Today" to Jan 5 or earlier</p>
-                      <p>• Check that Team filter is set to "All Teams"</p>
-                      <p>• Clear the project search box if it has text</p>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-4">Raw schedule rows available: {scheduleRows.length}</p>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    {sortedProjects.map((group, idx) => (
-                      <div key={idx} className="border border-gray-200 rounded-lg overflow-hidden">
-                        {/* Client Header */}
-                        <div className="bg-gradient-to-r from-blue-50 to-blue-100 px-4 py-3 border-b border-blue-200">
-                          <div className="flex justify-between items-center">
-                            <h3 className="text-lg font-bold text-gray-900">{group.project}</h3>
-                            <span className="text-sm font-semibold text-blue-700">
-                              {group.totalHours.toFixed(1)} hours total
-                            </span>
-                          </div>
-                        </div>
-                        
-                        {/* Shifts Table */}
-                        <table className="w-full">
-                          <thead className="bg-gray-50">
-                            <tr>
-                              <th className="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Project</th>
-                              <th className="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Employee</th>
-                              <th className="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Date</th>
-                              <th className="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Day</th>
-                              <th className="py-3 px-4 text-left text-xs font-semibold text-gray-600 uppercase">Time</th>
-                              <th className="py-3 px-4 text-right text-xs font-semibold text-gray-600 uppercase">Hours</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-200">
-                            {group.shifts.map((shift, sIdx) => (
-                              <tr key={sIdx} className="hover:bg-gray-50">
-                                <td className="py-3 px-4 text-sm text-gray-700">
-                                  {shift.project}
-                                </td>
-                                <td className="py-3 px-4 text-sm text-gray-900 font-medium">
-                                  {shift.employee}
-                                </td>
-                                <td className="py-3 px-4 text-sm text-gray-700">
-                                  {new Date(shift.date + 'T00:00:00').toLocaleDateString('en-US', { 
-                                    month: 'short', 
-                                    day: 'numeric' 
-                                  })}
-                                </td>
-                                <td className="py-3 px-4 text-sm text-gray-600 font-medium">
-                                  {shift.day}
-                                </td>
-                                <td className="py-3 px-4 text-sm text-gray-700">
-                                  {shift.startTime && shift.endTime 
-                                    ? `${shift.startTime} – ${shift.endTime}`
-                                    : '—'}
-                                </td>
-                                <td className="py-3 px-4 text-sm text-gray-900 text-right font-medium">
-                                  {shift.hours.toFixed(1)}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-
         </div>
       </div>
     </div>
