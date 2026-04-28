@@ -248,10 +248,11 @@ export default function StocStaffingDashboard() {
   const [selWeeks,   setSelWeeks]  = useState([]);
   const [weekDD,     setWeekDD]    = useState(false);
 
-  const [projSearch, setProjSearch] = useState('');
-  const [projFilter, setProjFilter] = useState('all');
-  const [projSort,   setProjSort]   = useState({k:'hours',d:'desc'});
-  const [collapsed,  setCollapsed]  = useState({});
+  const [projSearch,       setProjSearch]       = useState('');
+  const [projFilter,       setProjFilter]       = useState('all');
+  const [projClientFilter, setProjClientFilter] = useState('all');
+  const [projSort,         setProjSort]         = useState({k:'hours',d:'desc'});
+  const [collapsed,        setCollapsed]        = useState({});
 
   const [teamSearch, setTeamSearch] = useState('');
   const [teamSort,   setTeamSort]   = useState({k:'utilized',d:'desc'});
@@ -369,12 +370,19 @@ export default function StocStaffingDashboard() {
       .slice(0,12);
   },[projectsMap]);
 
+  // All distinct billable clients for the filter dropdown
+  const allClients = useMemo(()=>{
+    const s = new Set(Object.values(projectsMap).map(p=>p.client));
+    return [...s].sort();
+  },[projectsMap]);
+
   // Projects grouped by client
   const clientGroups = useMemo(()=>{
     const g={};
     Object.values(projectsMap).forEach(p=>{
       if(projFilter==='billable'    &&p.cat!=='Billable')    return;
       if(projFilter==='internal-bd' &&p.cat!=='Internal/BD') return;
+      if(projClientFilter!=='all'   &&p.client!==projClientFilter) return;
       if(projSearch&&!p.name.toLowerCase().includes(projSearch.toLowerCase())&&
          !p.client.toLowerCase().includes(projSearch.toLowerCase())) return;
       if(!g[p.client]) g[p.client]={client:p.client,total:0,projs:[]};
@@ -451,13 +459,11 @@ export default function StocStaffingDashboard() {
         background:'#fff',borderBottom:`1px solid ${C.border}`,
         position:'sticky',top:0,zIndex:30,
       }}>
-        <div style={{maxWidth:1400,margin:'0 auto',padding:'0 24px',height:48,display:'flex',alignItems:'center',justifyContent:'space-between',gap:24}}>
+        <div style={{maxWidth:1400,margin:'0 auto',padding:'0 24px',height:56,display:'flex',alignItems:'center',justifyContent:'space-between',gap:24}}>
 
-          {/* Title + tabs */}
-          <div style={{display:'flex',alignItems:'center',gap:24}}>
-            <span style={{fontSize:14,fontWeight:700,color:C.text,letterSpacing:'-0.01em',whiteSpace:'nowrap'}}>
-              STOC Staffing
-            </span>
+          {/* Logo + tabs */}
+          <div style={{display:'flex',alignItems:'center',gap:28}}>
+            <img src="/logo.png" alt="STOC Advisory" style={{height:30,width:'auto',display:'block',flexShrink:0}}/>
             <nav style={{display:'flex',gap:2}}>
               {[
                 ['dashboard','Dashboard'],
@@ -743,132 +749,211 @@ export default function StocStaffingDashboard() {
         )}
 
         {/* ─────────────────────────────
-            PROJECTS TAB
+            PROJECTS TAB  — flat spreadsheet-style report
         ───────────────────────────── */}
         {tab==='projects'&&(
           <div style={{background:'#fff',border:`1px solid ${C.border}`,borderRadius:6,overflow:'hidden'}}>
-            {/* Toolbar */}
+
+            {/* ── Toolbar ── */}
             <div style={{
-              display:'flex',alignItems:'center',gap:10,
-              padding:'8px 16px',borderBottom:`1px solid ${C.border}`,background:C.headerBg,
+              display:'flex',alignItems:'center',flexWrap:'wrap',gap:8,
+              padding:'10px 16px',borderBottom:`2px solid ${C.border}`,background:C.headerBg,
             }}>
-              <div style={{position:'relative',flex:'0 0 260px'}}>
+              {/* Search */}
+              <div style={{position:'relative',flex:'0 0 240px'}}>
                 <Search size={13} color={C.faint} style={{position:'absolute',left:9,top:'50%',transform:'translateY(-50%)',pointerEvents:'none'}}/>
                 <input value={projSearch} onChange={e=>setProjSearch(e.target.value)}
-                  placeholder="Filter projects or clients…"
-                  style={{
-                    width:'100%',height:30,paddingLeft:30,paddingRight:8,fontSize:12,
-                    border:`1px solid ${C.border}`,borderRadius:5,background:'#fff',
-                    color:C.text,outline:'none',boxSizing:'border-box',
-                  }}/>
+                  placeholder="Search project name…"
+                  style={{width:'100%',height:30,paddingLeft:30,paddingRight:24,fontSize:12,
+                    border:`1px solid ${C.border}`,borderRadius:4,background:'#fff',
+                    color:C.text,outline:'none',boxSizing:'border-box'}}/>
+                {projSearch&&(
+                  <button onClick={()=>setProjSearch('')} style={{position:'absolute',right:8,top:'50%',transform:'translateY(-50%)',
+                    background:'none',border:'none',cursor:'pointer',color:C.faint,fontSize:14,lineHeight:1,padding:0}}>×</button>
+                )}
               </div>
+
+              {/* Client filter */}
+              <select value={projClientFilter} onChange={e=>setProjClientFilter(e.target.value)} style={{
+                height:30,padding:'0 8px',fontSize:12,border:`1px solid ${C.border}`,
+                borderRadius:4,background:'#fff',color:projClientFilter!=='all'?C.text:C.muted,
+                cursor:'pointer',outline:'none',minWidth:130,
+              }}>
+                <option value="all">All clients</option>
+                {allClients.map(c=><option key={c} value={c}>{c}</option>)}
+              </select>
+
+              {/* Type filter */}
               <select value={projFilter} onChange={e=>setProjFilter(e.target.value)} style={{
                 height:30,padding:'0 8px',fontSize:12,border:`1px solid ${C.border}`,
-                borderRadius:5,background:'#fff',color:C.text,cursor:'pointer',outline:'none',
+                borderRadius:4,background:'#fff',color:projFilter!=='all'?C.text:C.muted,
+                cursor:'pointer',outline:'none',
               }}>
                 <option value="all">All types</option>
-                <option value="billable">Billable only</option>
+                <option value="billable">Billable</option>
                 <option value="internal-bd">Internal / BD</option>
               </select>
-              <span style={{marginLeft:'auto',fontSize:11,color:C.faint}}>
-                {clientGroups.reduce((s,g)=>s+g.projs.length,0)} projects · {clientGroups.length} clients
+
+              {/* Active filter chips */}
+              {(projClientFilter!=='all'||projFilter!=='all'||projSearch)&&(
+                <button onClick={()=>{setProjClientFilter('all');setProjFilter('all');setProjSearch('');}}
+                  style={{height:30,padding:'0 10px',fontSize:11,fontWeight:600,color:C.burn,
+                    border:`1px solid #FECACA`,borderRadius:4,background:'#FEF2F2',cursor:'pointer'}}>
+                  Clear filters
+                </button>
+              )}
+
+              <span style={{marginLeft:'auto',fontSize:11,color:C.faint,whiteSpace:'nowrap'}}>
+                {clientGroups.reduce((s,g)=>s+g.projs.length,0)} projects &nbsp;·&nbsp; {clientGroups.length} clients
               </span>
             </div>
 
-            {/* Table */}
+            {/* ── Table ── */}
             <div style={{overflowX:'auto'}}>
-              <table style={tableStyle}>
+              <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
                 <thead>
-                  <tr>
+                  <tr style={{borderBottom:`2px solid #CBD5E1`}}>
+                    <Th style={{width:160,paddingLeft:16}}>Client</Th>
                     <Th onClick={()=>togglePS('name')} sort={arr(projSort,'name')}>Project</Th>
                     <Th right onClick={()=>togglePS('hours')} sort={arr(projSort,'hours')}>Hours</Th>
-                    <Th right>% Billable</Th>
+                    <Th right>% of Billable</Th>
                     <Th>Type</Th>
-                    <Th>People on project</Th>
-                    <Th right>#</Th>
+                    <Th>Team members</Th>
                   </tr>
                 </thead>
                 <tbody>
                   {clientGroups.length===0&&(
-                    <tr><td colSpan={6} style={{padding:'40px 16px',textAlign:'center',color:C.faint,fontSize:13}}>No projects match</td></tr>
+                    <tr>
+                      <td colSpan={6} style={{padding:'48px 16px',textAlign:'center',color:C.faint,fontSize:13}}>
+                        No projects match your filters
+                      </td>
+                    </tr>
                   )}
+
                   {clientGroups.map((cg,ci)=>{
                     const isCollapsed=collapsed[cg.client];
+                    const hasBillable=cg.projs.some(p=>p.cat==='Billable');
+                    // subtle client accent color — cycles through a small palette
+                    const accentColors=['#2563EB','#7C3AED','#0891B2','#0D9488','#D97706','#DC2626','#6366F1','#059669'];
+                    const accent=accentColors[ci%accentColors.length];
+
                     return(
                       <React.Fragment key={ci}>
-                        {/* Client row */}
+
+                        {/* ── CLIENT HEADER ROW ── */}
                         <tr
                           onClick={()=>setCollapsed(p=>({...p,[cg.client]:!p[cg.client]}))}
                           style={{
-                            background:'#F1F5F9',cursor:'pointer',
-                            borderTop:`2px solid ${C.border}`,
+                            cursor:'pointer',
+                            background:'#F8FAFC',
+                            borderTop: ci===0?`1px solid ${C.border}`:`2px solid #CBD5E1`,
+                            borderBottom:`1px solid ${C.border}`,
                           }}>
-                          <td style={{padding:'8px 12px'}}>
-                            <div style={{display:'flex',alignItems:'center',gap:6}}>
-                              {isCollapsed
-                                ?<ChevronRight size={14} color={C.muted}/>
-                                :<ChevronDown  size={14} color={C.muted}/>}
-                              <span style={{fontSize:13,fontWeight:700,color:C.text}}>{cg.client}</span>
-                              <span style={{fontSize:11,color:C.faint}}>({cg.projs.length})</span>
+                          {/* Client name with color indicator */}
+                          <td style={{padding:'10px 16px',paddingLeft:14}}>
+                            <div style={{display:'flex',alignItems:'center',gap:8}}>
+                              <div style={{width:3,height:18,borderRadius:2,background:accent,flexShrink:0}}/>
+                              <div style={{display:'flex',alignItems:'center',gap:6}}>
+                                {isCollapsed
+                                  ?<ChevronRight size={13} color={C.muted}/>
+                                  :<ChevronDown  size={13} color={C.muted}/>}
+                                <span style={{fontSize:13,fontWeight:700,color:C.text,letterSpacing:'-0.01em'}}>{cg.client}</span>
+                              </div>
                             </div>
                           </td>
-                          <td style={{padding:'8px 12px',textAlign:'right',fontSize:13,fontWeight:700,color:C.text,fontVariantNumeric:'tabular-nums'}}>
+                          {/* Project count */}
+                          <td style={{padding:'10px 12px',fontSize:12,color:C.faint}}>
+                            {cg.projs.length} project{cg.projs.length!==1?'s':''}
+                          </td>
+                          {/* Total hours */}
+                          <td style={{padding:'10px 12px',textAlign:'right',fontSize:13,fontWeight:700,color:C.text,fontVariantNumeric:'tabular-nums'}}>
                             {cg.total.toFixed(1)}
                           </td>
-                          <td style={{padding:'8px 12px',textAlign:'right',fontSize:12,color:C.muted}}>
-                            {cg.projs[0]?.cat==='Billable'?`${Math.round((cg.total/totalBillableHrs)*100)}%`:'—'}
+                          {/* % billable */}
+                          <td style={{padding:'10px 12px',textAlign:'right',fontSize:12,color:C.muted,fontVariantNumeric:'tabular-nums'}}>
+                            {hasBillable?`${Math.round((cg.total/totalBillableHrs)*100)}%`:'—'}
                           </td>
-                          <td colSpan={3} style={{padding:'8px 12px'}}/>
+                          <td colSpan={2} style={{padding:'10px 12px'}}>
+                            {/* inline hours bar for the client total */}
+                            <div style={{width:160,height:4,background:C.avail,borderRadius:2,overflow:'hidden'}}>
+                              <div style={{
+                                height:4,borderRadius:2,
+                                width:`${Math.min(100,Math.round((cg.total/Math.max(...clientGroups.map(g=>g.total)))*100))}%`,
+                                background:accent,opacity:0.7,
+                              }}/>
+                            </div>
+                          </td>
                         </tr>
 
-                        {/* Project rows */}
+                        {/* ── PROJECT ROWS ── */}
                         {!isCollapsed&&cg.projs.map((p,pi)=>{
                           const mems=Object.entries(p.mems).sort(([,a],[,b])=>b-a);
                           const isBillable=p.cat==='Billable';
+                          // plain comma-separated member list: "Sean (16h), Brandon (5h)"
+                          const memberText=mems.map(([n,h])=>`${n.split(' ')[0]} (${h.toFixed(0)}h)`).join('  ·  ');
+                          const isLastRow=pi===cg.projs.length-1;
+
                           return(
                             <tr key={pi} style={{
-                              ...trStyle(pi),
-                              borderLeft:`3px solid ${isBillable?C.billable:C.internal}`,
+                              background: pi%2===0?'#fff':'#FAFBFC',
+                              borderBottom: isLastRow?`1px solid ${C.border}`:`1px solid #F1F5F9`,
+                              borderLeft:`3px solid ${pi===0?accent:'transparent'}`,
                             }}>
-                              <td style={{padding:'8px 12px',paddingLeft:32,fontSize:13,color:C.text}}>{p.name}</td>
-                              <td style={{padding:'8px 12px',textAlign:'right',fontWeight:600,color:C.text,fontVariantNumeric:'tabular-nums',fontSize:13}}>
+                              {/* Client column — blank after first row, thin left rule */}
+                              <td style={{
+                                padding:'9px 12px',paddingLeft:pi===0?13:16,
+                                fontSize:11,color:C.faint,
+                                borderLeft:`3px solid ${accent}`,
+                                background: pi%2===0?'#fff':'#FAFBFC',
+                              }}>
+                                {pi===0?'':<span style={{opacity:0}}>{cg.client}</span>}
+                              </td>
+
+                              {/* Project name */}
+                              <td style={{padding:'9px 12px',paddingLeft:20,fontSize:13,color:C.text,maxWidth:360}}>
+                                <span style={{fontWeight:450}}>{p.name}</span>
+                              </td>
+
+                              {/* Hours */}
+                              <td style={{padding:'9px 12px',textAlign:'right',fontWeight:600,fontSize:13,color:C.text,fontVariantNumeric:'tabular-nums',whiteSpace:'nowrap'}}>
                                 {p.hrs.toFixed(1)}
                               </td>
-                              <td style={{padding:'8px 12px',textAlign:'right',fontSize:12,color:C.faint,fontVariantNumeric:'tabular-nums'}}>
-                                {isBillable?`${Math.round((p.hrs/totalBillableHrs)*100)}%`:'—'}
+
+                              {/* % of billable */}
+                              <td style={{padding:'9px 12px',textAlign:'right',fontSize:12,color:C.faint,fontVariantNumeric:'tabular-nums'}}>
+                                {isBillable&&totalBillableHrs>0?`${Math.round((p.hrs/totalBillableHrs)*100)}%`:'—'}
                               </td>
-                              <td style={{padding:'8px 12px'}}>
-                                <span style={{
-                                  fontSize:11,fontWeight:600,padding:'2px 7px',borderRadius:3,
-                                  background:isBillable?'#DCFCE7':'#EDE9FE',
-                                  color:isBillable?C.billable:C.internal,
-                                }}>
-                                  {p.cat}
-                                </span>
+
+                              {/* Type — text only, no badge */}
+                              <td style={{padding:'9px 12px',fontSize:12,color:isBillable?C.billable:C.internal,fontWeight:500,whiteSpace:'nowrap'}}>
+                                {p.cat}
                               </td>
-                              <td style={{padding:'8px 12px'}}>
-                                <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
-                                  {mems.map(([n,h],mi)=>(
-                                    <span key={mi} style={{
-                                      fontSize:11,padding:'2px 7px',borderRadius:3,
-                                      background:'#F1F5F9',color:C.muted,whiteSpace:'nowrap',
-                                      border:`1px solid ${C.border}`,
-                                    }}>
-                                      {n.split(' ')[0]}
-                                      <span style={{marginLeft:4,color:C.faint,fontVariantNumeric:'tabular-nums'}}>
-                                        {h.toFixed(0)}h
-                                      </span>
-                                    </span>
-                                  ))}
-                                </div>
+
+                              {/* Members — plain dot-separated text */}
+                              <td style={{padding:'9px 12px',fontSize:12,color:C.muted,maxWidth:420}}>
+                                {memberText}
                               </td>
-                              <td style={{padding:'8px 12px',textAlign:'right',fontSize:12,color:C.faint}}>{mems.length}</td>
                             </tr>
                           );
                         })}
+
                       </React.Fragment>
                     );
                   })}
+
+                  {/* ── GRAND TOTAL ROW ── */}
+                  {clientGroups.length>0&&(
+                    <tr style={{background:C.headerBg,borderTop:`2px solid #CBD5E1`}}>
+                      <td style={{padding:'10px 16px',fontSize:12,fontWeight:700,color:C.text}} colSpan={2}>
+                        Total — {clientGroups.length} clients, {clientGroups.reduce((s,g)=>s+g.projs.length,0)} projects
+                      </td>
+                      <td style={{padding:'10px 12px',textAlign:'right',fontSize:13,fontWeight:700,color:C.text,fontVariantNumeric:'tabular-nums'}}>
+                        {clientGroups.reduce((s,g)=>s+g.total,0).toFixed(1)}
+                      </td>
+                      <td style={{padding:'10px 12px',textAlign:'right',fontSize:12,fontWeight:600,color:C.muted}}>100%</td>
+                      <td colSpan={2}/>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
