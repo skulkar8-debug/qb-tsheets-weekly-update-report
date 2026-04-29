@@ -1,4 +1,11 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+// ─── LOGO PATH ───────────────────────────────────────────────────────────────
+// CRA:   put logo.png in /public  → src="/logo.png"  ✓ (default below)
+// Vite:  put logo.png in /public  → src="/logo.png"  ✓
+// Next:  put logo.png in /public  → src="/logo.png"  ✓
+// If your app is served from a sub-path e.g. /staffing/, change to '/staffing/logo.png'
+// OR: import logoSrc from './logo.png' and replace LOGO_SRC with logoSrc
+const LOGO_SRC = '/logo.png';
 import {
   LayoutDashboard, Users, AlertTriangle, BarChart2,
   Search, RefreshCw, AlertCircle, ChevronDown, ChevronLeft, ChevronRight, X, Download
@@ -27,13 +34,27 @@ const CC = {
   'Beacon':               { bar:'#6726b8', bg:'#f2ecfd', text:'#3d1580' },
   'Archway':              { bar:'#881337', bg:'#fde8ee', text:'#560b22' },
   'Budget':               { bar:'#7c3409', bg:'#fdf0e7', text:'#4a1f05' },
+  'LSC':                  { bar:'#0e7490', bg:'#e0f7fa', text:'#064e5f' },
   'Administrative':       { bar:'#3d5166', bg:'#edf1f5', text:'#243040' },
   'Business Development': { bar:'#334155', bg:'#edf0f4', text:'#1e2a38' },
   'CDS Internal':         { bar:'#1e3fa0', bg:'#e8eefb', text:'#0f2060' },
   'OOO':                  { bar:'#94a3b8', bg:'#f1f5f9', text:'#475569' },
   'Other':                { bar:'#52606d', bg:'#f0f2f5', text:'#333d48' },
 };
-const cCol = c => CC[c] || CC['Other'];
+const AUTO_PAL = [
+  {bar:'#b45309',bg:'#fef9ec',text:'#7c3900'},{bar:'#be185d',bg:'#fce7f3',text:'#831843'},
+  {bar:'#047857',bg:'#ecfdf5',text:'#064e3b'},{bar:'#d97706',bg:'#fffbeb',text:'#92400e'},
+  {bar:'#7c3aed',bg:'#f5f3ff',text:'#4c1d95'},{bar:'#0369a1',bg:'#e0f2fe',text:'#0c4a6e'},
+  {bar:'#9a3412',bg:'#fff7ed',text:'#7c2d12'},{bar:'#166534',bg:'#f0fdf4',text:'#14532d'},
+  {bar:'#1d4ed8',bg:'#eff6ff',text:'#1e3a8a'},{bar:'#a21caf',bg:'#fdf4ff',text:'#701a75'},
+  {bar:'#0f766e',bg:'#f0fdfa',text:'#134e4a'},{bar:'#c2410c',bg:'#fff7ed',text:'#9a3412'},
+];
+const _autoMap = {}, _autoIdx = {v:0};
+const cCol = c => {
+  if(CC[c]) return CC[c];
+  if(!_autoMap[c]) { _autoMap[c] = AUTO_PAL[_autoIdx.v % AUTO_PAL.length]; _autoIdx.v++; }
+  return _autoMap[c];
+};
 
 // ── DATA HELPERS ──
 const normalizeClient = j => {
@@ -52,6 +73,7 @@ const normalizeClient = j => {
   if(/^BEACON/i.test(t)) return 'Beacon';
   if(/^ARCHWAY/i.test(t)) return 'Archway';
   if(/^BUDGET/i.test(t)) return 'Budget';
+  if(/^LSC(\s|[-–]|$)/i.test(t)) return 'LSC';
   const m = t.match(/^(.+?)\s*[-–]\s*/);
   return m ? m[1].trim() : t;
 };
@@ -205,8 +227,9 @@ export default function App() {
 
   const [page,       setPage]      = useState('dashboard');
   const [teamF,      setTeamF]     = useState('all');
-  const [selWeeks,   setSelWeeks]  = useState([]);
-  const [weekDD,     setWeekDD]    = useState(false);
+  const [dateRange,  setDateRange] = useState({start:'',end:''});
+  const [calOpen,    setCalOpen]   = useState(false);
+  const [calHover,   setCalHover]  = useState(null);
   const [sideOff,    setSideOff]   = useState(false);
 
   // Dashboard filters
@@ -233,33 +256,51 @@ export default function App() {
       if(!data.length) throw new Error('No rows — is the sheet publicly shared?');
       setRows(data);
       setUpdatedAt(new Date());
-      const w = detectWeeks(data);
-      if(w.length) setSelWeeks([w[0].key]);
+      const dSet = new Set();
+      data.forEach(r => { if(r.local_date) dSet.add(r.local_date.trim()); });
+      const allD = [...dSet].sort();
+      if(allD.length) {
+        const latest = allD[allD.length-1];
+        const mon = mondayKey(latest);
+        const dt = new Date(mon||latest);
+        const fri = new Date(dt); fri.setDate(dt.getDate()+4);
+        setDateRange({start:mon||latest, end:fri.toISOString().slice(0,10)});
+      }
     } catch(e) { setError(e.message); }
     finally { setLoading(false); }
   };
   useEffect(() => { load(); }, []);
   useEffect(() => {
-    const h = e => { if(!e.target.closest('.wdd')) setWeekDD(false); };
+    const h = e => { if(!e.target.closest('.wdd')) setCalOpen(false); };
     document.addEventListener('mousedown', h);
     return () => document.removeEventListener('mousedown', h);
   }, []);
 
-  const weeks = useMemo(() => detectWeeks(rows), [rows]);
-
-  // Filter rows to selected weeks using mondayKey
+  const allDays = useMemo(() => {
+    const s = new Set();
+    rows.forEach(r => { if(r.local_date) s.add(r.local_date.trim()); });
+    return [...s].sort((a,b) => new Date(a)-new Date(b));
+  }, [rows]);
+  const minDate = allDays[0] || '';
+  const maxDate = allDays[allDays.length-1] || '';
   const weekRows = useMemo(() => {
-    if(!selWeeks.length) return rows;
+    const {start,end} = dateRange;
+    if(!start && !end) return rows;
     return rows.filter(r => {
-      const k = mondayKey(r.local_date);
-      return k && selWeeks.includes(k);
+      const d = r.local_date?.trim();
+      if(!d) return false;
+      if(start && d < start) return false;
+      if(end   && d > end)   return false;
+      return true;
     });
-  }, [rows, selWeeks]);
+  }, [rows, dateRange]);
 
   // ── AGGREGATE ──
   const { members, projectsMap } = useMemo(() => {
     const tm={}, pm={};
-    const nW = Math.max(selWeeks.length, 1);
+    const wkSet = new Set();
+    weekRows.forEach(r => { const k=mondayKey(r.local_date); if(k) wkSet.add(k); });
+    const nW = Math.max(wkSet.size, 1);
     weekRows.forEach(r => {
       const name = `${(r.fname||'').trim()} ${(r.lname||'').trim()}`.trim();
       const hrs = parseFloat(r.hours) || 0;
@@ -285,7 +326,7 @@ export default function App() {
       m.risk   = riskOf(m.util);
     });
     return { members:tm, projectsMap:pm };
-  }, [weekRows, teamF, selWeeks]);
+  }, [weekRows, teamF, dateRange]);
 
   const ST = useMemo(() => {
     const ms = Object.values(members);
@@ -337,76 +378,94 @@ export default function App() {
     });
   }, [members, tSearch, tSort]);
 
-  // ── GANTT DATA — per-person, per SELECTED week, per-client segments ──
+  // ── GANTT DATA — per-person, per DAY within selected weeks ──
   const ganttData = useMemo(() => {
-    const displayWeeks = [...selWeeks].sort();
     const allNames = Object.keys(members).sort();
-    if(!allNames.length || !displayWeeks.length) return {names:[],weeks:[],grid:{}};
+    const {start,end} = dateRange;
+    if(!allNames.length || (!start && !end)) return {names:[],days:[],grid:{}};
+    const daySet = new Set();
+    rows.forEach(r => {
+      if(!r.local_date) return;
+      const d = r.local_date.trim();
+      if(start && d < start) return;
+      if(end   && d > end)   return;
+      daySet.add(d);
+    });
+    // Sort days chronologically
+    const sortedDays = [...daySet].sort((a,b) => new Date(a)-new Date(b));
+    if(!sortedDays.length) return {names:[],days:[],grid:{}};
 
-    const weekMeta = {};
-    weeks.forEach(w => { weekMeta[w.key]=w; });
-
-    // Build grid: grid[name][weekKey] = { clients:{}, ooo:0, total:0 }
+    // Build grid: grid[name][dateStr] = { clients:{}, ooo:0, total:0 }
     const grid = {};
     allNames.forEach(n => {
       grid[n] = {};
-      displayWeeks.forEach(k => { grid[n][k] = {clients:{},ooo:0,total:0}; });
+      sortedDays.forEach(d => { grid[n][d] = {clients:{},ooo:0,total:0}; });
     });
 
-    // Scan ALL raw rows, match to selected weeks per day
+    // Scan rows — each row is already one person+day+jobcode
     rows.forEach(r => {
       const name = `${(r.fname||'').trim()} ${(r.lname||'').trim()}`.trim();
       const hrs = parseFloat(r.hours)||0;
       const jc  = (r.jobcode||'').trim();
-      if(!name||!hrs||!jc||!grid[name]) return;
+      const dateStr = (r.local_date||'').trim();
+      if(!name||!hrs||!jc||!dateStr||!grid[name]||!grid[name][dateStr]) return;
       const isCDS = CDS_TEAM.has(name);
       if(teamF==='cds'&&!isCDS) return;
       if(teamF==='tas'&& isCDS) return;
-      const wKey = mondayKey(r.local_date);
-      if(!wKey || !displayWeeks.includes(wKey)) return;
       const cat = catOf(jc), client = normalizeClient(jc);
       if(cat==='OOO') {
-        grid[name][wKey].ooo += hrs;
+        grid[name][dateStr].ooo += hrs;
       } else {
         if(gClient!=='all' && client!==gClient) return;
-        grid[name][wKey].clients[client] = (grid[name][wKey].clients[client]||0)+hrs;
-        grid[name][wKey].total += hrs;
+        grid[name][dateStr].clients[client] = (grid[name][dateStr].clients[client]||0)+hrs;
+        grid[name][dateStr].total += hrs;
       }
     });
 
-    // Compute util per cell
+    // Compute util per cell (8h day = 100% capacity; OOO reduces capacity)
     Object.values(grid).forEach(pg => {
       Object.values(pg).forEach(cell => {
-        const effCap = 40 - cell.ooo;
-        cell.util = effCap>0 ? (cell.total/effCap)*100 : cell.total>0?100:null;
+        const dayCapacity = 8 - cell.ooo;
+        cell.util = dayCapacity>0
+          ? (cell.total/dayCapacity)*100
+          : cell.total>0 ? 100 : null;
       });
     });
 
-    // Filter out names with zero data across all weeks (when gClient filter active)
+    // Build day meta for column headers
+    const dayMeta = sortedDays.map(d => {
+      const dt = new Date(d);
+      const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+      const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      return {
+        key: d,
+        dow: dayNames[dt.getDay()],
+        label: `${monthNames[dt.getMonth()]} ${dt.getDate()}`,
+        isWeekend: dt.getDay()===0||dt.getDay()===6,
+        weekKey: mondayKey(d),
+      };
+    });
+
     const filteredNames = gClient==='all'
       ? allNames
-      : allNames.filter(n => displayWeeks.some(k => grid[n][k].total>0));
+      : allNames.filter(n => sortedDays.some(d => grid[n][d].total>0));
 
-    return {
-      names: filteredNames,
-      weeks: displayWeeks.map(k => weekMeta[k]||{key:k,label:k}),
-      grid,
-    };
-  }, [rows, members, selWeeks, weeks, teamF, gClient]);
+    return { names:filteredNames, days:dayMeta, grid };
+  }, [rows, members, dateRange, teamF, gClient]);
 
   // ── GANTT CSV DOWNLOAD ──
   const downloadGantt = () => {
     if(!ganttData.names.length) return;
-    const header = ['Person', ...ganttData.weeks.map(w=>w.label.split(' – ')[0])];
+    const header = ['Person', ...ganttData.days.map(d=>`${d.dow} ${d.label}`)];
     const dataRows = ganttData.names.map(name => {
-      const cells = ganttData.weeks.map(w => {
-        const cell = ganttData.grid[name]?.[w.key];
+      const cells = ganttData.days.map(d => {
+        const cell = ganttData.grid[name]?.[d.key];
         if(!cell || cell.total===0) return '';
-        return `${cell.total.toFixed(1)}h (${cell.util!==null?Math.round(cell.util)+'%':'—'})`;
+        return `${cell.total.toFixed(1)}h`;
       });
       return [name, ...cells];
     });
-    downloadCSV(`resource-grid-${selWeeks.join('-')}.csv`, [header, ...dataRows]);
+    downloadCSV(`resource-grid-${new Date().toISOString().slice(0,10)}.csv`, [header, ...dataRows]);
   };
 
   // Dashboard CSV download
@@ -426,14 +485,14 @@ export default function App() {
   // ── UI HELPERS ──
   const tsT = k => setTSort(p=>({k,d:p.k===k&&p.d==='desc'?'asc':'desc'}));
   const arr = (cfg,k) => cfg.k===k?(cfg.d==='desc'?' ▾':' ▴'):'';
-  const weekLabel = () => {
-    if(!selWeeks.length||selWeeks.length===weeks.length) return 'All Weeks';
-    if(selWeeks.length===1) return weeks.find(w=>w.key===selWeeks[0])?.label||'';
-    return `${selWeeks.length} weeks`;
+  const fmtDate = d => { if(!d) return ''; const dt=new Date(d+'T12:00:00'); return dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'}); };
+  const rangeLabel = () => {
+    const {start,end} = dateRange;
+    if(!start&&!end) return 'All dates';
+    if(start&&end) return `${fmtDate(start)} – ${fmtDate(end)}`;
+    if(start) return `From ${fmtDate(start)}`;
+    return `Until ${fmtDate(end)}`;
   };
-  const toggleWeek = k => setSelWeeks(p =>
-    p.includes(k) ? (p.length===1?p:p.filter(x=>x!==k)) : [...p,k]
-  );
   const hasFilters = pClient!=='all'||pType!=='all'||!!pSearch;
   const SW = sideOff ? 52 : 220;
 
@@ -452,36 +511,113 @@ export default function App() {
     {id:'exceptions',icon:<AlertTriangle size={15}/>,   label:'Exceptions'},
   ];
 
-  // ── WEEK PICKER — reusable inline component ──
-  const WeekPicker = () => (
-    <div className="wdd" style={{position:'relative',flexShrink:0}}>
-      <button onClick={()=>setWeekDD(v=>!v)}
-        style={{height:28,padding:'0 10px',fontSize:12,border:`1px solid ${S.border}`,borderRadius:4,
-          background:S.white,color:S.ink,cursor:'pointer',display:'flex',alignItems:'center',gap:5,outline:'none',minWidth:130,maxWidth:200}}>
-        <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1,textAlign:'left',fontSize:12}}>{weekLabel()}</span>
-        <ChevronDown size={11} style={{flexShrink:0,transform:weekDD?'rotate(180deg)':'none',transition:'.15s'}}/>
-      </button>
-      {weekDD&&(
-        <div style={{position:'absolute',top:'calc(100% + 4px)',right:0,minWidth:220,background:S.white,
-          border:`1px solid ${S.border}`,borderRadius:6,boxShadow:'0 8px 24px rgba(0,0,0,.12)',zIndex:100,overflow:'hidden'}}>
-          <div style={{maxHeight:220,overflowY:'auto',padding:4}}>
-            {weeks.map(w=>(
-              <label key={w.key} style={{display:'flex',alignItems:'center',gap:8,padding:'5px 8px',cursor:'pointer',
-                borderRadius:4,background:selWeeks.includes(w.key)?'#EBF4FB':'transparent'}}>
-                <input type="checkbox" checked={selWeeks.includes(w.key)} onChange={()=>toggleWeek(w.key)}
-                  style={{width:12,height:12,accentColor:S.blue,cursor:'pointer',flexShrink:0}}/>
-                <span style={{fontSize:12,color:S.ink}}>{w.label}</span>
-              </label>
-            ))}
-          </div>
-          <div style={{borderTop:`1px solid ${S.border}`,display:'flex',padding:4,gap:4}}>
-            <button onClick={()=>setSelWeeks(weeks.map(w=>w.key))} style={{flex:1,padding:'3px 0',fontSize:11,fontWeight:500,color:S.blue,background:'none',border:'none',cursor:'pointer'}}>All</button>
-            <button onClick={()=>weeks.length&&setSelWeeks([weeks[0].key])} style={{flex:1,padding:'3px 0',fontSize:11,fontWeight:500,color:S.slateL,background:'none',border:'none',cursor:'pointer'}}>Latest</button>
+  // ── DATE RANGE PICKER ──
+  const DateRangePicker = () => {
+    const today = new Date();
+    const [viewYear, setViewYear] = useState(today.getFullYear());
+    const [viewMonth, setViewMonth] = useState(today.getMonth());
+    const prevMonth = () => { if(viewMonth===0){setViewMonth(11);setViewYear(y=>y-1);}else setViewMonth(m=>m-1); };
+    const nextMonth = () => { if(viewMonth===11){setViewMonth(0);setViewYear(y=>y+1);}else setViewMonth(m=>m+1); };
+    const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const DAYS = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+    const buildCells = (yr,mo) => {
+      const first = new Date(yr,mo,1).getDay();
+      const last  = new Date(yr,mo+1,0).getDate();
+      const cells = [];
+      for(let i=0;i<first;i++) cells.push(null);
+      for(let d=1;d<=last;d++) cells.push(d);
+      return cells;
+    };
+    const toKey = (yr,mo,d) => `${yr}-${String(mo+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const inRange = k => { const {start,end}=dateRange; return start&&end&&k>start&&k<end; };
+    const inHover = k => { if(!dateRange.start||dateRange.end||!calHover) return false; const lo=dateRange.start<calHover?dateRange.start:calHover, hi=dateRange.start<calHover?calHover:dateRange.start; return k>lo&&k<hi; };
+    const handleClick = k => {
+      if(!allDays.includes(k)) return;
+      const {start,end} = dateRange;
+      if(!start||(start&&end)) { setDateRange({start:k,end:''}); }
+      else { if(k===start){setDateRange({start:'',end:''});return;} const lo=k<start?k:start,hi=k<start?start:k; setDateRange({start:lo,end:hi}); setCalOpen(false); }
+    };
+    const renderMonth = (yr,mo) => {
+      const cells = buildCells(yr,mo);
+      return (
+        <div style={{minWidth:196}}>
+          <div style={{textAlign:'center',fontSize:12,fontWeight:600,color:S.ink,marginBottom:8,padding:'0 2px'}}>{MONTHS[mo]} {yr}</div>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:2}}>
+            {DAYS.map(d=><div key={d} style={{fontSize:9,fontWeight:700,color:S.muted,textAlign:'center',padding:'2px 0'}}>{d}</div>)}
+            {cells.map((day,ci)=>{
+              if(!day) return <div key={ci}/>;
+              const k=toKey(yr,mo,day);
+              const hasDat=allDays.includes(k);
+              const isS=k===dateRange.start, isE=k===dateRange.end;
+              const mid=inRange(k)||inHover(k);
+              const isHE=!dateRange.end&&k===calHover&&hasDat;
+              const isTod=k===today.toISOString().slice(0,10);
+              const isWknd=new Date(k).getDay()===0||new Date(k).getDay()===6;
+              let bg='transparent',col=hasDat?(isWknd?S.muted:S.ink):'#CBD5E1',fw=400,br=4;
+              if(isS||isE)    {bg=S.blue;col='#fff';fw=700;}
+              else if(isHE)   {bg='#93C5FD';col=S.navy;}
+              else if(mid)    {bg='#DBEAFE';col=S.blue;br=0;}
+              return (
+                <div key={ci} onClick={()=>handleClick(k)}
+                  onMouseEnter={()=>setCalHover(k)} onMouseLeave={()=>setCalHover(null)}
+                  style={{textAlign:'center',padding:'4px 2px',fontSize:11,borderRadius:br,
+                    background:bg,color:col,fontWeight:fw,
+                    cursor:hasDat?'pointer':'default',
+                    boxShadow:isTod&&!isS&&!isE?`inset 0 0 0 1px ${S.borderM}`:'none',
+                    opacity:hasDat?1:0.25,userSelect:'none',transition:'background .08s'}}>
+                  {day}
+                </div>
+              );
+            })}
           </div>
         </div>
-      )}
-    </div>
-  );
+      );
+    };
+    const m2=viewMonth===11?0:viewMonth+1, y2=viewMonth===11?viewYear+1:viewYear;
+    return (
+      <div className="wdd" style={{position:'relative',flexShrink:0}}>
+        <button onClick={()=>setCalOpen(v=>!v)}
+          style={{height:28,padding:'0 8px 0 10px',fontSize:12,
+            border:`1px solid ${dateRange.start?S.blue:S.border}`,borderRadius:4,
+            background:dateRange.start?'#EBF4FB':S.white,
+            color:dateRange.start?S.blue:S.ink,cursor:'pointer',
+            display:'flex',alignItems:'center',gap:5,outline:'none',minWidth:170,maxWidth:260,
+            fontWeight:dateRange.start?600:400}}>
+          <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1,textAlign:'left',fontSize:12}}>{rangeLabel()}</span>
+          {dateRange.start&&<span onClick={e=>{e.stopPropagation();setDateRange({start:'',end:''});}}
+            style={{display:'flex',alignItems:'center',cursor:'pointer',color:S.muted,flexShrink:0,padding:2}}><X size={10}/></span>}
+          <ChevronDown size={11} style={{flexShrink:0,transform:calOpen?'rotate(180deg)':'none',transition:'.15s'}}/>
+        </button>
+        {calOpen&&(
+          <div style={{position:'absolute',top:'calc(100% + 6px)',right:0,background:S.white,
+            border:`1px solid ${S.border}`,borderRadius:8,
+            boxShadow:'0 8px 32px rgba(0,0,0,.15)',zIndex:200,padding:14,userSelect:'none',minWidth:440}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+              <button onClick={prevMonth} style={{background:'none',border:'none',cursor:'pointer',color:S.slate,padding:'2px 8px',borderRadius:3,fontSize:16,lineHeight:1}}>‹</button>
+              <div style={{fontSize:11,color:S.muted}}>
+                {!dateRange.start&&!dateRange.end&&'Click a start date'}
+                {dateRange.start&&!dateRange.end&&<span style={{color:S.blue,fontWeight:500}}>Now click an end date</span>}
+                {dateRange.start&&dateRange.end&&<span style={{color:S.green,fontWeight:600}}>✓ {rangeLabel()}</span>}
+              </div>
+              <button onClick={nextMonth} style={{background:'none',border:'none',cursor:'pointer',color:S.slate,padding:'2px 8px',borderRadius:3,fontSize:16,lineHeight:1}}>›</button>
+            </div>
+            <div style={{display:'flex',gap:20}}>{renderMonth(viewYear,viewMonth)}{renderMonth(y2,m2)}</div>
+            <div style={{borderTop:`1px solid ${S.border}`,marginTop:10,paddingTop:8,display:'flex',gap:6,flexWrap:'wrap'}}>
+              {[
+                ['This week',()=>{const n=new Date(),dw=n.getDay()||7,m=new Date(n);m.setDate(n.getDate()-(dw-1));const f=new Date(m);f.setDate(m.getDate()+4);setDateRange({start:m.toISOString().slice(0,10),end:f.toISOString().slice(0,10)});setCalOpen(false);}],
+                ['Last week',()=>{const n=new Date(),dw=n.getDay()||7,m=new Date(n);m.setDate(n.getDate()-(dw-1));const lm=new Date(m);lm.setDate(m.getDate()-7);const lf=new Date(lm);lf.setDate(lm.getDate()+4);setDateRange({start:lm.toISOString().slice(0,10),end:lf.toISOString().slice(0,10)});setCalOpen(false);}],
+                ['Last 30d',()=>{const n=new Date(),a=new Date();a.setDate(n.getDate()-30);setDateRange({start:a.toISOString().slice(0,10),end:n.toISOString().slice(0,10)});setCalOpen(false);}],
+                ['This month',()=>{const n=new Date();const s=`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-01`;setDateRange({start:s,end:n.toISOString().slice(0,10)});setCalOpen(false);}],
+                ['All data',()=>{setDateRange({start:minDate,end:maxDate});setCalOpen(false);}],
+              ].map(([lbl,fn])=>(
+                <button key={lbl} onClick={fn} style={{padding:'3px 9px',fontSize:11,fontWeight:500,border:`1px solid ${S.border}`,borderRadius:4,background:S.cloud,color:S.slate,cursor:'pointer'}}>{lbl}</button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   // ── LOADING / ERROR ──
   if(loading) return (
@@ -527,7 +663,7 @@ export default function App() {
           justifyContent:sideOff?'center':'space-between',
           padding:sideOff?'0':'0 12px 0 18px',
           borderBottom:'1px solid rgba(184,201,230,.1)',flexShrink:0}}>
-          {!sideOff&&<img src="/logo.png" alt="STOC" style={{height:26,filter:'brightness(0) invert(1)',opacity:.85}}/>}
+          {!sideOff&&<img src={LOGO_SRC} alt="STOC" style={{height:26,filter:'brightness(0) invert(1)',opacity:.85}} onError={e=>{e.target.style.display='none';}} />}
           <button onClick={()=>setSideOff(v=>!v)} style={{background:'none',border:'none',cursor:'pointer',color:'rgba(184,201,230,.5)',padding:4,display:'flex',alignItems:'center'}}>
             {sideOff?<ChevronRight size={14}/>:<ChevronLeft size={14}/>}
           </button>
@@ -576,8 +712,8 @@ export default function App() {
 
             {/* Week picker */}
             <div style={{display:'flex',alignItems:'center',gap:5}}>
-              <span style={{fontSize:11,color:S.muted,fontWeight:500,whiteSpace:'nowrap'}}>Period</span>
-              <WeekPicker/>
+              <span style={{fontSize:11,color:S.muted,fontWeight:500,whiteSpace:'nowrap'}}>Date range</span>
+              <DateRangePicker/>
             </div>
 
             <div style={{width:1,height:16,background:S.border}}/>
@@ -731,7 +867,7 @@ export default function App() {
                                 </td>
                                 {/* Members — compact pills */}
                                 <td style={{padding:'5px 10px',overflow:'hidden',whiteSpace:'nowrap'}}>
-                                  {mems.map(([n,h],mi)=>(
+                                  {mems.slice(0,3).map(([n,h],mi)=>(
                                     <span key={mi} style={{display:'inline-flex',alignItems:'center',gap:2,
                                       background:S.cloud,border:`1px solid ${S.border}`,
                                       borderRadius:3,padding:'1px 5px',marginRight:3,fontSize:11,whiteSpace:'nowrap',flexShrink:0}}>
@@ -739,6 +875,14 @@ export default function App() {
                                       <span style={{color:S.muted,fontVariantNumeric:'tabular-nums'}}>{h.toFixed(0)}h</span>
                                     </span>
                                   ))}
+                                  {mems.length>3&&(
+                                    <span title={mems.slice(3).map(([n,h])=>`${n.split(' ')[0]} ${h.toFixed(0)}h`).join(', ')}
+                                      style={{display:'inline-flex',alignItems:'center',padding:'1px 6px',
+                                        background:'#E2E8F0',border:`1px solid ${S.borderM}`,borderRadius:3,
+                                        fontSize:10,fontWeight:600,color:S.slateL,cursor:'default',whiteSpace:'nowrap',flexShrink:0}}>
+                                      +{mems.length-3}
+                                    </span>
+                                  )}
                                 </td>
                               </tr>
                             );
@@ -869,12 +1013,11 @@ export default function App() {
               <div style={{padding:'9px 14px',borderBottom:`1px solid ${S.border}`,background:S.cloud,
                 display:'flex',alignItems:'center',flexWrap:'wrap',gap:8,justifyContent:'space-between'}}>
                 <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
-                  {/* Client / project filter */}
                   <select value={gClient} onChange={e=>setGClient(e.target.value)}
                     style={{height:28,padding:'0 7px',fontSize:12,minWidth:140,
                       border:`1px solid ${gClient!=='all'?S.blue:S.border}`,borderRadius:4,
                       background:S.white,color:S.ink,cursor:'pointer',outline:'none',fontWeight:gClient!=='all'?600:400}}>
-                    <option value="all">All projects</option>
+                    <option value="all">All clients</option>
                     {allClients.filter(c=>c!=='OOO').map(c=><option key={c} value={c}>{c}</option>)}
                   </select>
                   {gClient!=='all'&&(
@@ -883,25 +1026,22 @@ export default function App() {
                       <X size={11}/>Clear
                     </button>
                   )}
-
-                  {/* Legend */}
+                  {/* Active-client legend */}
                   <div style={{display:'flex',flexWrap:'wrap',gap:'3px 10px',marginLeft:4}}>
-                    {Object.entries(CC).filter(([c])=>
-                      c!=='Other'&&c!=='OOO'&&ganttData.names.some(n=>
-                        ganttData.weeks.some(w=>ganttData.grid[n]?.[w.key]?.clients[c]>0)
+                    {[...new Set(
+                      ganttData.names.flatMap(n =>
+                        ganttData.days.flatMap(d => Object.keys(ganttData.grid[n]?.[d.key]?.clients||{}))
                       )
-                    ).map(([c,col])=>(
+                    )].map(c=>(
                       <div key={c} style={{display:'flex',alignItems:'center',gap:3}}>
-                        <div style={{width:9,height:9,borderRadius:2,background:col.bar,flexShrink:0}}/>
+                        <div style={{width:9,height:9,borderRadius:2,background:cCol(c).bar,flexShrink:0}}/>
                         <span style={{fontSize:10,color:S.slateL}}>{c}</span>
                       </div>
                     ))}
                   </div>
                 </div>
-
-                {/* Download + count */}
                 <div style={{display:'flex',alignItems:'center',gap:8,flexShrink:0}}>
-                  <span style={{fontSize:11,color:S.muted}}>{ganttData.names.length} people · {ganttData.weeks.length} weeks</span>
+                  <span style={{fontSize:11,color:S.muted}}>{ganttData.names.length} people · {ganttData.days.length} days</span>
                   <button onClick={downloadGantt}
                     style={{height:28,padding:'0 9px',fontSize:11,border:`1px solid ${S.border}`,borderRadius:4,background:S.white,color:S.slate,cursor:'pointer',display:'flex',alignItems:'center',gap:4,outline:'none'}}>
                     <Download size={11}/> CSV
@@ -911,7 +1051,7 @@ export default function App() {
 
               {ganttData.names.length===0&&(
                 <div style={{padding:'48px 16px',textAlign:'center',color:S.muted}}>
-                  No data for selected period. Try selecting weeks in the Period picker above.
+                  No data for selected period. Select weeks using the Period picker above.
                 </div>
               )}
 
@@ -920,15 +1060,43 @@ export default function App() {
                   <table style={{borderCollapse:'collapse',tableLayout:'fixed',minWidth:'100%'}}>
                     <colgroup>
                       <col style={{width:174,minWidth:150}}/>
-                      {ganttData.weeks.map(w=><col key={w.key} style={{minWidth:80}}/>)}
+                      {ganttData.days.map(d=><col key={d.key} style={{minWidth:d.isWeekend?28:52,width:d.isWeekend?28:52}}/>)}
                     </colgroup>
                     <thead>
+                      {/* Month/week separator row */}
+                      <tr style={{background:S.cloud}}>
+                        <th style={{...TH(false,16),position:'sticky',left:0,zIndex:3,background:S.cloud,borderBottom:'none'}}/>
+                        {(() => {
+                          // Group consecutive days by week for a "week band" header
+                          const bands = [];
+                          ganttData.days.forEach(d => {
+                            const last = bands[bands.length-1];
+                            if(last && last.weekKey===d.weekKey) { last.count++; last.endLabel=d.label; }
+                            else bands.push({weekKey:d.weekKey, label:d.label, endLabel:d.label, count:1});
+                          });
+                          return bands.map((b,i)=>(
+                            <th key={i} colSpan={b.count}
+                              style={{padding:'3px 4px',fontSize:9,fontWeight:700,color:S.slate,
+                                textAlign:'center',background:S.cloud,
+                                borderBottom:`1px solid ${S.borderM}`,
+                                borderLeft:`1px solid ${S.borderM}`,whiteSpace:'nowrap'}}>
+                              {b.label}{b.count>1?` – ${b.endLabel}`:''}
+                            </th>
+                          ));
+                        })()}
+                      </tr>
+                      {/* Day header row */}
                       <tr style={{borderBottom:`2px solid ${S.borderM}`}}>
                         <th style={{...TH(false,16),position:'sticky',left:0,zIndex:3,background:S.cloud}}>Person</th>
-                        {ganttData.weeks.map(w=>(
-                          <th key={w.key} style={{...TH(false,4),padding:'6px 6px',fontSize:9,background:S.cloud,textAlign:'center',lineHeight:1.3}}>
-                            <div style={{fontWeight:700,color:S.slate,whiteSpace:'nowrap'}}>{w.label.split(' – ')[0]}</div>
-                            <div style={{fontWeight:400,color:S.muted,fontSize:9,whiteSpace:'nowrap'}}>{(w.label.split(' – ')[1]||'').replace(/,\s*\d{4}/,'')}</div>
+                        {ganttData.days.map(d=>(
+                          <th key={d.key}
+                            style={{...TH(false,2),padding:'4px 2px',fontSize:9,
+                              background:d.isWeekend?'#F0F0F4':S.cloud,
+                              textAlign:'center',lineHeight:1.2,
+                              borderLeft:`1px solid ${S.border}`,
+                              color:d.isWeekend?S.muted:S.slate}}>
+                            <div style={{fontWeight:600}}>{d.dow}</div>
+                            {!d.isWeekend&&<div style={{fontWeight:400,fontSize:8,color:S.muted}}>{d.label.split(' ')[1]}</div>}
                           </th>
                         ))}
                       </tr>
@@ -936,24 +1104,26 @@ export default function App() {
                     <tbody>
                       {ganttData.names.map((name,i)=>(
                         <tr key={i} style={{borderBottom:`1px solid ${S.border}`,background:i%2===1?S.cloud:S.white}}>
-                          {/* Name — sticky */}
-                          <td style={{padding:'5px 16px',fontSize:12,fontWeight:500,color:S.ink,
+                          <td style={{padding:'4px 16px',fontSize:12,fontWeight:500,color:S.ink,
                             whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',
                             position:'sticky',left:0,zIndex:1,
                             background:i%2===1?S.cloud:S.white,
                             borderBottom:`1px solid ${S.border}`}}>
                             {name}
                           </td>
-                          {/* Week cells */}
-                          {ganttData.weeks.map(w=>{
-                            const cell = ganttData.grid[name]?.[w.key]||{clients:{},ooo:0,total:0,util:null};
+                          {ganttData.days.map(d=>{
+                            const cell = ganttData.grid[name]?.[d.key]||{clients:{},ooo:0,total:0,util:null};
+                            if(d.isWeekend){
+                              // Weekend — just a shaded cell, no bar
+                              return <td key={d.key} style={{background:'#F0F0F4',borderLeft:`1px solid ${S.border}`,borderBottom:`1px solid ${S.border}`}}/>;
+                            }
                             const segments = Object.entries(cell.clients)
                               .map(([client,h])=>({client,h}))
                               .sort((a,b)=>b.h-a.h);
                             if(cell.ooo>0) segments.push({client:'OOO',h:cell.ooo,isOoo:true});
                             return(
-                              <td key={w.key} style={{padding:'4px 5px',borderBottom:`1px solid ${S.border}`,verticalAlign:'top'}}>
-                                <GanttCell segments={segments} util={cell.util} name={name} weekLabel={w.label}/>
+                              <td key={d.key} style={{padding:'3px 3px',borderBottom:`1px solid ${S.border}`,borderLeft:`1px solid ${S.border}`,verticalAlign:'top'}}>
+                                <GanttCell segments={segments} util={cell.util} name={name} weekLabel={`${d.dow} ${d.label}`}/>
                               </td>
                             );
                           })}
