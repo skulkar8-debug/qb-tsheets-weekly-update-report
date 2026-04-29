@@ -565,7 +565,7 @@ function DashboardPage({ clientGroups, totalBillHrs, pSearch, setPSearch, pClien
           })()}
 
           {/* ── PROJECTS TABLE — always visible, filtered when a bar is clicked ── */}
-          <div style={{background:S.white,border:`1px solid ${S.border}`,borderRadius:5,overflow:'hidden'}}>
+          <div className="dash-chart" style={{background:S.white,border:`1px solid ${S.border}`,borderRadius:5,overflow:'hidden'}}>
             {/* Table header */}
             <div style={{padding:'9px 14px',borderBottom:`1px solid ${S.border}`,background:S.cloud,
               display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',justifyContent:'space-between'}}>
