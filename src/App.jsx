@@ -10,7 +10,7 @@ import {
   LayoutDashboard, Users, AlertTriangle, BarChart2,
   Search, RefreshCw, AlertCircle, ChevronDown, ChevronLeft, ChevronRight, X, Download
 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, ResponsiveContainer, Cell, PieChart, Pie, Sector } from 'recharts';
 
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/18vkNRZv5A2Xz3CVAFDExX5vbgM_jyLu0bPh0XzoQYDA/export?format=csv';
 const CDS_TEAM = new Set(['Mohit Sharma','Rakesh Nayak','Sharvan Pandey','Stefan Joseph','Jogendra Singh','Ramya D','Vaishnav Govind']);
@@ -399,58 +399,168 @@ function DashboardPage({ clientGroups, totalBillHrs, pSearch, setPSearch, pClien
 
       {clientGroups.length>0&&(
         <div>
-          {/* ── COLUMN CHART ── */}
-          <div style={{background:S.white,border:`1px solid ${S.border}`,borderRadius:5,overflow:'hidden',marginBottom:14}}>
-            <div style={{padding:'10px 16px',borderBottom:`1px solid ${S.border}`,background:S.cloud,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-              <span style={{fontSize:12,fontWeight:600,color:S.navy}}>Hours by Client</span>
-              <span style={{fontSize:11,color:S.muted}}>Click a bar to filter the table below</span>
-            </div>
-            <div style={{padding:'16px 16px 8px',overflowX:'auto'}}>
-              <ResponsiveContainer width="100%" height={CHART_H}>
-                <BarChart data={chartData} margin={{top:16,right:16,bottom:70,left:8}} barCategoryGap="25%"
-                  onClick={d=>{if(!d?.activePayload)return;const cl=d.activePayload[0]?.payload?.client;setSelClient(p=>{if(p===cl)return null;setDetailSearch('');return cl;})}}>
-                  <CartesianGrid strokeDasharray="2 2" vertical={false} stroke={S.border}/>
-                  <XAxis dataKey="client" height={52}
-                    tick={({x,y,payload})=>{
-                      const val=payload.value, words=val.split(' '), sel=selClient===val;
-                      const lines=[]; let cur='';
-                      words.forEach(w=>{if(cur&&(cur+' '+w).length>12){lines.push(cur);cur=w;}else{cur=cur?cur+' '+w:w;}});
-                      if(cur) lines.push(cur);
-                      return(
-                        <g transform={`translate(${x},${y+4})`}>
-                          {lines.map((line,li)=>(
-                            <text key={li} x={0} y={li*13} dy={11} fontSize={10}
-                              fill={sel?S.blue:S.ink} fontFamily="Inter,sans-serif"
-                              fontWeight={sel?700:500} textAnchor="middle">{line}</text>
+          {/* ── CHART: bar when ≤15 clients, pie when >15 ── */}
+          {(()=>{
+            const usePie = chartData.length > 15;
+            const totalHours = chartData.reduce((s,d)=>s+d.hours,0);
+            return (
+              <div style={{background:S.white,border:`1px solid ${S.border}`,borderRadius:5,overflow:'hidden',marginBottom:14}}>
+                <div style={{padding:'10px 16px',borderBottom:`1px solid ${S.border}`,background:S.cloud,
+                  display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                  <span style={{fontSize:12,fontWeight:600,color:S.navy}}>Hours by Client</span>
+                  <span style={{fontSize:11,color:S.muted}}>
+                    {usePie ? 'Click a slice to filter the table below' : 'Click a bar to filter the table below'}
+                  </span>
+                </div>
+
+                {/* ── BAR CHART (≤15 clients) ── */}
+                {!usePie&&(
+                  <div style={{padding:'16px 16px 8px',overflowX:'auto'}}>
+                    <ResponsiveContainer width="100%" height={CHART_H}>
+                      <BarChart data={chartData} margin={{top:16,right:16,bottom:70,left:8}} barCategoryGap="25%"
+                        onClick={d=>{if(!d?.activePayload)return;const cl=d.activePayload[0]?.payload?.client;setSelClient(p=>{if(p===cl)return null;setDetailSearch('');return cl;})}}>
+                        <CartesianGrid strokeDasharray="2 2" vertical={false} stroke={S.border}/>
+                        <XAxis dataKey="client" height={52}
+                          tick={({x,y,payload})=>{
+                            const val=payload.value,words=val.split(' '),sel=selClient===val;
+                            const lines=[];let cur='';
+                            words.forEach(w=>{if(cur&&(cur+' '+w).length>12){lines.push(cur);cur=w;}else{cur=cur?cur+' '+w:w;}});
+                            if(cur)lines.push(cur);
+                            return(
+                              <g transform={`translate(${x},${y+4})`}>
+                                {lines.map((line,li)=>(
+                                  <text key={li} x={0} y={li*13} dy={11} fontSize={10}
+                                    fill={sel?S.blue:S.ink} fontFamily="Inter,sans-serif"
+                                    fontWeight={sel?700:500} textAnchor="middle">{line}</text>
+                                ))}
+                              </g>
+                            );
+                          }}
+                          tickLine={false} axisLine={false} interval={0}/>
+                        <YAxis tick={{fontSize:10,fill:S.muted}} tickLine={false} axisLine={false}/>
+                        <RTooltip cursor={{fill:'rgba(20,116,196,.06)'}}
+                          content={({active,payload})=>{
+                            if(!active||!payload?.length)return null;
+                            const d=payload[0].payload;
+                            return(
+                              <div style={{background:S.navy,borderRadius:5,padding:'8px 12px',fontSize:11,boxShadow:'0 4px 16px rgba(0,0,0,.3)'}}>
+                                <div style={{fontWeight:700,color:S.sky,marginBottom:3}}>{d.client}</div>
+                                <div style={{color:'rgba(255,255,255,.85)'}}>{d.hours}h · {d.projs.length} projects</div>
+                                <div style={{color:'rgba(255,255,255,.45)',fontSize:10,marginTop:2}}>Click to {selClient===d.client?'deselect':'filter table'} ↓</div>
+                              </div>
+                            );
+                          }}/>
+                        <Bar dataKey="hours" radius={[3,3,0,0]} maxBarSize={48}>
+                          {chartData.map((entry,i)=>(
+                            <Cell key={i} fill={cCol(entry.client).bar}
+                              opacity={selClient&&selClient!==entry.client?0.25:0.9}
+                              cursor="pointer"/>
                           ))}
-                        </g>
-                      );
-                    }}
-                    tickLine={false} axisLine={false} interval={0}/>
-                  <YAxis tick={{fontSize:10,fill:S.muted}} tickLine={false} axisLine={false}/>
-                  <RTooltip cursor={{fill:'rgba(20,116,196,.06)'}}
-                    content={({active,payload})=>{
-                      if(!active||!payload?.length)return null;
-                      const d=payload[0].payload;
-                      return(
-                        <div style={{background:S.navy,borderRadius:5,padding:'8px 12px',fontSize:11,boxShadow:'0 4px 16px rgba(0,0,0,.3)'}}>
-                          <div style={{fontWeight:700,color:S.sky,marginBottom:3}}>{d.client}</div>
-                          <div style={{color:'rgba(255,255,255,.85)'}}>{d.hours}h · {d.projs.length} projects</div>
-                          <div style={{color:'rgba(255,255,255,.45)',fontSize:10,marginTop:2}}>Click to {selClient===d.client?'deselect':'filter table'} ↓</div>
-                        </div>
-                      );
-                    }}/>
-                  <Bar dataKey="hours" radius={[3,3,0,0]} maxBarSize={48}>
-                    {chartData.map((entry,i)=>(
-                      <Cell key={i} fill={cCol(entry.client).bar}
-                        opacity={selClient&&selClient!==entry.client?0.25:0.9}
-                        cursor="pointer"/>
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+
+                {/* ── PIE CHART + LEGEND (>15 clients) ── */}
+                {usePie&&(
+                  <div style={{display:'flex',alignItems:'flex-start',gap:0,padding:'16px'}}>
+                    {/* Pie */}
+                    <div style={{flexShrink:0,width:260,height:260}}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={chartData}
+                            dataKey="hours"
+                            nameKey="client"
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={60}
+                            outerRadius={110}
+                            paddingAngle={1}
+                            onClick={(d)=>{const cl=d.client;setSelClient(p=>{if(p===cl)return null;setDetailSearch('');return cl;});}}
+                            style={{cursor:'pointer'}}
+                          >
+                            {chartData.map((entry,i)=>(
+                              <Cell key={i}
+                                fill={cCol(entry.client).bar}
+                                opacity={selClient&&selClient!==entry.client?0.25:0.92}
+                                stroke={selClient===entry.client?S.white:'none'}
+                                strokeWidth={selClient===entry.client?2:0}
+                              />
+                            ))}
+                          </Pie>
+                          <RTooltip
+                            content={({active,payload})=>{
+                              if(!active||!payload?.length)return null;
+                              const d=payload[0].payload;
+                              const pct=totalHours>0?((d.hours/totalHours)*100).toFixed(1):0;
+                              return(
+                                <div style={{background:S.navy,borderRadius:5,padding:'8px 12px',fontSize:11,
+                                  boxShadow:'0 4px 16px rgba(0,0,0,.3)',pointerEvents:'none'}}>
+                                  <div style={{fontWeight:700,color:S.sky,marginBottom:3}}>{d.client}</div>
+                                  <div style={{color:'rgba(255,255,255,.85)'}}>{d.hours}h · {pct}% · {d.projs.length} projects</div>
+                                  <div style={{color:'rgba(255,255,255,.45)',fontSize:10,marginTop:2}}>
+                                    Click to {selClient===d.client?'deselect':'filter table'} ↓
+                                  </div>
+                                </div>
+                              );
+                            }}
+                          />
+                          {/* Center label */}
+                          {selClient&&(()=>{
+                            const sel=chartData.find(d=>d.client===selClient);
+                            const pct=sel&&totalHours>0?((sel.hours/totalHours)*100).toFixed(0):0;
+                            return(
+                              <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle"
+                                fontFamily="Inter,sans-serif">
+                                <tspan x="50%" dy="-8" fontSize={18} fontWeight={700} fill={cCol(selClient).bar}>
+                                  {pct}%
+                                </tspan>
+                                <tspan x="50%" dy={18} fontSize={10} fill={S.slateL}>
+                                  {selClient.length>12?selClient.slice(0,11)+'…':selClient}
+                                </tspan>
+                              </text>
+                            );
+                          })()}
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    {/* Legend — 2 column grid */}
+                    <div style={{flex:1,minWidth:0,paddingLeft:16,overflowY:'auto',maxHeight:260}}>
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'3px 12px'}}>
+                        {chartData.map((entry,i)=>{
+                          const pct=totalHours>0?((entry.hours/totalHours)*100).toFixed(1):0;
+                          const isSel=selClient===entry.client;
+                          const col=cCol(entry.client);
+                          return(
+                            <button key={i}
+                              onClick={()=>{setSelClient(p=>{if(p===entry.client)return null;setDetailSearch('');return entry.client;});}}
+                              style={{display:'flex',alignItems:'center',gap:7,padding:'5px 7px',
+                                borderRadius:4,border:`1px solid ${isSel?col.bar:S.border}`,
+                                background:isSel?col.bg:S.white,cursor:'pointer',textAlign:'left',
+                                opacity:selClient&&!isSel?0.45:1,transition:'all .12s',minWidth:0}}>
+                              <div style={{width:9,height:9,borderRadius:2,background:col.bar,flexShrink:0}}/>
+                              <div style={{minWidth:0,flex:1}}>
+                                <div style={{fontSize:11,fontWeight:isSel?700:500,color:isSel?col.text:S.ink,
+                                  overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',lineHeight:1.2}}>
+                                  {entry.client}
+                                </div>
+                                <div style={{fontSize:10,color:S.muted,fontVariantNumeric:'tabular-nums',lineHeight:1.2}}>
+                                  {entry.hours}h · {pct}%
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* ── PROJECTS TABLE — always visible, filtered when a bar is clicked ── */}
           <div style={{background:S.white,border:`1px solid ${S.border}`,borderRadius:5,overflow:'hidden'}}>
@@ -1234,14 +1344,24 @@ export default function App() {
                 <div style={{overflowX:'auto',overflowY:'auto',maxHeight:'calc(100vh - 200px)'}}>
                   <table style={{borderCollapse:'collapse',tableLayout:'fixed'}}>
                     <colgroup>
+                      {/* col 1: Name (sticky) */}
                       <col style={{width:170,minWidth:160}}/>
+                      {/* col 2: Total (sticky, right after name) */}
+                      <col style={{width:64,minWidth:60}}/>
+                      {/* col 3…N: one per day */}
                       {ganttData.days.map(d=><col key={d.key} style={{width:80,minWidth:76}}/>)}
-                      <col style={{width:72}}/>
                     </colgroup>
                     <thead style={{position:'sticky',top:0,zIndex:4}}>
-                      {/* Week band row */}
+                      {/* Week band row — spans: [Name] [Total] [week1 days…] [week2 days…] … */}
                       <tr style={{background:S.cloud}}>
-                        <th style={{background:S.cloud,borderBottom:`1px solid ${S.borderM}`,position:'sticky',left:0,zIndex:5}}/>
+                        {/* Name cell */}
+                        <th style={{background:S.cloud,borderBottom:`1px solid ${S.borderM}`,
+                          position:'sticky',left:0,zIndex:5}}/>
+                        {/* Total cell */}
+                        <th style={{background:S.cloud,borderBottom:`1px solid ${S.borderM}`,
+                          borderLeft:`2px solid ${S.borderM}`,
+                          position:'sticky',left:170,zIndex:5}}/>
+                        {/* Week bands — each spans its weekday count */}
                         {(()=>{
                           const bands=[];
                           ganttData.days.forEach(d=>{
@@ -1250,72 +1370,89 @@ export default function App() {
                             else bands.push({wk:d.weekKey,startLabel:d.label,endLabel:d.label,n:1});
                           });
                           return bands.map((b,i)=>(
-                            <th key={i} colSpan={b.n} style={{padding:'4px 6px',fontSize:10,fontWeight:700,color:S.slate,
-                              textAlign:'center',background:S.cloud,borderBottom:`1px solid ${S.borderM}`,
+                            <th key={i} colSpan={b.n} style={{padding:'4px 6px',fontSize:10,fontWeight:700,
+                              color:S.slate,textAlign:'center',background:S.cloud,
+                              borderBottom:`1px solid ${S.borderM}`,
                               borderLeft:`2px solid ${S.borderM}`,whiteSpace:'nowrap'}}>
                               {b.startLabel}{b.n>1?` – ${b.endLabel}`:''}
                             </th>
                           ));
                         })()}
-                        <th style={{background:S.cloud,borderBottom:`1px solid ${S.borderM}`,borderLeft:`2px solid ${S.borderM}`}}/>
                       </tr>
                       {/* Day header row */}
                       <tr style={{background:S.cloud,borderBottom:`2px solid ${S.borderM}`}}>
-                        <th style={{...TH(false,16),position:'sticky',left:0,zIndex:5,background:S.cloud,top:0}}>Person</th>
+                        {/* Name */}
+                        <th style={{...TH(false,16),position:'sticky',left:0,zIndex:5,background:S.cloud}}>
+                          Person
+                        </th>
+                        {/* Total — col 2, sticky */}
+                        <th style={{padding:'6px 8px',fontSize:10,fontWeight:700,textTransform:'uppercase',
+                          letterSpacing:'.05em',color:S.muted,background:S.cloud,textAlign:'right',
+                          borderLeft:`2px solid ${S.borderM}`,whiteSpace:'nowrap',
+                          position:'sticky',left:170,zIndex:5}}>
+                          Total
+                        </th>
+                        {/* Day columns */}
                         {ganttData.days.map(d=>(
                           <th key={d.key} style={{padding:'6px 4px',fontSize:10,fontWeight:600,
                             background:S.cloud,textAlign:'center',
-                            borderLeft:`1px solid ${S.border}`,color:S.slate,whiteSpace:'nowrap',
-                            borderBottom:'none'}}>
+                            borderLeft:`1px solid ${S.border}`,color:S.slate,whiteSpace:'nowrap'}}>
                             <div>{d.dow}</div>
                             <div style={{fontSize:9,fontWeight:400,color:S.muted}}>{d.label.split(' ')[1]}</div>
                           </th>
                         ))}
-                        <th style={{padding:'6px 8px',fontSize:10,fontWeight:700,textTransform:'uppercase',
-                          letterSpacing:'.05em',color:S.muted,background:S.cloud,textAlign:'right',
-                          borderLeft:`2px solid ${S.borderM}`,whiteSpace:'nowrap'}}>Total</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {ganttData.names.map((name,i)=>(
-                        <tr key={i} style={{borderBottom:`1px solid ${S.border}`,background:i%2===1?S.cloud:S.white}}>
-                          {/* Sticky name cell */}
-                          <td style={{padding:'6px 16px',fontSize:12,fontWeight:500,color:S.ink,
-                            whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',
-                            position:'sticky',left:0,zIndex:1,
-                            background:i%2===1?S.cloud:S.white,
-                            borderBottom:`1px solid ${S.border}`,minHeight:50}}>
-                            {name}
-                          </td>
-                          {/* Day cells */}
-                          {ganttData.days.map(d=>{
-                            const cell=ganttData.grid[name]?.[d.key]||{clients:{},total:0};
-                            return(
-                              <td key={d.key} style={{padding:'5px 5px',borderBottom:`1px solid ${S.border}`,
-                                borderLeft:`1px solid ${S.border}`,verticalAlign:'middle',minWidth:76}}>
-                                <GanttCell dayData={cell} name={name} dayLabel={`${d.dow} ${d.label}`}/>
-                              </td>
-                            );
-                          })}
-                          {/* Row total */}
-                          <td style={{padding:'6px 10px',textAlign:'right',fontSize:12,fontWeight:700,
-                            color:S.ink,fontVariantNumeric:'tabular-nums',whiteSpace:'nowrap',
-                            borderLeft:`2px solid ${S.borderM}`,borderBottom:`1px solid ${S.border}`,
-                            background:i%2===1?S.cloud:S.white}}>
-                            {(ganttData.rowTotals[name]||0).toFixed(1)}h
-                          </td>
-                        </tr>
-                      ))}
-                      {/* Column totals row */}
-                      <tr style={{background:'#EEF2F8',borderTop:`2px solid ${S.borderM}`,position:'sticky',bottom:0,zIndex:2}}>
+                      {ganttData.names.map((name,i)=>{
+                        const rowBg = i%2===1?S.cloud:S.white;
+                        const rowTotal = ganttData.rowTotals[name]||0;
+                        return(
+                          <tr key={i} style={{borderBottom:`1px solid ${S.border}`,background:rowBg}}>
+                            {/* col 1: Name — sticky */}
+                            <td style={{padding:'6px 16px',fontSize:12,fontWeight:500,color:S.ink,
+                              whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',
+                              position:'sticky',left:0,zIndex:2,background:rowBg,
+                              borderBottom:`1px solid ${S.border}`}}>
+                              {name}
+                            </td>
+                            {/* col 2: Row total — sticky, right after name */}
+                            <td style={{padding:'6px 8px',textAlign:'right',fontSize:12,fontWeight:700,
+                              color:rowTotal>0?S.blue:S.muted,
+                              fontVariantNumeric:'tabular-nums',whiteSpace:'nowrap',
+                              borderLeft:`2px solid ${S.borderM}`,borderBottom:`1px solid ${S.border}`,
+                              position:'sticky',left:170,zIndex:2,background:rowBg}}>
+                              {rowTotal>0?rowTotal.toFixed(1)+'h':'—'}
+                            </td>
+                            {/* col 3…N: Day cells */}
+                            {ganttData.days.map(d=>{
+                              const cell=ganttData.grid[name]?.[d.key]||{clients:{},total:0};
+                              return(
+                                <td key={d.key} style={{padding:'5px 5px',borderBottom:`1px solid ${S.border}`,
+                                  borderLeft:`1px solid ${S.border}`,verticalAlign:'middle',minWidth:76}}>
+                                  <GanttCell dayData={cell} name={name} dayLabel={`${d.dow} ${d.label}`}/>
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        );
+                      })}
+                      {/* Footer totals row */}
+                      <tr style={{background:'#EEF2F8',borderTop:`2px solid ${S.borderM}`,
+                        position:'sticky',bottom:0,zIndex:3}}>
+                        {/* col 1: "Total" label */}
                         <td style={{padding:'7px 16px',fontSize:11,fontWeight:700,color:S.navy,
-                          position:'sticky',left:0,background:'#EEF2F8',zIndex:3}}>Total</td>
+                          position:'sticky',left:0,zIndex:4,background:'#EEF2F8'}}>
+                          Total
+                        </td>
+                        {/* col 2: grand total */}
                         <td style={{padding:'7px 8px',textAlign:'right',fontSize:12,fontWeight:700,
                           color:S.navy,fontVariantNumeric:'tabular-nums',
-                          borderLeft:`2px solid ${S.borderM}`,background:'#EEF2F8',
-                          position:'sticky',left:170,zIndex:3}}>
+                          borderLeft:`2px solid ${S.borderM}`,
+                          position:'sticky',left:170,zIndex:4,background:'#EEF2F8'}}>
                           {ganttData.names.reduce((s,n)=>s+(ganttData.rowTotals[n]||0),0).toFixed(1)}h
                         </td>
+                        {/* col 3…N: column day totals */}
                         {ganttData.days.map(d=>{
                           const t=ganttData.colTotals[d.key]||0;
                           return(
