@@ -223,7 +223,7 @@ function GanttCell({ dayData, name, dayLabel }) {
         ? <span style={{fontSize:9,color:'#D1D5DB'}}>—</span>
         : <>
             <span style={{fontSize:12,fontWeight:700,color:col.text,fontVariantNumeric:'tabular-nums',lineHeight:1}}>
-              {total}h
+              {total % 1 === 0 ? total : parseFloat(total.toFixed(2))}h
             </span>
             {clients.length > 1 && (
               <div style={{display:'flex',gap:2,marginTop:1}}>
@@ -246,11 +246,11 @@ function GanttCell({ dayData, name, dayLabel }) {
             <div key={i} style={{display:'flex',alignItems:'center',gap:7,marginBottom:3}}>
               <div style={{width:8,height:8,borderRadius:2,background:cCol(cl).bar,flexShrink:0}}/>
               <span style={{flex:1,color:'rgba(255,255,255,.85)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{cl}</span>
-              <span style={{color:S.sky,fontWeight:600,fontVariantNumeric:'tabular-nums',flexShrink:0}}>{h}h</span>
+              <span style={{color:S.sky,fontWeight:600,fontVariantNumeric:'tabular-nums',flexShrink:0}}>{parseFloat(h.toFixed(2))}h</span>
             </div>
           ))}
           <div style={{borderTop:'1px solid rgba(255,255,255,.15)',marginTop:5,paddingTop:5,fontSize:10,color:'rgba(255,255,255,.5)'}}>
-            Total: {total}h
+            Total: {parseFloat(total.toFixed(2))}h
           </div>
         </div>
       )}
@@ -824,7 +824,7 @@ function GanttGrid({ ganttData, TH, S, cCol }) {
                     fontSize:12,fontWeight:700,fontVariantNumeric:'tabular-nums',
                     color:rowTotal>0?S.blue:S.muted,
                     borderLeft:`1px solid ${S.border}`,flexShrink:0}}>
-                    {rowTotal>0?rowTotal+'h':'—'}
+                    {rowTotal>0?parseFloat(rowTotal.toFixed(2))+'h':'—'}
                   </div>
                 </div>
               );
@@ -839,7 +839,7 @@ function GanttGrid({ ganttData, TH, S, cCol }) {
           <div style={{width:68,minWidth:68,padding:'0 8px',textAlign:'right',
             fontSize:12,fontWeight:700,color:S.navy,fontVariantNumeric:'tabular-nums',
             borderLeft:`1px solid ${S.border}`,flexShrink:0}}>
-            {grandTotal}h
+            {parseFloat(grandTotal.toFixed(2))}h
           </div>
         </div>
       </div>
@@ -928,7 +928,7 @@ function GanttGrid({ ganttData, TH, S, cCol }) {
                   display:'flex',alignItems:'center',justifyContent:'center',
                   fontSize:11,fontWeight:600,color:t>0?S.blue:S.muted,
                   fontVariantNumeric:'tabular-nums'}}>
-                  {t>0?t+'h':''}
+                  {t>0?parseFloat(t.toFixed(2))+'h':''}
                 </div>
               );
             })}
@@ -1197,7 +1197,7 @@ export default function App() {
               d.dow,           // Mon, Tue…
               d.weekKey || mondayKey(d.key) || '',  // week starting date
               client,
-              hrs,  // raw unrounded value — exact for billing
+              parseFloat(hrs.toFixed(2)),  // 2 decimal places for billing
             ]);
           }
         });
