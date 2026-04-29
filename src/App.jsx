@@ -741,6 +741,196 @@ function DashboardPage({ clientGroups, totalBillHrs, pSearch, setPSearch, pClien
   );
 }
 
+// ── GANTT GRID — two-table layout: fixed left panel + scrolling right panel ──
+// CSS position:sticky breaks inside any element with overflow set on both axes.
+// Solution: split into two tables side by side. Left table never scrolls (Name+Total).
+// Right table scrolls horizontally. Row heights are synced via useRef.
+function GanttGrid({ ganttData, TH, S, cCol }) {
+  const leftRef  = useRef(null);
+  const rightRef = useRef(null);
+
+  // Sync vertical scroll between left and right panels
+  const onRightScroll = () => {
+    if(leftRef.current && rightRef.current)
+      leftRef.current.scrollTop = rightRef.current.scrollTop;
+  };
+  const onLeftScroll = () => {
+    if(leftRef.current && rightRef.current)
+      rightRef.current.scrollTop = leftRef.current.scrollTop;
+  };
+
+  const ROW_H   = 48;  // px — fixed row height, same on both sides
+  const HDR1_H  = 26;  // week band header
+  const HDR2_H  = 36;  // day name header
+  const FOOT_H  = 34;  // footer totals
+  const MAX_H   = 'calc(100vh - 240px)';
+
+  // Week bands for right header
+  const bands = [];
+  ganttData.days.forEach(d=>{
+    const last=bands[bands.length-1];
+    if(last&&last.wk===d.weekKey){last.n++;last.endLabel=d.label;}
+    else bands.push({wk:d.weekKey,startLabel:d.label,endLabel:d.label,n:1});
+  });
+
+  const grandTotal = ganttData.names.reduce((s,n)=>s+(ganttData.rowTotals[n]||0),0);
+
+  const thStyle = {
+    fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'.06em',
+    color:S.muted,background:S.cloud,whiteSpace:'nowrap',userSelect:'none',
+  };
+
+  return (
+    <div style={{display:'flex',overflow:'hidden'}}>
+
+      {/* ── LEFT PANEL: Person + Total (never scrolls horizontally) ── */}
+      <div style={{flexShrink:0,display:'flex',flexDirection:'column',
+        borderRight:`3px solid ${S.borderM}`,
+        boxShadow:'4px 0 8px -2px rgba(0,0,0,.1)',zIndex:3}}>
+
+        {/* Week band spacer */}
+        <div style={{height:HDR1_H,background:S.cloud,borderBottom:`1px solid ${S.borderM}`,flexShrink:0}}/>
+        {/* Day header */}
+        <div style={{height:HDR2_H,background:S.cloud,borderBottom:`2px solid ${S.borderM}`,
+          display:'flex',alignItems:'center',flexShrink:0}}>
+          <div style={{...thStyle,padding:'0 8px 0 16px',width:170,minWidth:170}}>Person</div>
+          <div style={{...thStyle,padding:'0 8px',width:68,minWidth:68,textAlign:'right',
+            borderLeft:`1px solid ${S.border}`}}>Total</div>
+        </div>
+        {/* Body rows */}
+        <div ref={leftRef} onScroll={onLeftScroll}
+          style={{overflowY:'auto',maxHeight:MAX_H,scrollbarWidth:'none',msOverflowStyle:'none'}}>
+          <style>{'.left-scroll::-webkit-scrollbar{display:none}'}</style>
+          <div className="left-scroll">
+            {ganttData.names.map((name,i)=>{
+              const rowBg=i%2===1?S.cloud:S.white;
+              const rowTotal=ganttData.rowTotals[name]||0;
+              return(
+                <div key={i} style={{display:'flex',alignItems:'center',height:ROW_H,
+                  background:rowBg,borderBottom:`1px solid ${S.border}`}}>
+                  <div style={{width:170,minWidth:170,padding:'0 12px 0 16px',
+                    fontSize:12,fontWeight:500,color:S.ink,
+                    overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>
+                    {name}
+                  </div>
+                  <div style={{width:68,minWidth:68,padding:'0 8px',textAlign:'right',
+                    fontSize:12,fontWeight:700,fontVariantNumeric:'tabular-nums',
+                    color:rowTotal>0?S.blue:S.muted,
+                    borderLeft:`1px solid ${S.border}`,flexShrink:0}}>
+                    {rowTotal>0?rowTotal.toFixed(1)+'h':'—'}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        {/* Footer */}
+        <div style={{height:FOOT_H,background:'#EEF2F8',borderTop:`2px solid ${S.borderM}`,
+          display:'flex',alignItems:'center',flexShrink:0}}>
+          <div style={{width:170,minWidth:170,padding:'0 12px 0 16px',
+            fontSize:11,fontWeight:700,color:S.navy}}>Total</div>
+          <div style={{width:68,minWidth:68,padding:'0 8px',textAlign:'right',
+            fontSize:12,fontWeight:700,color:S.navy,fontVariantNumeric:'tabular-nums',
+            borderLeft:`1px solid ${S.border}`,flexShrink:0}}>
+            {grandTotal.toFixed(1)}h
+          </div>
+        </div>
+      </div>
+
+      {/* ── RIGHT PANEL: Day columns (scrolls horizontally + vertically) ── */}
+      <div style={{flex:1,minWidth:0,display:'flex',flexDirection:'column',overflow:'hidden'}}>
+
+        {/* Week band header — does NOT scroll vertically */}
+        <div style={{overflowX:'hidden',flexShrink:0}}>
+          <div ref={el=>{if(el&&rightRef.current)el.scrollLeft=rightRef.current.scrollLeft}}
+            style={{display:'flex',height:HDR1_H,background:S.cloud,
+              borderBottom:`1px solid ${S.borderM}`,overflowX:'hidden'}}>
+            {bands.map((b,i)=>(
+              <div key={i} style={{
+                minWidth:b.n*80,width:b.n*80,
+                padding:'4px 6px',fontSize:10,fontWeight:700,color:S.slate,
+                textAlign:'center',whiteSpace:'nowrap',flexShrink:0,
+                borderLeft:i>0?`2px solid ${S.borderM}`:`1px solid ${S.border}`,
+                display:'flex',alignItems:'center',justifyContent:'center',
+              }}>
+                {b.startLabel}{b.n>1?` – ${b.endLabel}`:''}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Day name header — does NOT scroll vertically */}
+        <div style={{overflowX:'hidden',flexShrink:0}}>
+          <div id="gantt-hdr-right"
+            style={{display:'flex',height:HDR2_H,background:S.cloud,
+              borderBottom:`2px solid ${S.borderM}`,overflowX:'hidden'}}>
+            {ganttData.days.map(d=>(
+              <div key={d.key} style={{
+                width:80,minWidth:76,padding:'4px',flexShrink:0,
+                textAlign:'center',borderLeft:`1px solid ${S.border}`,
+                display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
+              }}>
+                <div style={{fontSize:10,fontWeight:600,color:S.slate}}>{d.dow}</div>
+                <div style={{fontSize:9,color:S.muted}}>{d.label.split(' ')[1]}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Body — scrolls both X and Y, syncs vertical with left panel */}
+        <div ref={rightRef} onScroll={e=>{
+            onRightScroll();
+            // sync week band and day headers scroll position
+            const hdr=document.getElementById('gantt-hdr-right');
+            const wb=hdr?.previousElementSibling;
+            if(hdr) hdr.scrollLeft=e.target.scrollLeft;
+            if(wb)  wb.scrollLeft=e.target.scrollLeft;
+          }}
+          style={{overflowX:'auto',overflowY:'auto',maxHeight:MAX_H,flex:1}}>
+          {ganttData.names.map((name,i)=>{
+            const rowBg=i%2===1?S.cloud:S.white;
+            return(
+              <div key={i} style={{display:'flex',height:ROW_H,
+                background:rowBg,borderBottom:`1px solid ${S.border}`}}>
+                {ganttData.days.map(d=>{
+                  const cell=ganttData.grid[name]?.[d.key]||{clients:{},total:0};
+                  return(
+                    <div key={d.key} style={{width:80,minWidth:76,flexShrink:0,
+                      padding:'5px 4px',borderLeft:`1px solid ${S.border}`,
+                      display:'flex',alignItems:'center',justifyContent:'center'}}>
+                      <GanttCell dayData={cell} name={name} dayLabel={`${d.dow} ${d.label}`}/>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Footer — day totals, scrolls X with body */}
+        <div style={{overflowX:'hidden',flexShrink:0}}>
+          <div id="gantt-footer-right"
+            style={{display:'flex',height:FOOT_H,background:'#EEF2F8',
+              borderTop:`2px solid ${S.borderM}`,overflowX:'hidden'}}>
+            {ganttData.days.map(d=>{
+              const t=ganttData.colTotals[d.key]||0;
+              return(
+                <div key={d.key} style={{width:80,minWidth:76,flexShrink:0,
+                  padding:'0 4px',borderLeft:`1px solid ${S.border}`,
+                  display:'flex',alignItems:'center',justifyContent:'center',
+                  fontSize:11,fontWeight:600,color:t>0?S.blue:S.muted,
+                  fontVariantNumeric:'tabular-nums'}}>
+                  {t>0?t.toFixed(0)+'h':''}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── MAIN APP ──
 export default function App() {
   const [rows,       setRows]      = useState([]);
@@ -766,6 +956,8 @@ export default function App() {
 
   // Team
   const [tSearch,   setTSearch]   = useState('');
+  const [tRisk,     setTRisk]     = useState('all'); // all | Over | Under | OK
+  const [tTeam,     setTTeam]     = useState('all'); // all | TAS | CDS
   const [tSort,     setTSort]     = useState({k:'util',d:'desc'});
   const [openRow,   setOpenRow]   = useState(null);
 
@@ -797,10 +989,14 @@ export default function App() {
   };
   useEffect(() => { load(); }, []);
   useEffect(() => {
-    const h = e => { if(!e.target.closest('.wdd')) setCalOpen(false); };
+    const h = e => {
+      if(!e.target.closest('.wdd')) setCalOpen(false);
+      // Click anywhere outside .team-row clears focused row
+      if(openRow && !e.target.closest('.team-row')) setOpenRow(null);
+    };
     document.addEventListener('mousedown', h);
     return () => document.removeEventListener('mousedown', h);
-  }, []);
+  }, [openRow]);
 
   // All days normalized to YYYY-MM-DD for reliable string comparison
   const allDays = useMemo(() => {
@@ -899,11 +1095,13 @@ export default function App() {
   const sortedTeam = useMemo(() => {
     let ms = Object.values(members);
     if(tSearch.trim()) ms = ms.filter(m=>m.name.toLowerCase().includes(tSearch.toLowerCase()));
+    if(tRisk!=='all')  ms = ms.filter(m=>m.risk===tRisk);
+    if(tTeam!=='all')  ms = ms.filter(m=>tTeam==='CDS'?m.isCDS:!m.isCDS);
     return ms.sort((a,b)=>{
       const av=a[tSort.k]??a.util, bv=b[tSort.k]??b.util;
       return tSort.d==='asc'?(av>bv?1:-1):(av>bv?-1:1);
     });
-  }, [members, tSearch, tSort]);
+  }, [members, tSearch, tSort, tRisk, tTeam]);
 
   // ── GANTT DATA — per-person, per DAY within selected weeks ──
   const ganttData = useMemo(() => {
@@ -1173,14 +1371,40 @@ export default function App() {
           )}
           {/* ══════════ TEAM ══════════ */}
           {page==='team'&&(
-            <div style={{background:S.white,border:`1px solid ${S.border}`,borderRadius:5,overflow:'hidden'}}>
-              <div style={{display:'flex',alignItems:'center',gap:8,padding:'9px 14px',borderBottom:`1px solid ${S.border}`,background:S.cloud}}>
+            <div style={{background:S.white,border:`1px solid ${S.border}`,borderRadius:5,overflow:'hidden',position:'relative'}}>
+              {/* Dim overlay — visible when a row is focused, click dismisses */}
+              {openRow&&<div onClick={()=>setOpenRow(null)} style={{position:'absolute',inset:0,background:'rgba(255,255,255,.01)',zIndex:1,cursor:'default'}}/>}
+              <div style={{display:'flex',alignItems:'center',flexWrap:'wrap',gap:7,padding:'9px 14px',borderBottom:`1px solid ${S.border}`,background:S.cloud}}>
+                {/* Search */}
                 <div style={{position:'relative'}}>
                   <Search size={12} color={S.muted} style={{position:'absolute',left:7,top:'50%',transform:'translateY(-50%)',pointerEvents:'none'}}/>
-                  <input value={tSearch} onChange={e=>setTSearch(e.target.value)} placeholder="Search…"
-                    style={{height:28,paddingLeft:25,width:170,fontSize:12,border:`1px solid ${S.border}`,borderRadius:4,background:S.white,color:S.ink,outline:'none',boxSizing:'border-box'}}/>
+                  <input value={tSearch} onChange={e=>{setTSearch(e.target.value);setOpenRow(null);}} placeholder="Search members…"
+                    style={{height:28,paddingLeft:25,paddingRight:tSearch?22:7,width:180,fontSize:12,border:`1px solid ${S.border}`,borderRadius:4,background:S.white,color:S.ink,outline:'none',boxSizing:'border-box'}}/>
+                  {tSearch&&<button onClick={()=>setTSearch('')} style={{position:'absolute',right:5,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:S.muted,display:'flex',alignItems:'center',padding:0}}><X size={11}/></button>}
                 </div>
-                <span style={{marginLeft:'auto',fontSize:11,color:S.muted}}>{sortedTeam.length} members</span>
+                {/* Team filter */}
+                <select value={tTeam} onChange={e=>{setTTeam(e.target.value);setOpenRow(null);}}
+                  style={{height:28,padding:'0 7px',fontSize:12,border:`1px solid ${tTeam!=='all'?S.blue:S.border}`,borderRadius:4,background:tTeam!=='all'?'#EBF4FB':S.white,color:tTeam!=='all'?S.blue:S.ink,cursor:'pointer',outline:'none',fontWeight:tTeam!=='all'?600:400}}>
+                  <option value="all">All teams</option>
+                  <option value="TAS">TAS only</option>
+                  <option value="CDS">CDS only</option>
+                </select>
+                {/* Risk filter */}
+                <select value={tRisk} onChange={e=>{setTRisk(e.target.value);setOpenRow(null);}}
+                  style={{height:28,padding:'0 7px',fontSize:12,border:`1px solid ${tRisk!=='all'?S.blue:S.border}`,borderRadius:4,background:tRisk!=='all'?'#EBF4FB':S.white,color:tRisk!=='all'?S.blue:S.ink,cursor:'pointer',outline:'none',fontWeight:tRisk!=='all'?600:400}}>
+                  <option value="all">All statuses</option>
+                  <option value="Over">At risk only</option>
+                  <option value="Under">Underutilized</option>
+                  <option value="OK">Healthy only</option>
+                </select>
+                {/* Clear */}
+                {(tSearch||tRisk!=='all'||tTeam!=='all')&&(
+                  <button onClick={()=>{setTSearch('');setTRisk('all');setTTeam('all');setOpenRow(null);}}
+                    style={{height:28,padding:'0 9px',fontSize:11,fontWeight:500,border:'1px solid #FECACA',borderRadius:4,background:'#FEF2F2',color:S.red,cursor:'pointer',display:'flex',alignItems:'center',gap:3}}>
+                    <X size={11}/>Clear
+                  </button>
+                )}
+                <span style={{marginLeft:'auto',fontSize:11,color:S.muted,whiteSpace:'nowrap'}}>{sortedTeam.length} members</span>
               </div>
               <div style={{overflowX:'auto'}}>
                 <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
@@ -1201,11 +1425,12 @@ export default function App() {
                       const isOpen=openRow===m.name;
                       const projs=Object.entries(m.jobs).filter(([jc])=>catOf(jc)!=='OOO').sort(([,a],[,b])=>b-a);
                       const uc=m.risk==='Over'?S.red:m.risk==='Under'?S.blue:S.green;
-                      const rowBg=isOpen?'#EBF4FB':m.risk==='Over'?'#FFF8F8':m.risk==='Under'?'#F8FBFF':i%2===1?S.cloud:S.white;
+                      const stripeBg=i%2===1?S.cloud:S.white;
+                      const rowBg=isOpen?'#EBF4FB':m.risk==='Over'?'#FFF8F8':m.risk==='Under'?'#F8FBFF':stripeBg;
                       const td0={borderBottom:`1px solid ${S.border}`,padding:'5px 12px',color:S.slate,fontVariantNumeric:'tabular-nums',verticalAlign:'middle'};
                       return(
                         <React.Fragment key={i}>
-                          <tr className="trow" onClick={()=>setOpenRow(isOpen?null:m.name)} style={{cursor:'pointer',background:rowBg}}>
+                          <tr className={`trow team-row${isOpen?' team-row-open':''}`} onClick={e=>{e.stopPropagation();setOpenRow(isOpen?null:m.name);}} style={{cursor:'pointer',background:rowBg,opacity:openRow&&!isOpen?0.35:1,transition:'opacity .18s'}}>
                             <td style={{...td0,paddingLeft:14}}>
                               <div style={{display:'flex',alignItems:'center',gap:5}}>
                                 {isOpen?<ChevronDown size={11} color={S.muted}/>:<ChevronRight size={11} color={S.muted}/>}
@@ -1235,7 +1460,7 @@ export default function App() {
                             <td style={{...td0,textAlign:'right',color:S.muted}}>{projs.length}</td>
                           </tr>
                           {isOpen&&(
-                            <tr style={{background:'#F8FAFC'}}>
+                            <tr className="team-row" style={{background:stripeBg}}>
                               <td colSpan={10} style={{padding:'0',borderBottom:`2px solid ${S.borderM}`}}>
                                 {(()=>{
                                   // Group this person's jobs by client, sort by hours desc
@@ -1432,139 +1657,7 @@ export default function App() {
               )}
 
               {dateRange.start&&dateRange.end&&(
-                <div style={{overflowY:'auto',maxHeight:'calc(100vh - 200px)'}}>
-                <div style={{overflowX:'auto'}}>
-                  <table style={{borderCollapse:'collapse',tableLayout:'fixed'}}>
-                    <colgroup>
-                      {/* col 1: Name (sticky) */}
-                      <col style={{width:170,minWidth:160}}/>
-                      {/* col 2: Total (sticky, right after name) */}
-                      <col style={{width:68,minWidth:68}}/>
-                      {/* col 3…N: one per day */}
-                      {ganttData.days.map(d=><col key={d.key} style={{width:80,minWidth:76}}/>)}
-                    </colgroup>
-                    <thead>
-                      {/* Week band row — spans: [Name] [Total] [week1 days…] [week2 days…] … */}
-                      <tr style={{background:S.cloud}}>
-                        {/* Name cell */}
-                        <th style={{background:S.cloud,borderBottom:`1px solid ${S.borderM}`,
-                          position:'sticky',left:0,zIndex:5}}/>
-                        {/* Total cell */}
-                        <th style={{background:S.cloud,borderBottom:`1px solid ${S.borderM}`,
-                          borderLeft:`2px solid ${S.borderM}`,
-                          boxShadow:'4px 0 6px -2px rgba(0,0,0,.08)',
-                          position:'sticky',left:170,zIndex:5}}/>
-                        {/* Week bands — each spans its weekday count */}
-                        {(()=>{
-                          const bands=[];
-                          ganttData.days.forEach(d=>{
-                            const last=bands[bands.length-1];
-                            if(last&&last.wk===d.weekKey){last.n++;last.endLabel=d.label;}
-                            else bands.push({wk:d.weekKey,startLabel:d.label,endLabel:d.label,n:1});
-                          });
-                          return bands.map((b,i)=>(
-                            <th key={i} colSpan={b.n} style={{padding:'4px 6px',fontSize:10,fontWeight:700,
-                              color:S.slate,textAlign:'center',background:S.cloud,
-                              borderBottom:`1px solid ${S.borderM}`,
-                              borderLeft:i===0?`1px solid ${S.border}`:`2px solid ${S.borderM}`,
-                              whiteSpace:'nowrap'}}>
-                              {b.startLabel}{b.n>1?` – ${b.endLabel}`:''}
-                            </th>
-                          ));
-                        })()}
-                      </tr>
-                      {/* Day header row */}
-                      <tr style={{background:S.cloud,borderBottom:`2px solid ${S.borderM}`}}>
-                        {/* Name */}
-                        <th style={{...TH(false,16),position:'sticky',left:0,zIndex:5,background:S.cloud,top:0}}>
-                          Person
-                        </th>
-                        {/* Total — col 2, sticky */}
-                        <th style={{padding:'6px 8px',fontSize:10,fontWeight:700,textTransform:'uppercase',
-                          letterSpacing:'.05em',color:S.muted,background:S.cloud,textAlign:'right',
-                          borderLeft:`2px solid ${S.borderM}`,whiteSpace:'nowrap',
-                          boxShadow:'4px 0 6px -2px rgba(0,0,0,.08)',
-                          position:'sticky',left:170,zIndex:5}}>
-                          Total
-                        </th>
-                        {/* Day columns */}
-                        {ganttData.days.map(d=>(
-                          <th key={d.key} style={{padding:'6px 4px',fontSize:10,fontWeight:600,
-                            background:S.cloud,textAlign:'center',
-                            borderLeft:`1px solid ${S.border}`,color:S.slate,whiteSpace:'nowrap'}}>
-                            <div>{d.dow}</div>
-                            <div style={{fontSize:9,fontWeight:400,color:S.muted}}>{d.label.split(' ')[1]}</div>
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {ganttData.names.map((name,i)=>{
-                        const rowBg = i%2===1?S.cloud:S.white;
-                        const rowTotal = ganttData.rowTotals[name]||0;
-                        return(
-                          <tr key={i} style={{borderBottom:`1px solid ${S.border}`,background:rowBg}}>
-                            {/* col 1: Name — sticky */}
-                            <td style={{padding:'6px 16px',fontSize:12,fontWeight:500,color:S.ink,
-                              whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',
-                              position:'sticky',left:0,zIndex:2,background:rowBg,
-                              borderBottom:`1px solid ${S.border}`}}>
-                              {name}
-                            </td>
-                            {/* col 2: Row total — sticky, right after name */}
-                            <td style={{padding:'6px 8px',textAlign:'right',fontSize:12,fontWeight:700,
-                              color:rowTotal>0?S.blue:S.muted,
-                              fontVariantNumeric:'tabular-nums',whiteSpace:'nowrap',
-                              borderLeft:`2px solid ${S.borderM}`,borderBottom:`1px solid ${S.border}`,
-                              boxShadow:'4px 0 6px -2px rgba(0,0,0,.08)',
-                              position:'sticky',left:170,zIndex:2,background:rowBg}}>
-                              {rowTotal>0?rowTotal.toFixed(1)+'h':'—'}
-                            </td>
-                            {/* col 3…N: Day cells */}
-                            {ganttData.days.map(d=>{
-                              const cell=ganttData.grid[name]?.[d.key]||{clients:{},total:0};
-                              return(
-                                <td key={d.key} style={{padding:'5px 5px',borderBottom:`1px solid ${S.border}`,
-                                  borderLeft:`1px solid ${S.border}`,verticalAlign:'middle',minWidth:76}}>
-                                  <GanttCell dayData={cell} name={name} dayLabel={`${d.dow} ${d.label}`}/>
-                                </td>
-                              );
-                            })}
-                          </tr>
-                        );
-                      })}
-                      {/* Footer totals row */}
-                      <tr style={{background:'#EEF2F8',borderTop:`2px solid ${S.borderM}`,
-                        position:'sticky',bottom:0,zIndex:3}}>
-                        {/* col 1: "Total" label */}
-                        <td style={{padding:'7px 16px',fontSize:11,fontWeight:700,color:S.navy,
-                          position:'sticky',left:0,zIndex:4,background:'#EEF2F8'}}>
-                          Total
-                        </td>
-                        {/* col 2: grand total */}
-                        <td style={{padding:'7px 8px',textAlign:'right',fontSize:12,fontWeight:700,
-                          color:S.navy,fontVariantNumeric:'tabular-nums',
-                          borderLeft:`2px solid ${S.borderM}`,
-                          boxShadow:'4px 0 6px -2px rgba(0,0,0,.08)',
-                          position:'sticky',left:170,zIndex:4,background:'#EEF2F8'}}>
-                          {ganttData.names.reduce((s,n)=>s+(ganttData.rowTotals[n]||0),0).toFixed(1)}h
-                        </td>
-                        {/* col 3…N: column day totals */}
-                        {ganttData.days.map(d=>{
-                          const t=ganttData.colTotals[d.key]||0;
-                          return(
-                            <td key={d.key} style={{padding:'7px 5px',textAlign:'center',fontSize:11,fontWeight:600,
-                              color:t>0?S.blue:S.muted,fontVariantNumeric:'tabular-nums',
-                              borderLeft:`1px solid ${S.border}`}}>
-                              {t>0?t.toFixed(0)+'h':''}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-                </div>
+                <GanttGrid ganttData={ganttData} TH={TH} S={S} cCol={cCol}/>
               )}
             </div>
           )}
