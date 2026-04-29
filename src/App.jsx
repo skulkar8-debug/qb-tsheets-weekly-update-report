@@ -1432,7 +1432,8 @@ export default function App() {
               )}
 
               {dateRange.start&&dateRange.end&&(
-                <div style={{overflowX:'auto',overflowY:'auto',maxHeight:'calc(100vh - 200px)'}}>
+                <div style={{overflowY:'auto',maxHeight:'calc(100vh - 200px)'}}>
+                <div style={{overflowX:'auto'}}>
                   <table style={{borderCollapse:'collapse',tableLayout:'fixed'}}>
                     <colgroup>
                       {/* col 1: Name (sticky) */}
@@ -1442,7 +1443,7 @@ export default function App() {
                       {/* col 3…N: one per day */}
                       {ganttData.days.map(d=><col key={d.key} style={{width:80,minWidth:76}}/>)}
                     </colgroup>
-                    <thead style={{position:'sticky',top:0,zIndex:4}}>
+                    <thead>
                       {/* Week band row — spans: [Name] [Total] [week1 days…] [week2 days…] … */}
                       <tr style={{background:S.cloud}}>
                         {/* Name cell */}
@@ -1475,7 +1476,7 @@ export default function App() {
                       {/* Day header row */}
                       <tr style={{background:S.cloud,borderBottom:`2px solid ${S.borderM}`}}>
                         {/* Name */}
-                        <th style={{...TH(false,16),position:'sticky',left:0,zIndex:5,background:S.cloud}}>
+                        <th style={{...TH(false,16),position:'sticky',left:0,zIndex:5,background:S.cloud,top:0}}>
                           Person
                         </th>
                         {/* Total — col 2, sticky */}
@@ -1562,6 +1563,7 @@ export default function App() {
                       </tr>
                     </tbody>
                   </table>
+                </div>
                 </div>
               )}
             </div>
