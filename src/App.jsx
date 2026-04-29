@@ -183,7 +183,8 @@ const RiskChip = ({r}) => {
   return <span style={{display:'inline-block',padding:'1px 7px',borderRadius:3,fontSize:11,fontWeight:600,background:st.bg,color:st.c}}>{st.t}</span>;
 };
 
-// ── GANTT CELL — solid pastel bg per dominant client, shows hours, hover detail ──
+// ── GANTT CELL — every cell is the same fixed size regardless of content ──
+const CELL_H = 36;
 function GanttCell({ dayData, name, dayLabel }) {
   const [tip, setTip] = useState(false);
   const [tipPos, setTipPos] = useState({top:0,left:0});
@@ -191,8 +192,6 @@ function GanttCell({ dayData, name, dayLabel }) {
   const clients = Object.entries(dayData.clients||{}).sort(([,a],[,b])=>b-a);
   const total = dayData.total || 0;
   const isEmpty = total === 0;
-
-  // Dominant client determines cell color
   const dominant = clients[0]?.[0] || null;
   const col = dominant ? cCol(dominant) : null;
 
@@ -202,41 +201,47 @@ function GanttCell({ dayData, name, dayLabel }) {
     setTip(true);
   };
 
-  if(isEmpty) return (
-    <div style={{height:36,display:'flex',alignItems:'center',justifyContent:'center',
-      background:'#F8FAFC',border:`1px solid ${S.border}`,borderRadius:2}}>
-      <span style={{fontSize:9,color:'#CBD5E1'}}>—</span>
-    </div>
-  );
-
+  // Always the same outer wrapper — same height, same border, same radius
   return (
-    <div style={{position:'relative'}} onMouseEnter={onEnter} onMouseLeave={()=>setTip(false)}>
-      <div style={{
-        height:36, borderRadius:2, border:`1px solid ${col.bar}20`,
-        background: col.bg,
-        display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-        cursor:'pointer', gap:1, padding:'2px 4px',
-      }}>
-        <span style={{fontSize:12, fontWeight:700, color:col.text, fontVariantNumeric:'tabular-nums', lineHeight:1}}>
-          {total % 1 === 0 ? total : total.toFixed(1)}h
-        </span>
-        {clients.length > 1 && (
-          <div style={{display:'flex', gap:2, marginTop:1}}>
-            {clients.slice(0,4).map(([cl],i) => (
-              <div key={i} style={{width:6,height:3,borderRadius:1,background:cCol(cl).bar,opacity:.7}}/>
-            ))}
-          </div>
-        )}
-      </div>
+    <div style={{
+        position:'relative',
+        height:CELL_H, width:'100%',
+        borderRadius:2,
+        border:`1px solid ${isEmpty ? S.border : col.bar+'30'}`,
+        background: isEmpty ? '#F8FAFC' : col.bg,
+        display:'flex', flexDirection:'column',
+        alignItems:'center', justifyContent:'center',
+        cursor: isEmpty ? 'default' : 'pointer',
+        gap:1, padding:'2px 3px', boxSizing:'border-box',
+      }}
+      onMouseEnter={isEmpty ? undefined : onEnter}
+      onMouseLeave={isEmpty ? undefined : ()=>setTip(false)}>
+
+      {isEmpty
+        ? <span style={{fontSize:9,color:'#D1D5DB'}}>—</span>
+        : <>
+            <span style={{fontSize:12,fontWeight:700,color:col.text,fontVariantNumeric:'tabular-nums',lineHeight:1}}>
+              {total % 1 === 0 ? total : total.toFixed(1)}h
+            </span>
+            {clients.length > 1 && (
+              <div style={{display:'flex',gap:2,marginTop:1}}>
+                {clients.slice(0,4).map(([cl],i)=>(
+                  <div key={i} style={{width:6,height:3,borderRadius:1,background:cCol(cl).bar,opacity:.7}}/>
+                ))}
+              </div>
+            )}
+          </>
+      }
+
       {tip && (
-        <div style={{position:'fixed', top:tipPos.top - window.scrollY, left:tipPos.left,
-          background:S.navy, color:'#fff', borderRadius:5, padding:'8px 11px',
-          fontSize:11, zIndex:9999, minWidth:160, maxWidth:220, pointerEvents:'none',
-          boxShadow:'0 4px 18px rgba(0,0,0,.35)', lineHeight:1.55}}>
-          <div style={{fontWeight:700, fontSize:12, color:S.sky, marginBottom:2}}>{name}</div>
-          <div style={{fontSize:10, color:'rgba(255,255,255,.5)', marginBottom:6}}>{dayLabel}</div>
-          {clients.map(([cl,h],i) => (
-            <div key={i} style={{display:'flex', alignItems:'center', gap:7, marginBottom:3}}>
+        <div style={{position:'fixed',top:tipPos.top-window.scrollY,left:tipPos.left,
+          background:S.navy,color:'#fff',borderRadius:5,padding:'8px 11px',
+          fontSize:11,zIndex:9999,minWidth:160,maxWidth:220,pointerEvents:'none',
+          boxShadow:'0 4px 18px rgba(0,0,0,.35)',lineHeight:1.55}}>
+          <div style={{fontWeight:700,fontSize:12,color:S.sky,marginBottom:2}}>{name}</div>
+          <div style={{fontSize:10,color:'rgba(255,255,255,.5)',marginBottom:6}}>{dayLabel}</div>
+          {clients.map(([cl,h],i)=>(
+            <div key={i} style={{display:'flex',alignItems:'center',gap:7,marginBottom:3}}>
               <div style={{width:8,height:8,borderRadius:2,background:cCol(cl).bar,flexShrink:0}}/>
               <span style={{flex:1,color:'rgba(255,255,255,.85)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{cl}</span>
               <span style={{color:S.sky,fontWeight:600,fontVariantNumeric:'tabular-nums',flexShrink:0}}>{h.toFixed(1)}h</span>
@@ -759,7 +764,7 @@ function GanttGrid({ ganttData, TH, S, cCol }) {
       rightRef.current.scrollTop = leftRef.current.scrollTop;
   };
 
-  const ROW_H   = 48;  // px — fixed row height, same on both sides
+  const ROW_H   = CELL_H + 12;  // cell height + vertical padding (same both sides)
   const HDR1_H  = 26;  // week band header
   const HDR2_H  = 36;  // day name header
   const FOOT_H  = 34;  // footer totals
@@ -896,8 +901,9 @@ function GanttGrid({ ganttData, TH, S, cCol }) {
                   const cell=ganttData.grid[name]?.[d.key]||{clients:{},total:0};
                   return(
                     <div key={d.key} style={{width:80,minWidth:76,flexShrink:0,
-                      padding:'5px 4px',borderLeft:`1px solid ${S.border}`,
-                      display:'flex',alignItems:'center',justifyContent:'center'}}>
+                      padding:'4px 4px',borderLeft:`1px solid ${S.border}`,
+                      display:'flex',alignItems:'center',justifyContent:'center',
+                      boxSizing:'border-box'}}>
                       <GanttCell dayData={cell} name={name} dayLabel={`${d.dow} ${d.label}`}/>
                     </div>
                   );
