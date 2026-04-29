@@ -104,17 +104,34 @@ const parseCSV = text => {
     .filter(r => r.fname||r.lname||r.username);
 };
 
+// Normalize any date string to YYYY-MM-DD (handles M/D/YYYY and YYYY-MM-DD)
+const normDate = dateStr => {
+  if(!dateStr) return null;
+  const s = dateStr.trim();
+  // Already ISO format
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  // M/D/YYYY or MM/DD/YYYY
+  const parts = s.split('/');
+  if(parts.length === 3) {
+    const [m,d,y] = parts;
+    return `${y.padStart(4,'0')}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+  }
+  // Fallback: parse and reformat (uses local time via T12:00:00 to avoid UTC shift)
+  const dt = new Date(s + (s.includes('T')?'':'T12:00:00'));
+  if(isNaN(dt.getTime())) return null;
+  return dt.toISOString().slice(0,10);
+};
+
 // Convert any local_date value to a Monday-of-week key "YYYY-MM-DD"
 const mondayKey = dateStr => {
-  if(!dateStr) return null;
-  // Handle both "YYYY-MM-DD" and "M/D/YYYY" formats
-  const d = new Date(dateStr);
-  if(isNaN(d.getTime())) return null;
-  const dow = d.getDay(); // 0=Sun,1=Mon...6=Sat
+  const iso = normDate(dateStr);
+  if(!iso) return null;
+  const [y,m,d] = iso.split('-').map(Number);
+  const dt = new Date(y,m-1,d); // local, no UTC shift
+  const dow = dt.getDay();
   const diffToMon = dow === 0 ? -6 : 1 - dow;
-  const mon = new Date(d);
-  mon.setDate(d.getDate() + diffToMon);
-  return mon.toISOString().slice(0,10);
+  dt.setDate(dt.getDate() + diffToMon);
+  return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
 };
 
 const detectWeeks = rows => {
@@ -218,6 +235,254 @@ const GanttCell = ({ segments, util, name, weekLabel }) => {
   );
 };
 
+// ── DASHBOARD PAGE — bar chart overview + click-to-expand detail ──
+function DashboardPage({ clientGroups, totalBillHrs, pSearch, setPSearch, pClient, setPClient,
+  pType, setPType, pSort, setPSort, allClients, hasFilters, downloadDashboard }) {
+
+  const [selectedClient, setSelectedClient] = useState(null);
+
+  // Build bar chart data — one bar per client, sorted by hours
+  const chartData = clientGroups.map(cg => ({
+    client: cg.client,
+    hours:  parseFloat(cg.total.toFixed(1)),
+    projs:  cg.projs,
+    total:  cg.total,
+  }));
+
+  const handleBarClick = (data) => {
+    if(!data) return;
+    const client = data.activePayload?.[0]?.payload?.client || data.client;
+    setSelectedClient(prev => prev===client ? null : client);
+  };
+
+  const selectedGroup = clientGroups.find(cg => cg.client===selectedClient);
+
+  const CHART_H = Math.max(280, chartData.length * 32 + 60);
+
+  // Custom bar label showing hours
+  const BarLabel = (props) => {
+    const { x, y, width, height, value } = props;
+    if(width < 28) return null;
+    return (
+      <text x={x+width+6} y={y+height/2+1} fill={S.slateL} fontSize={11}
+        dominantBaseline="middle" fontFamily="Inter,sans-serif" fontVariantNumeric="tabular-nums">
+        {value}h
+      </text>
+    );
+  };
+
+  return (
+    <div>
+      {/* Toolbar */}
+      <div style={{display:'flex',alignItems:'center',flexWrap:'wrap',gap:7,
+        padding:'9px 14px',marginBottom:14,borderRadius:5,background:S.white,border:`1px solid ${S.border}`}}>
+        <div style={{position:'relative',flexShrink:0}}>
+          <Search size={12} color={S.muted} style={{position:'absolute',left:7,top:'50%',transform:'translateY(-50%)',pointerEvents:'none'}}/>
+          <input value={pSearch} onChange={e=>setPSearch(e.target.value)} placeholder="Search projects…"
+            style={{height:28,paddingLeft:25,paddingRight:pSearch?22:7,width:195,fontSize:12,
+              border:`1px solid ${S.border}`,borderRadius:4,background:S.white,color:S.ink,outline:'none',boxSizing:'border-box'}}/>
+          {pSearch&&<button onClick={()=>setPSearch('')} style={{position:'absolute',right:5,top:'50%',transform:'translateY(-50%)',
+            background:'none',border:'none',cursor:'pointer',color:S.muted,display:'flex',alignItems:'center',padding:0}}><X size={11}/></button>}
+        </div>
+        <select value={pClient} onChange={e=>{setPClient(e.target.value);setSelectedClient(e.target.value==='all'?null:e.target.value);}}
+          style={{height:28,padding:'0 7px',fontSize:12,minWidth:130,
+            border:`1px solid ${pClient!=='all'?S.blue:S.border}`,borderRadius:4,
+            background:S.white,color:S.ink,cursor:'pointer',outline:'none',fontWeight:pClient!=='all'?600:400}}>
+          <option value="all">All clients</option>
+          {allClients.map(c=><option key={c} value={c}>{c}</option>)}
+        </select>
+        <select value={pType} onChange={e=>setPType(e.target.value)}
+          style={{height:28,padding:'0 7px',fontSize:12,
+            border:`1px solid ${pType!=='all'?S.blue:S.border}`,borderRadius:4,
+            background:S.white,color:S.ink,cursor:'pointer',outline:'none',fontWeight:pType!=='all'?600:400}}>
+          <option value="all">All types</option>
+          <option value="billable">Billable</option>
+          <option value="internal-bd">Internal / BD</option>
+        </select>
+        <select value={pSort.k+'-'+pSort.d} onChange={e=>{const[k,d]=e.target.value.split('-');setPSort({k,d});}}
+          style={{height:28,padding:'0 7px',fontSize:12,border:`1px solid ${S.border}`,borderRadius:4,
+            background:S.white,color:S.ink,cursor:'pointer',outline:'none'}}>
+          <option value="hours-desc">Hours ↓</option>
+          <option value="hours-asc">Hours ↑</option>
+          <option value="name-asc">Name A–Z</option>
+        </select>
+        {hasFilters&&<button onClick={()=>{setPSearch('');setPClient('all');setPType('all');setSelectedClient(null);}}
+          style={{height:28,padding:'0 9px',fontSize:11,fontWeight:500,border:'1px solid #FECACA',borderRadius:4,
+            background:'#FEF2F2',color:S.red,cursor:'pointer',display:'flex',alignItems:'center',gap:3}}>
+          <X size={11}/>Clear
+        </button>}
+        <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:8}}>
+          <span style={{fontSize:11,color:S.muted,whiteSpace:'nowrap'}}>
+            {clientGroups.reduce((s,g)=>s+g.projs.length,0)} projects · {clientGroups.length} clients
+          </span>
+          <button onClick={downloadDashboard}
+            style={{height:28,padding:'0 9px',fontSize:11,border:`1px solid ${S.border}`,borderRadius:4,
+              background:S.white,color:S.slate,cursor:'pointer',display:'flex',alignItems:'center',gap:4,outline:'none'}}>
+            <Download size={11}/> CSV
+          </button>
+        </div>
+      </div>
+
+      {clientGroups.length===0&&(
+        <div style={{padding:'60px 16px',textAlign:'center',color:S.muted,background:S.white,borderRadius:5,border:`1px solid ${S.border}`}}>
+          No projects match filters
+        </div>
+      )}
+
+      {clientGroups.length>0&&(
+        <div style={{display:'grid',gridTemplateColumns:selectedGroup?'1fr 1fr':'1fr',gap:14,alignItems:'start'}}>
+
+          {/* ── LEFT: Horizontal bar chart ── */}
+          <div style={{background:S.white,border:`1px solid ${S.border}`,borderRadius:5,overflow:'hidden'}}>
+            <div style={{padding:'10px 16px',borderBottom:`1px solid ${S.border}`,background:S.cloud,
+              display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+              <span style={{fontSize:12,fontWeight:600,color:S.navy}}>Hours by Client</span>
+              <span style={{fontSize:11,color:S.muted}}>Click a bar to see project detail</span>
+            </div>
+            <div style={{padding:'12px 8px 8px 0',overflowX:'hidden'}}>
+              <ResponsiveContainer width="100%" height={CHART_H}>
+                <BarChart
+                  data={chartData}
+                  layout="vertical"
+                  margin={{top:4, right:60, bottom:4, left:8}}
+                  barCategoryGap="22%"
+                  onClick={handleBarClick}
+                  style={{cursor:'pointer'}}
+                >
+                  <CartesianGrid strokeDasharray="2 2" horizontal={false} stroke={S.border}/>
+                  <XAxis type="number" tick={{fontSize:10,fill:S.muted}} tickLine={false} axisLine={false}/>
+                  <YAxis type="category" dataKey="client" width={130}
+                    tick={({x,y,payload})=>(
+                      <g transform={`translate(${x},${y})`}>
+                        <rect x={-130} y={-9} width={8} height={18} rx={2}
+                          fill={selectedClient===payload.value?cCol(payload.value).bar:cCol(payload.value).bar}
+                          opacity={selectedClient&&selectedClient!==payload.value?0.35:1}/>
+                        <text x={-116} y={0} dy={4} fontSize={11} fill={selectedClient===payload.value?S.navy:S.ink}
+                          fontFamily="Inter,sans-serif" fontWeight={selectedClient===payload.value?700:400}
+                          textAnchor="start">
+                          {payload.value.length>16?payload.value.slice(0,15)+'…':payload.value}
+                        </text>
+                      </g>
+                    )}
+                    tickLine={false} axisLine={false}
+                  />
+                  <RTooltip
+                    cursor={{fill:'rgba(20,116,196,.06)'}}
+                    content={({active,payload})=>{
+                      if(!active||!payload?.length) return null;
+                      const d=payload[0].payload;
+                      return(
+                        <div style={{background:S.navy,border:'none',borderRadius:5,padding:'8px 12px',fontSize:11,
+                          boxShadow:'0 4px 16px rgba(0,0,0,.3)'}}>
+                          <div style={{fontWeight:700,color:S.sky,marginBottom:4}}>{d.client}</div>
+                          <div style={{color:'rgba(255,255,255,.85)'}}>{d.hours}h across {d.projs.length} projects</div>
+                          <div style={{color:'rgba(255,255,255,.5)',fontSize:10,marginTop:2}}>Click to expand ↓</div>
+                        </div>
+                      );
+                    }}
+                  />
+                  <Bar dataKey="hours" radius={[0,3,3,0]} maxBarSize={22} label={<BarLabel/>}>
+                    {chartData.map((entry,i)=>(
+                      <Cell key={i}
+                        fill={cCol(entry.client).bar}
+                        opacity={selectedClient && selectedClient!==entry.client ? 0.3 : 0.88}
+                        stroke={selectedClient===entry.client ? cCol(entry.client).bar : 'none'}
+                        strokeWidth={selectedClient===entry.client ? 2 : 0}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* ── RIGHT: Project detail panel ── */}
+          {selectedGroup&&(
+            <div style={{background:S.white,border:`1px solid ${S.border}`,borderRadius:5,overflow:'hidden',
+              borderTop:`3px solid ${cCol(selectedGroup.client).bar}`}}>
+              <div style={{padding:'10px 14px',borderBottom:`1px solid ${S.border}`,
+                background:cCol(selectedGroup.client).bg,
+                display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                <div style={{display:'flex',alignItems:'center',gap:8}}>
+                  <div style={{width:9,height:9,borderRadius:2,background:cCol(selectedGroup.client).bar,flexShrink:0}}/>
+                  <span style={{fontSize:13,fontWeight:700,color:cCol(selectedGroup.client).text}}>{selectedGroup.client}</span>
+                  <span style={{fontSize:11,color:S.slateL}}>{selectedGroup.projs.length} projects · {selectedGroup.total.toFixed(1)}h</span>
+                </div>
+                <button onClick={()=>setSelectedClient(null)}
+                  style={{background:'none',border:'none',cursor:'pointer',color:S.muted,display:'flex',alignItems:'center',padding:2}}>
+                  <X size={14}/>
+                </button>
+              </div>
+
+              {/* Project rows */}
+              <table style={{width:'100%',borderCollapse:'collapse',tableLayout:'fixed'}}>
+                <colgroup>
+                  <col/>{/* project name */}
+                  <col style={{width:54}}/>{/* hours */}
+                  <col style={{width:40}}/>{/* % */}
+                </colgroup>
+                <thead>
+                  <tr style={{borderBottom:`1px solid ${S.border}`}}>
+                    <th style={{padding:'6px 14px',fontSize:10,fontWeight:700,textTransform:'uppercase',
+                      letterSpacing:'.05em',color:S.muted,textAlign:'left',background:S.cloud}}>Project</th>
+                    <th style={{padding:'6px 8px',fontSize:10,fontWeight:700,textTransform:'uppercase',
+                      letterSpacing:'.05em',color:S.muted,textAlign:'right',background:S.cloud}}>Hrs</th>
+                    <th style={{padding:'6px 8px',fontSize:10,fontWeight:700,textTransform:'uppercase',
+                      letterSpacing:'.05em',color:S.muted,textAlign:'right',background:S.cloud}}>%</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedGroup.projs.map((p,pi)=>{
+                    const mems = Object.entries(p.mems).sort(([,a],[,b])=>b-a);
+                    const isBill = p.cat==='Billable';
+                    return(
+                      <React.Fragment key={pi}>
+                        <tr style={{background:pi%2===0?S.white:'#FAFBFC',
+                          borderBottom:`1px solid #EEF1F6`}}>
+                          <td style={{padding:'6px 14px',fontSize:12,color:S.ink,
+                            overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis',maxWidth:0}}
+                            title={p.name}>
+                            {p.name}
+                          </td>
+                          <td style={{padding:'6px 8px',textAlign:'right',fontWeight:600,
+                            fontSize:13,color:S.ink,fontVariantNumeric:'tabular-nums',whiteSpace:'nowrap'}}>
+                            {p.hrs.toFixed(1)}
+                          </td>
+                          <td style={{padding:'6px 8px',textAlign:'right',fontSize:11,
+                            color:S.muted,fontVariantNumeric:'tabular-nums',whiteSpace:'nowrap'}}>
+                            {isBill?pctFmt(p.hrs,totalBillHrs):'—'}
+                          </td>
+                        </tr>
+                        {/* Members row */}
+                        <tr style={{background:pi%2===0?S.white:'#FAFBFC',
+                          borderBottom:pi<selectedGroup.projs.length-1?`1px solid #EEF1F6`:'none'}}>
+                          <td colSpan={3} style={{padding:'0 14px 7px',paddingTop:0}}>
+                            <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
+                              {mems.map(([n,h],mi)=>(
+                                <span key={mi} style={{display:'inline-flex',alignItems:'center',gap:3,
+                                  background:S.cloud,border:`1px solid ${S.border}`,
+                                  borderRadius:3,padding:'2px 7px',fontSize:11,whiteSpace:'nowrap'}}>
+                                  <span style={{color:S.ink,fontWeight:500}}>{n.split(' ')[0]}</span>
+                                  <span style={{color:cCol(selectedGroup.client).bar,fontWeight:600,
+                                    fontVariantNumeric:'tabular-nums'}}>{h.toFixed(0)}h</span>
+                                </span>
+                              ))}
+                            </div>
+                          </td>
+                        </tr>
+                      </React.Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── MAIN APP ──
 export default function App() {
   const [rows,       setRows]      = useState([]);
@@ -257,14 +522,17 @@ export default function App() {
       setRows(data);
       setUpdatedAt(new Date());
       const dSet = new Set();
-      data.forEach(r => { if(r.local_date) dSet.add(r.local_date.trim()); });
+      data.forEach(r => { const d=normDate(r.local_date); if(d) dSet.add(d); });
       const allD = [...dSet].sort();
       if(allD.length) {
         const latest = allD[allD.length-1];
-        const mon = mondayKey(latest);
-        const dt = new Date(mon||latest);
+        const mon = mondayKey(latest) || latest;
+        const [y,m,d] = mon.split('-').map(Number);
+        const dt = new Date(y,m-1,d);
         const fri = new Date(dt); fri.setDate(dt.getDate()+4);
-        setDateRange({start:mon||latest, end:fri.toISOString().slice(0,10)});
+        const pad = n => String(n).padStart(2,'0');
+        const friStr = `${fri.getFullYear()}-${pad(fri.getMonth()+1)}-${pad(fri.getDate())}`;
+        setDateRange({start:mon, end:friStr});
       }
     } catch(e) { setError(e.message); }
     finally { setLoading(false); }
@@ -276,10 +544,11 @@ export default function App() {
     return () => document.removeEventListener('mousedown', h);
   }, []);
 
+  // All days normalized to YYYY-MM-DD for reliable string comparison
   const allDays = useMemo(() => {
     const s = new Set();
-    rows.forEach(r => { if(r.local_date) s.add(r.local_date.trim()); });
-    return [...s].sort((a,b) => new Date(a)-new Date(b));
+    rows.forEach(r => { const d=normDate(r.local_date); if(d) s.add(d); });
+    return [...s].sort();
   }, [rows]);
   const minDate = allDays[0] || '';
   const maxDate = allDays[allDays.length-1] || '';
@@ -287,7 +556,7 @@ export default function App() {
     const {start,end} = dateRange;
     if(!start && !end) return rows;
     return rows.filter(r => {
-      const d = r.local_date?.trim();
+      const d = normDate(r.local_date);
       if(!d) return false;
       if(start && d < start) return false;
       if(end   && d > end)   return false;
@@ -299,7 +568,7 @@ export default function App() {
   const { members, projectsMap } = useMemo(() => {
     const tm={}, pm={};
     const wkSet = new Set();
-    weekRows.forEach(r => { const k=mondayKey(r.local_date); if(k) wkSet.add(k); });
+    weekRows.forEach(r => { const k=mondayKey(normDate(r.local_date)); if(k) wkSet.add(k); });
     const nW = Math.max(wkSet.size, 1);
     weekRows.forEach(r => {
       const name = `${(r.fname||'').trim()} ${(r.lname||'').trim()}`.trim();
@@ -385,8 +654,8 @@ export default function App() {
     if(!allNames.length || (!start && !end)) return {names:[],days:[],grid:{}};
     const daySet = new Set();
     rows.forEach(r => {
-      if(!r.local_date) return;
-      const d = r.local_date.trim();
+      const d = normDate(r.local_date);
+      if(!d) return;
       if(start && d < start) return;
       if(end   && d > end)   return;
       daySet.add(d);
@@ -407,7 +676,7 @@ export default function App() {
       const name = `${(r.fname||'').trim()} ${(r.lname||'').trim()}`.trim();
       const hrs = parseFloat(r.hours)||0;
       const jc  = (r.jobcode||'').trim();
-      const dateStr = (r.local_date||'').trim();
+      const dateStr = normDate(r.local_date);
       if(!name||!hrs||!jc||!dateStr||!grid[name]||!grid[name][dateStr]) return;
       const isCDS = CDS_TEAM.has(name);
       if(teamF==='cds'&&!isCDS) return;
@@ -755,147 +1024,18 @@ export default function App() {
 
           {/* ══════════ DASHBOARD ══════════ */}
           {page==='dashboard'&&(
-            <div>
-              {/* Toolbar */}
-              <div style={{display:'flex',alignItems:'center',flexWrap:'wrap',gap:7,
-                padding:'9px 14px',marginBottom:14,borderRadius:5,background:S.white,border:`1px solid ${S.border}`}}>
-                <div style={{position:'relative',flexShrink:0}}>
-                  <Search size={12} color={S.muted} style={{position:'absolute',left:7,top:'50%',transform:'translateY(-50%)',pointerEvents:'none'}}/>
-                  <input value={pSearch} onChange={e=>setPSearch(e.target.value)} placeholder="Search projects…"
-                    style={{height:28,paddingLeft:25,paddingRight:pSearch?22:7,width:195,fontSize:12,
-                      border:`1px solid ${S.border}`,borderRadius:4,background:S.white,color:S.ink,outline:'none',boxSizing:'border-box'}}/>
-                  {pSearch&&<button onClick={()=>setPSearch('')} style={{position:'absolute',right:5,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:S.muted,display:'flex',alignItems:'center',padding:0}}><X size={11}/></button>}
-                </div>
-
-                <select value={pClient} onChange={e=>setPClient(e.target.value)}
-                  style={{height:28,padding:'0 7px',fontSize:12,minWidth:130,
-                    border:`1px solid ${pClient!=='all'?S.blue:S.border}`,borderRadius:4,
-                    background:S.white,color:S.ink,cursor:'pointer',outline:'none',fontWeight:pClient!=='all'?600:400}}>
-                  <option value="all">All clients</option>
-                  {allClients.map(c=><option key={c} value={c}>{c}</option>)}
-                </select>
-
-                <select value={pType} onChange={e=>setPType(e.target.value)}
-                  style={{height:28,padding:'0 7px',fontSize:12,
-                    border:`1px solid ${pType!=='all'?S.blue:S.border}`,borderRadius:4,
-                    background:S.white,color:S.ink,cursor:'pointer',outline:'none',fontWeight:pType!=='all'?600:400}}>
-                  <option value="all">All types</option>
-                  <option value="billable">Billable</option>
-                  <option value="internal-bd">Internal / BD</option>
-                </select>
-
-                <select value={pSort.k+'-'+pSort.d} onChange={e=>{const[k,d]=e.target.value.split('-');setPSort({k,d});}}
-                  style={{height:28,padding:'0 7px',fontSize:12,border:`1px solid ${S.border}`,borderRadius:4,background:S.white,color:S.ink,cursor:'pointer',outline:'none'}}>
-                  <option value="hours-desc">Hours ↓</option>
-                  <option value="hours-asc">Hours ↑</option>
-                  <option value="name-asc">Name A–Z</option>
-                </select>
-
-                {hasFilters&&<button onClick={()=>{setPSearch('');setPClient('all');setPType('all');}}
-                  style={{height:28,padding:'0 9px',fontSize:11,fontWeight:500,border:'1px solid #FECACA',borderRadius:4,background:'#FEF2F2',color:S.red,cursor:'pointer',display:'flex',alignItems:'center',gap:3}}>
-                  <X size={11}/>Clear
-                </button>}
-
-                <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:8}}>
-                  <span style={{fontSize:11,color:S.muted,whiteSpace:'nowrap'}}>
-                    {clientGroups.reduce((s,g)=>s+g.projs.length,0)} projects · {clientGroups.length} clients
-                  </span>
-                  <button onClick={downloadDashboard}
-                    style={{height:28,padding:'0 9px',fontSize:11,border:`1px solid ${S.border}`,borderRadius:4,background:S.white,color:S.slate,cursor:'pointer',display:'flex',alignItems:'center',gap:4,outline:'none'}}>
-                    <Download size={11}/> CSV
-                  </button>
-                </div>
-              </div>
-
-              {/* CLIENT CARDS */}
-              {clientGroups.length===0&&(
-                <div style={{padding:'48px 16px',textAlign:'center',color:S.muted,background:S.white,borderRadius:5,border:`1px solid ${S.border}`}}>
-                  No projects match filters
-                </div>
-              )}
-              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(420px,1fr))',gap:12}}>
-                {clientGroups.map((cg,ci)=>{
-                  const col = cCol(cg.client);
-                  const billTotal = cg.projs.filter(p=>p.cat==='Billable').reduce((s,p)=>s+p.hrs,0);
-                  return(
-                    <div key={ci} style={{background:S.white,border:`1px solid ${S.border}`,borderRadius:6,
-                      overflow:'hidden',borderTop:`3px solid ${col.bar}`}}>
-
-                      {/* Card header — colored bg, dark text */}
-                      <div style={{padding:'9px 14px',background:col.bg,borderBottom:`1px solid ${S.border}`,
-                        display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                        <div style={{display:'flex',alignItems:'center',gap:8}}>
-                          <div style={{width:9,height:9,borderRadius:2,background:col.bar,flexShrink:0}}/>
-                          <span style={{fontSize:13,fontWeight:700,color:col.text}}>{cg.client}</span>
-                          <span style={{fontSize:11,color:S.slateL}}>({cg.projs.length})</span>
-                        </div>
-                        <div style={{display:'flex',alignItems:'center',gap:10}}>
-                          {totalBillHrs>0&&billTotal>0&&(
-                            <span style={{fontSize:11,color:S.slateL,fontVariantNumeric:'tabular-nums'}}>{pctFmt(billTotal,totalBillHrs)} of total</span>
-                          )}
-                          <span style={{fontSize:14,fontWeight:700,color:col.text,fontVariantNumeric:'tabular-nums'}}>{cg.total.toFixed(1)}h</span>
-                        </div>
-                      </div>
-
-                      {/* Fixed-layout table inside card */}
-                      <table style={{width:'100%',borderCollapse:'collapse',tableLayout:'fixed'}}>
-                        <colgroup>
-                          <col/>{/* name – flex */}
-                          <col style={{width:52}}/>
-                          <col style={{width:38}}/>
-                          <col style={{width:170}}/>
-                        </colgroup>
-                        <tbody>
-                          {cg.projs.map((p,pi)=>{
-                            const mems = Object.entries(p.mems).sort(([,a],[,b])=>b-a);
-                            const isBill = p.cat==='Billable';
-                            return(
-                              <tr key={pi} className="prow"
-                                style={{background:pi%2===0?S.white:'#FAFBFC',borderBottom:pi<cg.projs.length-1?`1px solid #EEF1F6`:'none'}}>
-
-                                {/* Project name — truncates with ellipsis */}
-                                <td style={{padding:'5px 14px',overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis',fontSize:13,color:S.ink,maxWidth:0}} title={p.name}>
-                                  {p.name}
-                                </td>
-                                {/* Hours */}
-                                <td style={{padding:'5px 6px',textAlign:'right',fontWeight:600,fontSize:13,color:S.ink,fontVariantNumeric:'tabular-nums',whiteSpace:'nowrap'}}>
-                                  {p.hrs.toFixed(1)}
-                                </td>
-                                {/* % */}
-                                <td style={{padding:'5px 6px',textAlign:'right',fontSize:11,color:S.muted,fontVariantNumeric:'tabular-nums',whiteSpace:'nowrap'}}>
-                                  {isBill?pctFmt(p.hrs,totalBillHrs):'—'}
-                                </td>
-                                {/* Members — compact pills */}
-                                <td style={{padding:'5px 10px',overflow:'hidden',whiteSpace:'nowrap'}}>
-                                  {mems.slice(0,3).map(([n,h],mi)=>(
-                                    <span key={mi} style={{display:'inline-flex',alignItems:'center',gap:2,
-                                      background:S.cloud,border:`1px solid ${S.border}`,
-                                      borderRadius:3,padding:'1px 5px',marginRight:3,fontSize:11,whiteSpace:'nowrap',flexShrink:0}}>
-                                      <span style={{color:S.ink,fontWeight:500}}>{n.split(' ')[0]}</span>
-                                      <span style={{color:S.muted,fontVariantNumeric:'tabular-nums'}}>{h.toFixed(0)}h</span>
-                                    </span>
-                                  ))}
-                                  {mems.length>3&&(
-                                    <span title={mems.slice(3).map(([n,h])=>`${n.split(' ')[0]} ${h.toFixed(0)}h`).join(', ')}
-                                      style={{display:'inline-flex',alignItems:'center',padding:'1px 6px',
-                                        background:'#E2E8F0',border:`1px solid ${S.borderM}`,borderRadius:3,
-                                        fontSize:10,fontWeight:600,color:S.slateL,cursor:'default',whiteSpace:'nowrap',flexShrink:0}}>
-                                      +{mems.length-3}
-                                    </span>
-                                  )}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+            <DashboardPage
+              clientGroups={clientGroups}
+              totalBillHrs={totalBillHrs}
+              pSearch={pSearch} setPSearch={setPSearch}
+              pClient={pClient} setPClient={setPClient}
+              pType={pType} setPType={setPType}
+              pSort={pSort} setPSort={setPSort}
+              allClients={allClients}
+              hasFilters={hasFilters}
+              downloadDashboard={downloadDashboard}
+            />
           )}
-
           {/* ══════════ TEAM ══════════ */}
           {page==='team'&&(
             <div style={{background:S.white,border:`1px solid ${S.border}`,borderRadius:5,overflow:'hidden'}}>
