@@ -260,8 +260,16 @@ function GanttCell({ dayData, name, dayLabel }) {
 // ── DATE RANGE PICKER ──
 function DateRangePicker({ dateRange, setDateRange, allDays, minDate, maxDate, calOpen, setCalOpen, calHover, setCalHover }) {
   const today = new Date();
-  const [viewYear,  setViewYear]  = useState(dateRange.end?new Date(dateRange.end+'T12:00:00').getFullYear():today.getFullYear());
-  const [viewMonth, setViewMonth] = useState(dateRange.end?new Date(dateRange.end+'T12:00:00').getMonth():today.getMonth());
+  const [viewYear,  setViewYear]  = useState(today.getFullYear());
+  const [viewMonth, setViewMonth] = useState(today.getMonth());
+  // Sync calendar view to the end date when dateRange is first set (e.g. on load)
+  React.useEffect(() => {
+    if(dateRange.end) {
+      const dt = new Date(dateRange.end+'T12:00:00');
+      setViewYear(dt.getFullYear());
+      setViewMonth(dt.getMonth());
+    }
+  }, [dateRange.end]);
   const prev=()=>{if(viewMonth===0){setViewMonth(11);setViewYear(y=>y-1);}else setViewMonth(m=>m-1);};
   const next=()=>{if(viewMonth===11){setViewMonth(0);setViewYear(y=>y+1);}else setViewMonth(m=>m+1);};
   const MO=['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -1127,6 +1135,13 @@ export default function App() {
                   Select a date range above to view the resource grid.
                 </div>
               )}
+              {(dateRange.start&&dateRange.end)&&ganttData.days.length>65&&(
+                <div style={{padding:'6px 14px',background:'#FFFBEB',borderBottom:`1px solid #FDE68A`,
+                  fontSize:11,color:'#92400E',display:'flex',alignItems:'center',gap:6}}>
+                  ⚠ {ganttData.days.length} days selected — consider narrowing the range for easier reading.
+                  Showing all columns, scroll right →
+                </div>
+              )}
 
               {dateRange.start&&dateRange.end&&(
                 <div style={{overflowX:'auto',overflowY:'auto',maxHeight:'calc(100vh - 200px)'}}>
@@ -1208,6 +1223,12 @@ export default function App() {
                       <tr style={{background:'#EEF2F8',borderTop:`2px solid ${S.borderM}`,position:'sticky',bottom:0,zIndex:2}}>
                         <td style={{padding:'7px 16px',fontSize:11,fontWeight:700,color:S.navy,
                           position:'sticky',left:0,background:'#EEF2F8',zIndex:3}}>Total</td>
+                        <td style={{padding:'7px 8px',textAlign:'right',fontSize:12,fontWeight:700,
+                          color:S.navy,fontVariantNumeric:'tabular-nums',
+                          borderLeft:`2px solid ${S.borderM}`,background:'#EEF2F8',
+                          position:'sticky',left:170,zIndex:3}}>
+                          {ganttData.names.reduce((s,n)=>s+(ganttData.rowTotals[n]||0),0).toFixed(1)}h
+                        </td>
                         {ganttData.days.map(d=>{
                           const t=ganttData.colTotals[d.key]||0;
                           return(
@@ -1218,10 +1239,6 @@ export default function App() {
                             </td>
                           );
                         })}
-                        <td style={{padding:'7px 10px',textAlign:'right',fontSize:12,fontWeight:700,
-                          color:S.navy,fontVariantNumeric:'tabular-nums',borderLeft:`2px solid ${S.borderM}`}}>
-                          {ganttData.names.reduce((s,n)=>s+(ganttData.rowTotals[n]||0),0).toFixed(1)}h
-                        </td>
                       </tr>
                     </tbody>
                   </table>
