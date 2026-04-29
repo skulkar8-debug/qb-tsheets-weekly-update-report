@@ -24,30 +24,47 @@ const S = {
 };
 
 // ── Client colors — dark enough to read white text, distinct enough to tell apart ──
+// ── CLIENT COLORS ──────────────────────────────────────────────────────────────
+// Each client gets a hue that is visually distinct from its neighbors.
+// Rule: no two adjacent entries share the same hue family.
+// bar  = solid color used in gantt cells, chart bars, left borders
+// bg   = very light tint used in card headers / selected pill backgrounds
+// text = dark shade of the same hue for readable text on bg
 const CC = {
-  'AEG':                  { bar:'#1d6fa8', bg:'#e8f3fb', text:'#0d3d5e' },
-  'SALT':                 { bar:'#0f6b6e', bg:'#e6f4f4', text:'#0a4446' },
-  'ADP':                  { bar:'#5b21b6', bg:'#f3effd', text:'#3b1480' },
-  'SP USA':               { bar:'#92400e', bg:'#fef3e2', text:'#5a2800' },
-  'CPC':                  { bar:'#0c5a8a', bg:'#e0f0fa', text:'#07375a' },
-  'Riata':                { bar:'#065f46', bg:'#e6f7f1', text:'#03392a' },
-  'Beacon':               { bar:'#6726b8', bg:'#f2ecfd', text:'#3d1580' },
-  'Archway':              { bar:'#881337', bg:'#fde8ee', text:'#560b22' },
-  'Budget':               { bar:'#7c3409', bg:'#fdf0e7', text:'#4a1f05' },
-  'LSC':                  { bar:'#0e7490', bg:'#e0f7fa', text:'#064e5f' },
-  'Administrative':       { bar:'#3d5166', bg:'#edf1f5', text:'#243040' },
-  'Business Development': { bar:'#334155', bg:'#edf0f4', text:'#1e2a38' },
-  'CDS Internal':         { bar:'#1e3fa0', bg:'#e8eefb', text:'#0f2060' },
-  'OOO':                  { bar:'#94a3b8', bg:'#f1f5f9', text:'#475569' },
-  'Other':                { bar:'#52606d', bg:'#f0f2f5', text:'#333d48' },
+  // ── Billable clients ──────────────────────────────────────────
+  'AEG':                  { bar:'#1d6fa8', bg:'#ddeeff', text:'#0d3d5e' }, // BLUE
+  'SALT':                 { bar:'#b45309', bg:'#fef3e2', text:'#7c2d00' }, // AMBER  (was teal — now distinct from AEG)
+  'ADP':                  { bar:'#7c3aed', bg:'#ede9fe', text:'#3b1480' }, // VIOLET
+  'SP USA':               { bar:'#be185d', bg:'#fce7f3', text:'#831843' }, // PINK   (was brown/amber — now distinct from SALT)
+  'CPC':                  { bar:'#0f766e', bg:'#ccfbf1', text:'#134e4a' }, // TEAL   (was dark blue — now in its own hue)
+  'Riata':                { bar:'#15803d', bg:'#dcfce7', text:'#14532d' }, // GREEN
+  'Beacon':               { bar:'#c2410c', bg:'#ffedd5', text:'#7c2d12' }, // ORANGE (was purple — now distinct from ADP)
+  'Archway':              { bar:'#dc2626', bg:'#fee2e2', text:'#991b1b' }, // RED
+  'Budget':               { bar:'#a16207', bg:'#fef9c3', text:'#713f12' }, // YELLOW-BROWN
+  'LSC':                  { bar:'#0369a1', bg:'#e0f2fe', text:'#0c4a6e' }, // SKY BLUE (was teal — now lighter blue family)
+  // ── Internal ──────────────────────────────────────────────────
+  'Administrative':       { bar:'#6b7280', bg:'#f3f4f6', text:'#374151' }, // NEUTRAL GRAY
+  'Business Development': { bar:'#4338ca', bg:'#e0e7ff', text:'#312e81' }, // INDIGO  (was gray — now distinct)
+  'CDS Internal':         { bar:'#0e7490', bg:'#cffafe', text:'#155e75' }, // CYAN    (was blue — now distinct hue)
+  // ── Catchalls ─────────────────────────────────────────────────
+  'OOO':                  { bar:'#9ca3af', bg:'#f9fafb', text:'#4b5563' }, // LIGHT GRAY
+  'Other':                { bar:'#64748b', bg:'#f1f5f9', text:'#334155' }, // SLATE
 };
+// Auto-assign colors for any client not in CC above.
+// 12 hues that are all maximally distinct from each other:
 const AUTO_PAL = [
-  {bar:'#b45309',bg:'#fef9ec',text:'#7c3900'},{bar:'#be185d',bg:'#fce7f3',text:'#831843'},
-  {bar:'#047857',bg:'#ecfdf5',text:'#064e3b'},{bar:'#d97706',bg:'#fffbeb',text:'#92400e'},
-  {bar:'#7c3aed',bg:'#f5f3ff',text:'#4c1d95'},{bar:'#0369a1',bg:'#e0f2fe',text:'#0c4a6e'},
-  {bar:'#9a3412',bg:'#fff7ed',text:'#7c2d12'},{bar:'#166534',bg:'#f0fdf4',text:'#14532d'},
-  {bar:'#1d4ed8',bg:'#eff6ff',text:'#1e3a8a'},{bar:'#a21caf',bg:'#fdf4ff',text:'#701a75'},
-  {bar:'#0f766e',bg:'#f0fdfa',text:'#134e4a'},{bar:'#c2410c',bg:'#fff7ed',text:'#9a3412'},
+  {bar:'#d97706',bg:'#fef3c7',text:'#92400e'}, // amber
+  {bar:'#7c3aed',bg:'#ede9fe',text:'#4c1d95'}, // violet
+  {bar:'#0891b2',bg:'#cffafe',text:'#164e63'}, // cyan
+  {bar:'#16a34a',bg:'#dcfce7',text:'#14532d'}, // green
+  {bar:'#db2777',bg:'#fce7f3',text:'#831843'}, // pink
+  {bar:'#ea580c',bg:'#ffedd5',text:'#9a3412'}, // orange
+  {bar:'#2563eb',bg:'#dbeafe',text:'#1e3a8a'}, // blue
+  {bar:'#dc2626',bg:'#fee2e2',text:'#991b1b'}, // red
+  {bar:'#0d9488',bg:'#ccfbf1',text:'#134e4a'}, // teal
+  {bar:'#9333ea',bg:'#f3e8ff',text:'#581c87'}, // purple
+  {bar:'#ca8a04',bg:'#fef9c3',text:'#713f12'}, // yellow
+  {bar:'#0369a1',bg:'#e0f2fe',text:'#0c4a6e'}, // sky
 ];
 const _autoMap = {}, _autoIdx = {v:0};
 const cCol = c => {
