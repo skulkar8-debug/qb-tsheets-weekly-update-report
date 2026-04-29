@@ -399,50 +399,36 @@ function DashboardPage({ clientGroups, totalBillHrs, pSearch, setPSearch, pClien
 
       {clientGroups.length>0&&(
         <div>
-          {/* ── COLUMN CHART on top ── */}
+          {/* ── COLUMN CHART ── */}
           <div style={{background:S.white,border:`1px solid ${S.border}`,borderRadius:5,overflow:'hidden',marginBottom:14}}>
             <div style={{padding:'10px 16px',borderBottom:`1px solid ${S.border}`,background:S.cloud,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
               <span style={{fontSize:12,fontWeight:600,color:S.navy}}>Hours by Client</span>
-              <span style={{fontSize:11,color:S.muted}}>Click a bar to expand projects below</span>
+              <span style={{fontSize:11,color:S.muted}}>Click a bar to filter the table below</span>
             </div>
             <div style={{padding:'16px 16px 8px',overflowX:'auto'}}>
               <ResponsiveContainer width="100%" height={CHART_H}>
                 <BarChart data={chartData} margin={{top:16,right:16,bottom:70,left:8}} barCategoryGap="25%"
-                  onClick={d=>{if(!d?.activePayload)return;const cl=d.activePayload[0]?.payload?.client;setSelClient(p=>{if(p===cl)return null;setDetailSearch('');return cl;});}}>
+                  onClick={d=>{if(!d?.activePayload)return;const cl=d.activePayload[0]?.payload?.client;setSelClient(p=>{if(p===cl)return null;setDetailSearch('');return cl;})}}>
                   <CartesianGrid strokeDasharray="2 2" vertical={false} stroke={S.border}/>
                   <XAxis dataKey="client" height={52}
                     tick={({x,y,payload})=>{
-                      // Wrap long names into up to 2 lines, centered, no tilt
-                      const val = payload.value;
-                      const words = val.split(' ');
-                      const sel = selClient===val;
-                      // Pack words into lines of max ~12 chars each
-                      const lines = [];
-                      let cur = '';
-                      words.forEach(w => {
-                        if(cur && (cur+' '+w).length > 12) { lines.push(cur); cur=w; }
-                        else { cur = cur ? cur+' '+w : w; }
-                      });
+                      const val=payload.value, words=val.split(' '), sel=selClient===val;
+                      const lines=[]; let cur='';
+                      words.forEach(w=>{if(cur&&(cur+' '+w).length>12){lines.push(cur);cur=w;}else{cur=cur?cur+' '+w:w;}});
                       if(cur) lines.push(cur);
-                      const lineH = 13;
-                      const totalH = lines.length * lineH;
-                      return (
+                      return(
                         <g transform={`translate(${x},${y+4})`}>
                           {lines.map((line,li)=>(
-                            <text key={li} x={0} y={li*lineH} dy={11}
-                              fontSize={10} fill={sel?S.blue:S.ink}
-                              fontFamily="Inter,sans-serif" fontWeight={sel?700:500}
-                              textAnchor="middle">
-                              {line}
-                            </text>
+                            <text key={li} x={0} y={li*13} dy={11} fontSize={10}
+                              fill={sel?S.blue:S.ink} fontFamily="Inter,sans-serif"
+                              fontWeight={sel?700:500} textAnchor="middle">{line}</text>
                           ))}
                         </g>
                       );
                     }}
                     tickLine={false} axisLine={false} interval={0}/>
                   <YAxis tick={{fontSize:10,fill:S.muted}} tickLine={false} axisLine={false}/>
-                  <RTooltip
-                    cursor={{fill:'rgba(20,116,196,.06)'}}
+                  <RTooltip cursor={{fill:'rgba(20,116,196,.06)'}}
                     content={({active,payload})=>{
                       if(!active||!payload?.length)return null;
                       const d=payload[0].payload;
@@ -450,17 +436,15 @@ function DashboardPage({ clientGroups, totalBillHrs, pSearch, setPSearch, pClien
                         <div style={{background:S.navy,borderRadius:5,padding:'8px 12px',fontSize:11,boxShadow:'0 4px 16px rgba(0,0,0,.3)'}}>
                           <div style={{fontWeight:700,color:S.sky,marginBottom:3}}>{d.client}</div>
                           <div style={{color:'rgba(255,255,255,.85)'}}>{d.hours}h · {d.projs.length} projects</div>
-                          <div style={{color:'rgba(255,255,255,.45)',fontSize:10,marginTop:2}}>Click to {selClient===d.client?'close':'expand'} ↓</div>
+                          <div style={{color:'rgba(255,255,255,.45)',fontSize:10,marginTop:2}}>Click to {selClient===d.client?'deselect':'filter table'} ↓</div>
                         </div>
                       );
                     }}/>
                   <Bar dataKey="hours" radius={[3,3,0,0]} maxBarSize={48}>
                     {chartData.map((entry,i)=>(
-                      <Cell key={i}
-                        fill={cCol(entry.client).bar}
-                        opacity={selClient&&selClient!==entry.client?0.3:0.9}
-                        cursor="pointer"
-                      />
+                      <Cell key={i} fill={cCol(entry.client).bar}
+                        opacity={selClient&&selClient!==entry.client?0.25:0.9}
+                        cursor="pointer"/>
                     ))}
                   </Bar>
                 </BarChart>
@@ -468,78 +452,181 @@ function DashboardPage({ clientGroups, totalBillHrs, pSearch, setPSearch, pClien
             </div>
           </div>
 
-          {/* ── PROJECT DETAIL below chart ── */}
-          {selGroup&&(
-            <div style={{background:S.white,border:`1px solid ${S.border}`,borderRadius:5,overflow:'hidden',borderTop:`3px solid ${cCol(selGroup.client).bar}`}}>
-              <div style={{padding:'10px 14px',borderBottom:`1px solid ${S.border}`,background:cCol(selGroup.client).bg,
-                display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,flexWrap:'wrap'}}>
-                <div style={{display:'flex',alignItems:'center',gap:8}}>
-                  <div style={{width:9,height:9,borderRadius:2,background:cCol(selGroup.client).bar,flexShrink:0}}/>
-                  <span style={{fontSize:13,fontWeight:700,color:cCol(selGroup.client).text}}>{selGroup.client}</span>
-                  <span style={{fontSize:11,color:S.slateL}}>
-                    {detailSearch?`${detailProjs.length} of ${selGroup.projs.length}`:`${selGroup.projs.length} projects`} · {selGroup.total.toFixed(1)}h
-                  </span>
-                </div>
-                <div style={{display:'flex',alignItems:'center',gap:8}}>
-                  {/* Search within this client */}
-                  <div style={{position:'relative'}}>
-                    <Search size={11} color={S.muted} style={{position:'absolute',left:7,top:'50%',transform:'translateY(-50%)',pointerEvents:'none'}}/>
-                    <input value={detailSearch} onChange={e=>setDetailSearch(e.target.value)}
-                      placeholder="Filter projects…"
-                      style={{height:26,paddingLeft:24,paddingRight:detailSearch?20:8,width:160,fontSize:11,
-                        border:`1px solid ${S.border}`,borderRadius:4,background:S.white,color:S.ink,outline:'none',boxSizing:'border-box'}}/>
-                    {detailSearch&&<button onClick={()=>setDetailSearch('')}
+          {/* ── PROJECTS TABLE — always visible, filtered when a bar is clicked ── */}
+          <div style={{background:S.white,border:`1px solid ${S.border}`,borderRadius:5,overflow:'hidden'}}>
+            {/* Table header */}
+            <div style={{padding:'9px 14px',borderBottom:`1px solid ${S.border}`,background:S.cloud,
+              display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',justifyContent:'space-between'}}>
+              <div style={{display:'flex',alignItems:'center',gap:8}}>
+                {selClient
+                  ? <>
+                      <div style={{width:9,height:9,borderRadius:2,background:cCol(selClient).bar,flexShrink:0}}/>
+                      <span style={{fontSize:12,fontWeight:700,color:cCol(selClient).text}}>{selClient}</span>
+                      <span style={{fontSize:11,color:S.slateL}}>
+                        {detailSearch
+                          ? `${detailProjs.length} of ${selGroup?.projs.length} projects`
+                          : `${selGroup?.projs.length} projects`}
+                        {selGroup && ` · ${selGroup.total.toFixed(1)}h`}
+                      </span>
+                      <button onClick={()=>{setSelClient(null);setDetailSearch('');}}
+                        style={{background:'none',border:'none',cursor:'pointer',color:S.muted,
+                          display:'flex',alignItems:'center',padding:'0 2px',fontSize:11,gap:3}}>
+                        <X size={11}/> Show all
+                      </button>
+                    </>
+                  : <span style={{fontSize:12,fontWeight:600,color:S.navy}}>
+                      All Projects
+                      <span style={{fontWeight:400,color:S.muted,marginLeft:6}}>
+                        {clientGroups.reduce((s,g)=>s+g.projs.length,0)} projects · {clientGroups.length} clients
+                      </span>
+                    </span>
+                }
+              </div>
+              {/* Per-client search (only when a client is selected) */}
+              {selClient&&(
+                <div style={{position:'relative'}}>
+                  <Search size={11} color={S.muted} style={{position:'absolute',left:7,top:'50%',transform:'translateY(-50%)',pointerEvents:'none'}}/>
+                  <input value={detailSearch} onChange={e=>setDetailSearch(e.target.value)}
+                    placeholder="Filter projects…"
+                    style={{height:26,paddingLeft:24,paddingRight:detailSearch?20:8,width:170,fontSize:11,
+                      border:`1px solid ${S.border}`,borderRadius:4,background:S.white,color:S.ink,outline:'none',boxSizing:'border-box'}}/>
+                  {detailSearch&&(
+                    <button onClick={()=>setDetailSearch('')}
                       style={{position:'absolute',right:5,top:'50%',transform:'translateY(-50%)',
                         background:'none',border:'none',cursor:'pointer',color:S.muted,display:'flex',alignItems:'center',padding:0}}>
                       <X size={10}/>
-                    </button>}
-                  </div>
-                  <button onClick={()=>{setSelClient(null);setDetailSearch('');}}
-                    style={{background:'none',border:'none',cursor:'pointer',color:S.muted,display:'flex',alignItems:'center',padding:2}}>
-                    <X size={14}/>
-                  </button>
+                    </button>
+                  )}
                 </div>
-              </div>
+              )}
+            </div>
+
+            {/* Table — either all clients expanded, or just the selected one */}
+            <div style={{overflowX:'auto'}}>
               <table style={{width:'100%',borderCollapse:'collapse',tableLayout:'fixed'}}>
-                <colgroup><col/><col style={{width:54}}/><col style={{width:40}}/></colgroup>
+                <colgroup>
+                  <col/>{/* project name */}
+                  <col style={{width:64}}/>{/* hours */}
+                  <col style={{width:44}}/>{/* % */}
+                  <col style={{width:220}}/>{/* members */}
+                </colgroup>
                 <thead>
-                  <tr style={{borderBottom:`1px solid ${S.border}`}}>
-                    {['Project','Hrs','%'].map((h,i)=>(
-                      <th key={i} style={{padding:'6px 14px',fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'.05em',color:S.muted,textAlign:i>0?'right':'left',background:S.cloud}}>{h}</th>
-                    ))}
+                  <tr style={{borderBottom:`2px solid ${S.borderM}`}}>
+                    <th style={{padding:'7px 14px',fontSize:10,fontWeight:700,textTransform:'uppercase',
+                      letterSpacing:'.05em',color:S.muted,textAlign:'left',background:S.cloud,
+                      position:'sticky',top:0}}>Project</th>
+                    <th style={{padding:'7px 8px',fontSize:10,fontWeight:700,textTransform:'uppercase',
+                      letterSpacing:'.05em',color:S.muted,textAlign:'right',background:S.cloud,
+                      position:'sticky',top:0}}>Hrs</th>
+                    <th style={{padding:'7px 8px',fontSize:10,fontWeight:700,textTransform:'uppercase',
+                      letterSpacing:'.05em',color:S.muted,textAlign:'right',background:S.cloud,
+                      position:'sticky',top:0}}>%</th>
+                    <th style={{padding:'7px 10px',fontSize:10,fontWeight:700,textTransform:'uppercase',
+                      letterSpacing:'.05em',color:S.muted,textAlign:'left',background:S.cloud,
+                      position:'sticky',top:0}}>Members</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {detailProjs.length===0&&<tr><td colSpan={3} style={{padding:'24px 14px',textAlign:'center',color:S.muted,fontSize:12}}>No projects match</td></tr>}
-                  {detailProjs.map((p,pi)=>{
-                    const mems=Object.entries(p.mems).sort(([,a],[,b])=>b-a);
-                    const isBill=p.cat==='Billable';
+                  {(selClient ? (selGroup ? [selGroup] : []) : clientGroups).map((cg,ci)=>{
+                    const col = cCol(cg.client);
+                    const projs = selClient
+                      ? detailProjs                                      // filtered by search
+                      : cg.projs;                                        // all for this client
+                    const showClientHeader = !selClient;                 // only show when showing all
+
                     return(
-                      <React.Fragment key={pi}>
-                        <tr style={{background:pi%2===0?S.white:'#FAFBFC',borderBottom:'none'}}>
-                          <td style={{padding:'6px 14px',fontSize:12,color:S.ink,overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis',maxWidth:0}} title={p.name}>{p.name}</td>
-                          <td style={{padding:'6px 8px',textAlign:'right',fontWeight:600,fontSize:13,color:S.ink,fontVariantNumeric:'tabular-nums',whiteSpace:'nowrap'}}>{p.hrs.toFixed(1)}</td>
-                          <td style={{padding:'6px 8px',textAlign:'right',fontSize:11,color:S.muted,fontVariantNumeric:'tabular-nums',whiteSpace:'nowrap'}}>{isBill?pctFmt(p.hrs,totalBillHrs):'—'}</td>
-                        </tr>
-                        <tr style={{background:pi%2===0?S.white:'#FAFBFC',borderBottom:`1px solid #EEF1F6`}}>
-                          <td colSpan={3} style={{padding:'0 14px 8px'}}>
-                            <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
-                              {mems.map(([n,h],mi)=>(
-                                <span key={mi} style={{display:'inline-flex',alignItems:'center',gap:3,background:S.cloud,border:`1px solid ${S.border}`,borderRadius:3,padding:'2px 7px',fontSize:11,whiteSpace:'nowrap'}}>
-                                  <span style={{color:S.ink,fontWeight:500}}>{n.split(' ')[0]}</span>
-                                  <span style={{color:cCol(selGroup.client).bar,fontWeight:600,fontVariantNumeric:'tabular-nums'}}>{h.toFixed(0)}h</span>
+                      <React.Fragment key={ci}>
+                        {/* Client group header — only when showing all clients */}
+                        {showClientHeader&&(
+                          <tr style={{background:'#EEF2F8',borderTop:ci>0?`2px solid ${S.borderM}`:'none',
+                            borderLeft:`4px solid ${col.bar}`}}>
+                            <td colSpan={4} style={{padding:'7px 10px'}}>
+                              <div style={{display:'flex',alignItems:'center',gap:8}}>
+                                <button onClick={()=>{setSelClient(cg.client);setDetailSearch('');}}
+                                  style={{background:'none',border:'none',cursor:'pointer',
+                                    display:'flex',alignItems:'center',gap:7,padding:0,textAlign:'left'}}>
+                                  <div style={{width:8,height:8,borderRadius:2,background:col.bar,flexShrink:0}}/>
+                                  <span style={{fontSize:13,fontWeight:700,color:col.text}}>{cg.client}</span>
+                                </button>
+                                <span style={{fontSize:11,color:S.slateL}}>{cg.projs.length} projects</span>
+                                <span style={{marginLeft:'auto',fontSize:13,fontWeight:700,color:S.ink,
+                                  fontVariantNumeric:'tabular-nums'}}>{cg.total.toFixed(1)}h</span>
+                                <span style={{fontSize:11,color:S.muted,fontVariantNumeric:'tabular-nums',minWidth:36,textAlign:'right'}}>
+                                  {totalBillHrs>0?pctFmt(cg.projs.filter(p=>p.cat==='Billable').reduce((s,p)=>s+p.hrs,0),totalBillHrs):''}
                                 </span>
-                              ))}
-                            </div>
-                          </td>
-                        </tr>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+
+                        {/* Project rows */}
+                        {projs.length===0&&selClient&&(
+                          <tr><td colSpan={4} style={{padding:'24px 14px',textAlign:'center',color:S.muted,fontSize:12}}>No projects match</td></tr>
+                        )}
+                        {projs.map((p,pi)=>{
+                          const mems=Object.entries(p.mems).sort(([,a],[,b])=>b-a);
+                          const isBill=p.cat==='Billable';
+                          const rowBg=pi%2===0?S.white:'#FAFBFC';
+                          return(
+                            <tr key={pi} style={{background:rowBg,borderBottom:`1px solid #EEF1F6`,
+                              borderLeft:`3px solid ${col.bar}`}}>
+                              {/* Name — truncates */}
+                              <td style={{padding:'6px 14px',fontSize:13,color:S.ink,
+                                overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis',maxWidth:0}}
+                                title={p.name}>{p.name}</td>
+                              {/* Hrs */}
+                              <td style={{padding:'6px 8px',textAlign:'right',fontWeight:600,fontSize:13,
+                                color:S.ink,fontVariantNumeric:'tabular-nums',whiteSpace:'nowrap'}}>{p.hrs.toFixed(1)}</td>
+                              {/* % */}
+                              <td style={{padding:'6px 8px',textAlign:'right',fontSize:11,
+                                color:S.muted,fontVariantNumeric:'tabular-nums',whiteSpace:'nowrap'}}>
+                                {isBill?pctFmt(p.hrs,totalBillHrs):'—'}
+                              </td>
+                              {/* Members — max 3 + overflow */}
+                              <td style={{padding:'6px 10px',overflow:'hidden',whiteSpace:'nowrap'}}>
+                                {mems.slice(0,3).map(([n,h],mi)=>(
+                                  <span key={mi} style={{display:'inline-flex',alignItems:'center',gap:2,
+                                    background:S.cloud,border:`1px solid ${S.border}`,
+                                    borderRadius:3,padding:'1px 5px',marginRight:3,fontSize:11,whiteSpace:'nowrap',flexShrink:0}}>
+                                    <span style={{color:S.ink,fontWeight:500}}>{n.split(' ')[0]}</span>
+                                    <span style={{color:S.muted,fontVariantNumeric:'tabular-nums'}}>{h.toFixed(0)}h</span>
+                                  </span>
+                                ))}
+                                {mems.length>3&&(
+                                  <span title={mems.slice(3).map(([n,h])=>`${n.split(' ')[0]} ${h.toFixed(0)}h`).join(', ')}
+                                    style={{display:'inline-flex',alignItems:'center',padding:'1px 6px',
+                                      background:'#E2E8F0',border:`1px solid ${S.borderM}`,borderRadius:3,
+                                      fontSize:10,fontWeight:600,color:S.slateL,cursor:'default',whiteSpace:'nowrap',flexShrink:0}}>
+                                    +{mems.length-3}
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </React.Fragment>
                     );
                   })}
+
+                  {/* Grand total */}
+                  <tr style={{background:S.cloud,borderTop:`2px solid ${S.borderM}`}}>
+                    <td style={{padding:'6px 14px',fontSize:11,fontWeight:600,color:S.slateL}}>
+                      {selClient
+                        ? `${selGroup?.client} — ${(selGroup?.total||0).toFixed(1)}h total`
+                        : `${clientGroups.length} clients · ${clientGroups.reduce((s,g)=>s+g.projs.length,0)} projects`}
+                    </td>
+                    <td style={{padding:'6px 8px',textAlign:'right',fontSize:13,fontWeight:700,
+                      color:S.ink,fontVariantNumeric:'tabular-nums'}}>
+                      {selClient
+                        ? (selGroup?.total||0).toFixed(1)
+                        : clientGroups.reduce((s,g)=>s+g.total,0).toFixed(1)}
+                    </td>
+                    <td colSpan={2}/>
+                  </tr>
                 </tbody>
               </table>
             </div>
-          )}
+          </div>
         </div>
       )}
     </div>
