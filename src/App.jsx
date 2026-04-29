@@ -77,7 +77,7 @@ const cCol = c => {
 const normalizeClient = j => {
   if(!j) return 'Other';
   const t = j.trim();
-  if(/^(holiday|vacation|sick)$/i.test(t)) return 'OOO';
+  if(/^(holiday|vacation|sick|pto|leave|bereavement|time.?off|personal.?day|jury)/i.test(t)) return 'OOO';
   if(/^administrative$/i.test(t)) return 'Administrative';
   if(/^business development/i.test(t)) return 'Business Development';
   if(/^cds\b/i.test(t) || /tableau/i.test(t)) return 'CDS Internal';
@@ -97,7 +97,8 @@ const normalizeClient = j => {
 const catOf = j => {
   if(!j) return 'Billable';
   const t = j.trim();
-  if(/^(holiday|vacation|sick)$/i.test(t)) return 'OOO';
+  // Catch all time-off variants: Holiday, Vacation, Sick, PTO, Leave, Time Off, Bereavement, etc.
+  if(/^(holiday|vacation|sick|pto|leave|bereavement|time.?off|personal.?day|jury)/i.test(t)) return 'OOO';
   if(/^administrative$/i.test(t) || /^business development/i.test(t) || /^cds\b/i.test(t) || /tableau/i.test(t)) return 'Internal/BD';
   return 'Billable';
 };
@@ -351,8 +352,14 @@ function DateRangePicker({ dateRange, setDateRange, allDays, minDate, maxDate, c
 // ── DASHBOARD PAGE ──
 function DashboardPage({ clientGroups, totalBillHrs, pSearch, setPSearch, pClient, setPClient, pType, setPType, pSort, setPSort, allClients, hasFilters, downloadDashboard }) {
   const [selClient, setSelClient] = useState(null);
+  const [detailSearch, setDetailSearch] = useState('');
   const chartData = clientGroups.map(cg=>({client:cg.client,hours:parseFloat(cg.total.toFixed(1)),projs:cg.projs,total:cg.total}));
   const selGroup = clientGroups.find(cg=>cg.client===selClient);
+  const detailProjs = selGroup
+    ? (detailSearch.trim()
+        ? selGroup.projs.filter(p=>p.name.toLowerCase().includes(detailSearch.toLowerCase()))
+        : selGroup.projs)
+    : [];
   const CHART_H = Math.max(220, chartData.length*30+40);
   return(
     <div>
@@ -392,19 +399,38 @@ function DashboardPage({ clientGroups, totalBillHrs, pSearch, setPSearch, pClien
             </div>
             <div style={{padding:'16px 16px 8px',overflowX:'auto'}}>
               <ResponsiveContainer width="100%" height={CHART_H}>
-                <BarChart data={chartData} margin={{top:16,right:16,bottom:60,left:8}} barCategoryGap="25%"
-                  onClick={d=>{if(!d?.activePayload)return;const cl=d.activePayload[0]?.payload?.client;setSelClient(p=>p===cl?null:cl);}}>
+                <BarChart data={chartData} margin={{top:16,right:16,bottom:70,left:8}} barCategoryGap="25%"
+                  onClick={d=>{if(!d?.activePayload)return;const cl=d.activePayload[0]?.payload?.client;setSelClient(p=>{if(p===cl)return null;setDetailSearch('');return cl;});}}>
                   <CartesianGrid strokeDasharray="2 2" vertical={false} stroke={S.border}/>
-                  <XAxis dataKey="client"
-                    tick={({x,y,payload})=>(
-                      <g transform={`translate(${x},${y})`}>
-                        <text x={0} y={0} dy={8} fontSize={11} fill={selClient===payload.value?S.navy:S.ink}
-                          fontFamily="Inter,sans-serif" fontWeight={selClient===payload.value?700:400}
-                          textAnchor="end" transform="rotate(-35)">
-                          {payload.value.length>14?payload.value.slice(0,13)+'…':payload.value}
-                        </text>
-                      </g>
-                    )}
+                  <XAxis dataKey="client" height={52}
+                    tick={({x,y,payload})=>{
+                      // Wrap long names into up to 2 lines, centered, no tilt
+                      const val = payload.value;
+                      const words = val.split(' ');
+                      const sel = selClient===val;
+                      // Pack words into lines of max ~12 chars each
+                      const lines = [];
+                      let cur = '';
+                      words.forEach(w => {
+                        if(cur && (cur+' '+w).length > 12) { lines.push(cur); cur=w; }
+                        else { cur = cur ? cur+' '+w : w; }
+                      });
+                      if(cur) lines.push(cur);
+                      const lineH = 13;
+                      const totalH = lines.length * lineH;
+                      return (
+                        <g transform={`translate(${x},${y+4})`}>
+                          {lines.map((line,li)=>(
+                            <text key={li} x={0} y={li*lineH} dy={11}
+                              fontSize={10} fill={sel?S.blue:S.ink}
+                              fontFamily="Inter,sans-serif" fontWeight={sel?700:500}
+                              textAnchor="middle">
+                              {line}
+                            </text>
+                          ))}
+                        </g>
+                      );
+                    }}
                     tickLine={false} axisLine={false} interval={0}/>
                   <YAxis tick={{fontSize:10,fill:S.muted}} tickLine={false} axisLine={false}/>
                   <RTooltip
@@ -437,13 +463,34 @@ function DashboardPage({ clientGroups, totalBillHrs, pSearch, setPSearch, pClien
           {/* ── PROJECT DETAIL below chart ── */}
           {selGroup&&(
             <div style={{background:S.white,border:`1px solid ${S.border}`,borderRadius:5,overflow:'hidden',borderTop:`3px solid ${cCol(selGroup.client).bar}`}}>
-              <div style={{padding:'10px 14px',borderBottom:`1px solid ${S.border}`,background:cCol(selGroup.client).bg,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+              <div style={{padding:'10px 14px',borderBottom:`1px solid ${S.border}`,background:cCol(selGroup.client).bg,
+                display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,flexWrap:'wrap'}}>
                 <div style={{display:'flex',alignItems:'center',gap:8}}>
                   <div style={{width:9,height:9,borderRadius:2,background:cCol(selGroup.client).bar,flexShrink:0}}/>
                   <span style={{fontSize:13,fontWeight:700,color:cCol(selGroup.client).text}}>{selGroup.client}</span>
-                  <span style={{fontSize:11,color:S.slateL}}>{selGroup.projs.length} projects · {selGroup.total.toFixed(1)}h</span>
+                  <span style={{fontSize:11,color:S.slateL}}>
+                    {detailSearch?`${detailProjs.length} of ${selGroup.projs.length}`:`${selGroup.projs.length} projects`} · {selGroup.total.toFixed(1)}h
+                  </span>
                 </div>
-                <button onClick={()=>setSelClient(null)} style={{background:'none',border:'none',cursor:'pointer',color:S.muted,display:'flex',alignItems:'center',padding:2}}><X size={14}/></button>
+                <div style={{display:'flex',alignItems:'center',gap:8}}>
+                  {/* Search within this client */}
+                  <div style={{position:'relative'}}>
+                    <Search size={11} color={S.muted} style={{position:'absolute',left:7,top:'50%',transform:'translateY(-50%)',pointerEvents:'none'}}/>
+                    <input value={detailSearch} onChange={e=>setDetailSearch(e.target.value)}
+                      placeholder="Filter projects…"
+                      style={{height:26,paddingLeft:24,paddingRight:detailSearch?20:8,width:160,fontSize:11,
+                        border:`1px solid ${S.border}`,borderRadius:4,background:S.white,color:S.ink,outline:'none',boxSizing:'border-box'}}/>
+                    {detailSearch&&<button onClick={()=>setDetailSearch('')}
+                      style={{position:'absolute',right:5,top:'50%',transform:'translateY(-50%)',
+                        background:'none',border:'none',cursor:'pointer',color:S.muted,display:'flex',alignItems:'center',padding:0}}>
+                      <X size={10}/>
+                    </button>}
+                  </div>
+                  <button onClick={()=>{setSelClient(null);setDetailSearch('');}}
+                    style={{background:'none',border:'none',cursor:'pointer',color:S.muted,display:'flex',alignItems:'center',padding:2}}>
+                    <X size={14}/>
+                  </button>
+                </div>
               </div>
               <table style={{width:'100%',borderCollapse:'collapse',tableLayout:'fixed'}}>
                 <colgroup><col/><col style={{width:54}}/><col style={{width:40}}/></colgroup>
@@ -455,7 +502,8 @@ function DashboardPage({ clientGroups, totalBillHrs, pSearch, setPSearch, pClien
                   </tr>
                 </thead>
                 <tbody>
-                  {selGroup.projs.map((p,pi)=>{
+                  {detailProjs.length===0&&<tr><td colSpan={3} style={{padding:'24px 14px',textAlign:'center',color:S.muted,fontSize:12}}>No projects match</td></tr>}
+                  {detailProjs.map((p,pi)=>{
                     const mems=Object.entries(p.mems).sort(([,a],[,b])=>b-a);
                     const isBill=p.cat==='Billable';
                     return(
@@ -1094,12 +1142,16 @@ export default function App() {
                         <th style={{background:S.cloud,borderBottom:`1px solid ${S.borderM}`,position:'sticky',left:0,zIndex:5}}/>
                         {(()=>{
                           const bands=[];
-                          ganttData.days.forEach(d=>{const last=bands[bands.length-1];if(last&&last.wk===d.weekKey){last.n++;}else bands.push({wk:d.weekKey,label:d.label,n:1});});
+                          ganttData.days.forEach(d=>{
+                            const last=bands[bands.length-1];
+                            if(last&&last.wk===d.weekKey){last.n++;last.endLabel=d.label;}
+                            else bands.push({wk:d.weekKey,startLabel:d.label,endLabel:d.label,n:1});
+                          });
                           return bands.map((b,i)=>(
                             <th key={i} colSpan={b.n} style={{padding:'4px 6px',fontSize:10,fontWeight:700,color:S.slate,
                               textAlign:'center',background:S.cloud,borderBottom:`1px solid ${S.borderM}`,
                               borderLeft:`2px solid ${S.borderM}`,whiteSpace:'nowrap'}}>
-                              {b.label.replace(' ','\u00a0')} ({b.n}d)
+                              {b.startLabel}{b.n>1?` – ${b.endLabel}`:''}
                             </th>
                           ));
                         })()}
