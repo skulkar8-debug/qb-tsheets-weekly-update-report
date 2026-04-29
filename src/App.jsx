@@ -1438,7 +1438,7 @@ export default function App() {
                       {/* col 1: Name (sticky) */}
                       <col style={{width:170,minWidth:160}}/>
                       {/* col 2: Total (sticky, right after name) */}
-                      <col style={{width:64,minWidth:60}}/>
+                      <col style={{width:68,minWidth:68}}/>
                       {/* col 3…N: one per day */}
                       {ganttData.days.map(d=><col key={d.key} style={{width:80,minWidth:76}}/>)}
                     </colgroup>
@@ -1451,6 +1451,7 @@ export default function App() {
                         {/* Total cell */}
                         <th style={{background:S.cloud,borderBottom:`1px solid ${S.borderM}`,
                           borderLeft:`2px solid ${S.borderM}`,
+                          boxShadow:'4px 0 6px -2px rgba(0,0,0,.08)',
                           position:'sticky',left:170,zIndex:5}}/>
                         {/* Week bands — each spans its weekday count */}
                         {(()=>{
@@ -1480,6 +1481,7 @@ export default function App() {
                         <th style={{padding:'6px 8px',fontSize:10,fontWeight:700,textTransform:'uppercase',
                           letterSpacing:'.05em',color:S.muted,background:S.cloud,textAlign:'right',
                           borderLeft:`2px solid ${S.borderM}`,whiteSpace:'nowrap',
+                          boxShadow:'4px 0 6px -2px rgba(0,0,0,.08)',
                           position:'sticky',left:170,zIndex:5}}>
                           Total
                         </th>
@@ -1512,6 +1514,7 @@ export default function App() {
                               color:rowTotal>0?S.blue:S.muted,
                               fontVariantNumeric:'tabular-nums',whiteSpace:'nowrap',
                               borderLeft:`2px solid ${S.borderM}`,borderBottom:`1px solid ${S.border}`,
+                              boxShadow:'4px 0 6px -2px rgba(0,0,0,.08)',
                               position:'sticky',left:170,zIndex:2,background:rowBg}}>
                               {rowTotal>0?rowTotal.toFixed(1)+'h':'—'}
                             </td>
@@ -1540,6 +1543,7 @@ export default function App() {
                         <td style={{padding:'7px 8px',textAlign:'right',fontSize:12,fontWeight:700,
                           color:S.navy,fontVariantNumeric:'tabular-nums',
                           borderLeft:`2px solid ${S.borderM}`,
+                          boxShadow:'4px 0 6px -2px rgba(0,0,0,.08)',
                           position:'sticky',left:170,zIndex:4,background:'#EEF2F8'}}>
                           {ganttData.names.reduce((s,n)=>s+(ganttData.rowTotals[n]||0),0).toFixed(1)}h
                         </td>
