@@ -165,7 +165,7 @@ const detectWeeks = rows => {
 };
 
 const riskOf = u => u>=95?'Over':u<60?'Under':'OK';
-const pctFmt = (n,d) => { if(!d) return '—'; const p=(n/d)*100; return p<1?'<1%':`${Math.round(p)}%`; };
+const pctFmt = (n,d) => { if(!d) return '—'; const p=(n/d)*100; if(p===0) return '0%'; if(p<0.1) return '<0.1%'; if(p<1) return `${p.toFixed(1)}%`; return `${Math.round(p)}%`; };
 
 const downloadCSV = (filename, rows2d) => {
   const escape = v => { const s=String(v??''); return s.includes(',')||s.includes('"')||s.includes('\n') ? `"${s.replace(/"/g,'""')}"` : s; };
@@ -662,7 +662,7 @@ function DashboardPage({ clientGroups, totalBillHrs, pSearch, setPSearch, pClien
                                 </button>
                                 <span style={{fontSize:11,color:S.slateL}}>{cg.projs.length} projects</span>
                                 <span style={{marginLeft:'auto',fontSize:13,fontWeight:700,color:S.ink,
-                                  fontVariantNumeric:'tabular-nums'}}>{cg.total.toFixed(1)}h</span>
+                                  fontVariantNumeric:'tabular-nums'}}>{parseFloat(cg.total.toFixed(2))}h</span>
                                 <span style={{fontSize:11,color:S.muted,fontVariantNumeric:'tabular-nums',minWidth:36,textAlign:'right'}}>
                                   {totalBillHrs>0?pctFmt(cg.projs.filter(p=>p.cat==='Billable').reduce((s,p)=>s+p.hrs,0),totalBillHrs):''}
                                 </span>
@@ -688,7 +688,7 @@ function DashboardPage({ clientGroups, totalBillHrs, pSearch, setPSearch, pClien
                                 title={p.name}>{p.name}</td>
                               {/* Hrs */}
                               <td style={{padding:'6px 8px',textAlign:'right',fontWeight:600,fontSize:13,
-                                color:S.ink,fontVariantNumeric:'tabular-nums',whiteSpace:'nowrap'}}>{p.hrs.toFixed(1)}</td>
+                                color:S.ink,fontVariantNumeric:'tabular-nums',whiteSpace:'nowrap'}}>{parseFloat(p.hrs.toFixed(2))}</td>
                               {/* % */}
                               <td style={{padding:'6px 8px',textAlign:'right',fontSize:11,
                                 color:S.muted,fontVariantNumeric:'tabular-nums',whiteSpace:'nowrap'}}>
@@ -734,7 +734,7 @@ function DashboardPage({ clientGroups, totalBillHrs, pSearch, setPSearch, pClien
                       color:S.ink,fontVariantNumeric:'tabular-nums'}}>
                       {selClient
                         ? (selGroup?.total||0).toFixed(1)
-                        : clientGroups.reduce((s,g)=>s+g.total,0).toFixed(1)}
+                        : parseFloat(clientGroups.reduce((s,g)=>s+g.total,0).toFixed(2))}
                     </td>
                     <td colSpan={2}/>
                   </tr>
