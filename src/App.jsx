@@ -203,7 +203,7 @@ function GanttCell({ dayData, name, dayLabel }) {
   };
 
   if(isEmpty) return (
-    <div style={{height:36,display:'flex',alignItems:'center',justifyContent:'center',
+    <div style={{height:26,display:'flex',alignItems:'center',justifyContent:'center',
       background:'#F8FAFC',border:`1px solid ${S.border}`,borderRadius:2}}>
       <span style={{fontSize:9,color:'#CBD5E1'}}>—</span>
     </div>
@@ -212,12 +212,12 @@ function GanttCell({ dayData, name, dayLabel }) {
   return (
     <div style={{position:'relative'}} onMouseEnter={onEnter} onMouseLeave={()=>setTip(false)}>
       <div style={{
-        height:36, borderRadius:2, border:`1px solid ${col.bar}20`,
+        height:26, borderRadius:2, border:`1px solid ${col.bar}20`,
         background: col.bg,
         display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-        cursor:'pointer', gap:1, padding:'2px 4px',
+        cursor:'pointer', gap:1, padding:'1px 3px',
       }}>
-        <span style={{fontSize:12, fontWeight:700, color:col.text, fontVariantNumeric:'tabular-nums', lineHeight:1}}>
+        <span style={{fontSize:11, fontWeight:700, color:col.text, fontVariantNumeric:'tabular-nums', lineHeight:1}}>
           {total % 1 === 0 ? total : total.toFixed(1)}h
         </span>
         {clients.length > 1 && (
@@ -1440,7 +1440,7 @@ export default function App() {
                       {/* col 2: Total (sticky, right after name) */}
                       <col style={{width:68,minWidth:68}}/>
                       {/* col 3…N: one per day */}
-                      {ganttData.days.map(d=><col key={d.key} style={{width:80,minWidth:76}}/>)}
+                      {ganttData.days.map(d=><col key={d.key} style={{width:60,minWidth:56}}/>)}
                     </colgroup>
                     <thead style={{position:'sticky',top:0,zIndex:4}}>
                       {/* Week band row — spans: [Name] [Total] [week1 days…] [week2 days…] … */}
@@ -1487,7 +1487,7 @@ export default function App() {
                         </th>
                         {/* Day columns */}
                         {ganttData.days.map(d=>(
-                          <th key={d.key} style={{padding:'6px 4px',fontSize:10,fontWeight:600,
+                          <th key={d.key} style={{padding:'4px 3px',fontSize:10,fontWeight:600,
                             background:S.cloud,textAlign:'center',
                             borderLeft:`1px solid ${S.border}`,color:S.slate,whiteSpace:'nowrap'}}>
                             <div>{d.dow}</div>
@@ -1503,14 +1503,14 @@ export default function App() {
                         return(
                           <tr key={i} style={{borderBottom:`1px solid ${S.border}`,background:rowBg}}>
                             {/* col 1: Name — sticky */}
-                            <td style={{padding:'6px 16px',fontSize:12,fontWeight:500,color:S.ink,
+                            <td style={{padding:'4px 12px',fontSize:12,fontWeight:500,color:S.ink,
                               whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',
                               position:'sticky',left:0,zIndex:2,background:rowBg,
                               borderBottom:`1px solid ${S.border}`}}>
                               {name}
                             </td>
                             {/* col 2: Row total — sticky, right after name */}
-                            <td style={{padding:'6px 8px',textAlign:'right',fontSize:12,fontWeight:700,
+                            <td style={{padding:'4px 8px',textAlign:'right',fontSize:12,fontWeight:700,
                               color:rowTotal>0?S.blue:S.muted,
                               fontVariantNumeric:'tabular-nums',whiteSpace:'nowrap',
                               borderLeft:`2px solid ${S.borderM}`,borderBottom:`1px solid ${S.border}`,
@@ -1522,8 +1522,8 @@ export default function App() {
                             {ganttData.days.map(d=>{
                               const cell=ganttData.grid[name]?.[d.key]||{clients:{},total:0};
                               return(
-                                <td key={d.key} style={{padding:'5px 5px',borderBottom:`1px solid ${S.border}`,
-                                  borderLeft:`1px solid ${S.border}`,verticalAlign:'middle',minWidth:76}}>
+                                <td key={d.key} style={{padding:'3px 4px',borderBottom:`1px solid ${S.border}`,
+                                  borderLeft:`1px solid ${S.border}`,verticalAlign:'middle',minWidth:56}}>
                                   <GanttCell dayData={cell} name={name} dayLabel={`${d.dow} ${d.label}`}/>
                                 </td>
                               );
