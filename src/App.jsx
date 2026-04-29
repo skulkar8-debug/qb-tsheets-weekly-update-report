@@ -610,10 +610,10 @@ function DashboardPage({ clientGroups, totalBillHrs, pSearch, setPSearch, pClien
             <div style={{overflowX:'auto'}}>
               <table style={{width:'100%',borderCollapse:'collapse',tableLayout:'fixed'}}>
                 <colgroup>
-                  <col/>{/* project name */}
-                  <col style={{width:64}}/>{/* hours */}
-                  <col style={{width:44}}/>{/* % */}
-                  <col style={{width:260,minWidth:260}}/>{/* members — scrollable */}
+                  <col style={{width:'40%',minWidth:180}}/>{/* project name */}
+                  <col style={{width:56}}/>{/* hours */}
+                  <col style={{width:40}}/>{/* % */}
+                  <col/>{/* members — takes remaining space, scrollable inside */}
                 </colgroup>
                 <thead>
                   <tr style={{borderBottom:`2px solid ${S.borderM}`}}>
@@ -778,7 +778,7 @@ export default function App() {
       const data = parseCSV(await res.text());
       if(!data.length) throw new Error('No rows — is the sheet publicly shared?');
       setRows(data);
-      setUpdatedAt(new Date());
+      setUpdatedAt(new Date()); // actual fetch time
       const dSet = new Set();
       data.forEach(r => { const d=normDate(r.local_date); if(d) dSet.add(d); });
       const allD = [...dSet].sort();
@@ -1074,7 +1074,7 @@ export default function App() {
         </div>
         <nav style={{padding:'10px 8px',flex:1}}>
           {NAV.map(n=>(
-            <button key={n.id} className={`ni${page===n.id?' on':''}`} onClick={()=>setPage(n.id)}
+            <button key={n.id} className={`ni${page===n.id?' on':''}`} onClick={()=>{setPage(n.id);setCalOpen(false);}}
               style={{width:'100%',display:'flex',alignItems:'center',gap:sideOff?0:9,padding:'8px 10px',
                 borderRadius:5,border:'none',cursor:'pointer',marginBottom:1,
                 background:page===n.id?'rgba(20,116,196,.2)':'transparent',
@@ -1127,7 +1127,7 @@ export default function App() {
               <RefreshCw size={11} color={S.muted}/> Refresh
             </button>
             {updatedAt&&<span style={{fontSize:11,color:S.muted,whiteSpace:'nowrap'}}>
-              {updatedAt.toLocaleDateString('en-US',{month:'short',day:'numeric'})}, {updatedAt.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}
+              Fetched {updatedAt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} {updatedAt.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}
             </span>}
           </div>
         </div>
@@ -1235,24 +1235,117 @@ export default function App() {
                             <td style={{...td0,textAlign:'right',color:S.muted}}>{projs.length}</td>
                           </tr>
                           {isOpen&&(
-                            <tr style={{background:'#F0F7FF'}}>
-                              <td colSpan={10} style={{padding:'0 14px 10px',borderBottom:`1px solid ${S.border}`}}>
-                                <div style={{marginLeft:18,marginTop:8,maxWidth:460}}>
-                                  <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
-                                    <thead><tr style={{borderBottom:`1px solid ${S.border}`}}>
-                                      {['Project','Hrs','%'].map((h,i)=><th key={i} style={{padding:'3px 8px',textAlign:i>0?'right':'left',fontSize:9,fontWeight:700,textTransform:'uppercase',letterSpacing:'.05em',color:S.muted}}>{h}</th>)}
-                                    </tr></thead>
-                                    <tbody>
-                                      {projs.map(([jc,hrs],j)=>(
-                                        <tr key={j} style={{borderBottom:j<projs.length-1?`1px solid #EEF1F6`:'none'}}>
-                                          <td style={{padding:'4px 8px',color:S.ink}}>{jc}</td>
-                                          <td style={{padding:'4px 8px',textAlign:'right',fontWeight:600,color:S.ink,fontVariantNumeric:'tabular-nums'}}>{hrs.toFixed(1)}</td>
-                                          <td style={{padding:'4px 8px',textAlign:'right',color:S.muted,fontVariantNumeric:'tabular-nums'}}>{m.utilized>0?Math.round((hrs/m.utilized)*100):0}%</td>
+                            <tr style={{background:'#F8FAFC'}}>
+                              <td colSpan={10} style={{padding:'0',borderBottom:`2px solid ${S.borderM}`}}>
+                                {(()=>{
+                                  // Group this person's jobs by client, sort by hours desc
+                                  const byClient = {};
+                                  projs.forEach(([jc,hrs])=>{
+                                    const cl = normalizeClient(jc);
+                                    if(!byClient[cl]) byClient[cl]={hrs:0,jobs:[]};
+                                    byClient[cl].hrs+=hrs;
+                                    byClient[cl].jobs.push([jc,hrs]);
+                                  });
+                                  const clientList = Object.entries(byClient).sort(([,a],[,b])=>b.hrs-a.hrs);
+                                  const personTotal = projs.reduce((s,[,h])=>s+h,0);
+                                  return(
+                                    <table style={{width:'100%',borderCollapse:'collapse',fontSize:12,tableLayout:'fixed'}}>
+                                      <colgroup>
+                                        <col style={{width:28}}/>{/* indent */}
+                                        <col/>{/* project name */}
+                                        <col style={{width:64}}/>{/* hrs */}
+                                        <col style={{width:48}}/>{/* % of person */}
+                                      </colgroup>
+                                      <thead>
+                                        <tr style={{background:S.cloud,borderBottom:`1px solid ${S.borderM}`}}>
+                                          <th colSpan={2} style={{padding:'5px 14px',fontSize:9,fontWeight:700,
+                                            textTransform:'uppercase',letterSpacing:'.06em',color:S.muted,textAlign:'left'}}>
+                                            Client / Project
+                                          </th>
+                                          <th style={{padding:'5px 10px',fontSize:9,fontWeight:700,
+                                            textTransform:'uppercase',letterSpacing:'.06em',color:S.muted,textAlign:'right'}}>
+                                            Hrs
+                                          </th>
+                                          <th style={{padding:'5px 10px',fontSize:9,fontWeight:700,
+                                            textTransform:'uppercase',letterSpacing:'.06em',color:S.muted,textAlign:'right'}}>
+                                            % Total
+                                          </th>
                                         </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-                                </div>
+                                      </thead>
+                                      <tbody>
+                                        {/* ── Person total row ── */}
+                                        <tr style={{background:'#EEF2F8',borderBottom:`1px solid ${S.borderM}`}}>
+                                          <td colSpan={2} style={{padding:'6px 14px',fontWeight:700,color:S.navy,fontSize:12}}>
+                                            {m.name} — Total
+                                          </td>
+                                          <td style={{padding:'6px 10px',textAlign:'right',fontWeight:700,
+                                            color:S.navy,fontVariantNumeric:'tabular-nums'}}>
+                                            {personTotal.toFixed(1)}
+                                          </td>
+                                          <td style={{padding:'6px 10px',textAlign:'right',fontWeight:700,
+                                            color:S.navy,fontVariantNumeric:'tabular-nums'}}>
+                                            100%
+                                          </td>
+                                        </tr>
+                                        {/* ── Per-client groups ── */}
+                                        {clientList.map(([cl,cd],ci)=>{
+                                          const col = cCol(cl);
+                                          const clientPct = personTotal>0?Math.round((cd.hrs/personTotal)*100):0;
+                                          return(
+                                            <React.Fragment key={ci}>
+                                              {/* Client subtotal row */}
+                                              <tr style={{background:col.bg,borderTop:`1px solid ${S.border}`,
+                                                borderLeft:`3px solid ${col.bar}`}}>
+                                                <td style={{padding:'5px 8px',width:28}}/>
+                                                <td style={{padding:'5px 10px',fontWeight:700,fontSize:11}}>
+                                                  <div style={{display:'flex',alignItems:'center',gap:6}}>
+                                                    <div style={{width:7,height:7,borderRadius:1,background:col.bar,flexShrink:0}}/>
+                                                    <span style={{color:col.text}}>{cl}</span>
+                                                  </div>
+                                                </td>
+                                                <td style={{padding:'5px 10px',textAlign:'right',fontWeight:700,
+                                                  color:col.text,fontVariantNumeric:'tabular-nums',fontSize:11}}>
+                                                  {cd.hrs.toFixed(1)}
+                                                </td>
+                                                <td style={{padding:'5px 10px',textAlign:'right',
+                                                  color:S.slateL,fontVariantNumeric:'tabular-nums',fontSize:11}}>
+                                                  {clientPct}%
+                                                </td>
+                                              </tr>
+                                              {/* Individual project rows under this client */}
+                                              {cd.jobs.sort(([,a],[,b])=>b-a).map(([jc,hrs],ji)=>{
+                                                const projPct = personTotal>0?Math.round((hrs/personTotal)*100):0;
+                                                const isLast = ji===cd.jobs.length-1;
+                                                return(
+                                                  <tr key={ji} style={{
+                                                    borderBottom:`1px solid #EEF1F6`,
+                                                    borderLeft:`3px solid ${col.bar}`,
+                                                    background:ji%2===0?S.white:'#FAFBFC'
+                                                  }}>
+                                                    <td style={{padding:'4px 8px',width:28}}/>
+                                                    <td style={{padding:'4px 10px',paddingLeft:22,color:S.slate,
+                                                      overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis',maxWidth:0}}
+                                                      title={jc}>
+                                                      {jc}
+                                                    </td>
+                                                    <td style={{padding:'4px 10px',textAlign:'right',
+                                                      fontWeight:500,color:S.ink,fontVariantNumeric:'tabular-nums'}}>
+                                                      {hrs.toFixed(1)}
+                                                    </td>
+                                                    <td style={{padding:'4px 10px',textAlign:'right',
+                                                      color:S.muted,fontVariantNumeric:'tabular-nums'}}>
+                                                      {projPct}%
+                                                    </td>
+                                                  </tr>
+                                                );
+                                              })}
+                                            </React.Fragment>
+                                          );
+                                        })}
+                                      </tbody>
+                                    </table>
+                                  );
+                                })()}
                               </td>
                             </tr>
                           )}
