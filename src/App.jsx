@@ -1176,13 +1176,40 @@ export default function App() {
   // ── GANTT CSV DOWNLOAD ──
   const downloadGantt = () => {
     if(!ganttData.names.length) return;
-    const header = ['Person',...ganttData.days.map(d=>`${d.dow} ${d.label}`),'TOTAL'];
-    const dataRows = ganttData.names.map(name=>{
-      const cells=ganttData.days.map(d=>{const cell=ganttData.grid[name]?.[d.key];return(!cell||cell.total===0)?'':cell.total.toFixed(1)+'h';});
-      return [name,...cells,(ganttData.rowTotals[name]||0).toFixed(1)+'h'];
+
+    // Tidy/long format — one row per person + date + client
+    // Perfect for Excel pivot tables, Power BI, Tableau etc.
+    // Columns: Person | Team | Date | Day | Week | Client | Hours
+    const header = ['Person','Team','Date','Day','Week','Client','Hours'];
+    const dataRows = [];
+
+    ganttData.names.forEach(name => {
+      const isCDS = members[name]?.isCDS;
+      const team  = isCDS ? 'CDS' : 'TAS';
+      ganttData.days.forEach(d => {
+        const cell = ganttData.grid[name]?.[d.key] || {clients:{}};
+        Object.entries(cell.clients||{}).forEach(([client, hrs]) => {
+          if(hrs > 0) {
+            dataRows.push([
+              name,
+              team,
+              d.key,           // YYYY-MM-DD — sorts/groups cleanly
+              d.dow,           // Mon, Tue…
+              d.weekKey || mondayKey(d.key) || '',  // week starting date
+              client,
+              parseFloat(hrs.toFixed(2)),  // plain number, not "8h" — pivot-friendly
+            ]);
+          }
+        });
+      });
     });
-    const tot=['TOTAL',...ganttData.days.map(d=>(ganttData.colTotals[d.key]||0).toFixed(1)+'h'),''];
-    downloadCSV(`resource-grid-${(dateRange.start||'')}-${(dateRange.end||'')}.csv`,[header,...dataRows,tot]);
+
+    const clientPart = gClients.length>0 ? `-${gClients.join('+')}` : '';
+    const teamPart   = teamF!=='all' ? `-${teamF}` : '';
+    downloadCSV(
+      `resource-grid-${dateRange.start||''}-${dateRange.end||''}${teamPart}${clientPart}.csv`,
+      [header, ...dataRows]
+    );
   };
 
   // Dashboard CSV download
@@ -1196,7 +1223,13 @@ export default function App() {
         dataRows.push([cg.client, p.name, p.hrs.toFixed(1), pct, p.cat, mems]);
       });
     });
-    downloadCSV(`dashboard-${new Date().toISOString().slice(0,10)}.csv`, [header, ...dataRows]);
+    const parts = ['dashboard'];
+    if(pClient!=='all') parts.push(pClient.replace(/\s+/g,'-'));
+    if(pType!=='all') parts.push(pType);
+    if(pSearch.trim()) parts.push(pSearch.trim().replace(/\s+/g,'-'));
+    parts.push(dateRange.start||new Date().toISOString().slice(0,10));
+    if(dateRange.end && dateRange.end!==dateRange.start) parts.push(dateRange.end);
+    downloadCSV(`${parts.join('_')}.csv`, [header, ...dataRows]);
   };
 
   // ── UI HELPERS ──
