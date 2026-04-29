@@ -170,224 +170,245 @@ const RiskChip = ({r}) => {
   return <span style={{display:'inline-block',padding:'1px 7px',borderRadius:3,fontSize:11,fontWeight:600,background:st.bg,color:st.c}}>{st.t}</span>;
 };
 
-// Gantt cell — colored segments + hover tooltip
-const GanttCell = ({ segments, util, name, weekLabel }) => {
+// ── GANTT CELL — solid pastel bg per dominant client, shows hours, hover detail ──
+function GanttCell({ dayData, name, dayLabel }) {
   const [tip, setTip] = useState(false);
-  const [pos, setPos] = useState({top:0,left:0});
-  const cellRef = useRef(null);
+  const [tipPos, setTipPos] = useState({top:0,left:0});
 
-  const totalHrs = segments.reduce((s,sg) => s+sg.h, 0);
-  const isEmpty = totalHrs === 0;
+  const clients = Object.entries(dayData.clients||{}).sort(([,a],[,b])=>b-a);
+  const total = dayData.total || 0;
+  const isEmpty = total === 0;
+
+  // Dominant client determines cell color
+  const dominant = clients[0]?.[0] || null;
+  const col = dominant ? cCol(dominant) : null;
 
   const onEnter = e => {
     const r = e.currentTarget.getBoundingClientRect();
-    setPos({ top: r.bottom + 6, left: Math.max(8, r.left + r.width/2 - 90) });
+    setTipPos({ top: r.bottom + window.scrollY + 4, left: Math.max(8, r.left + window.scrollX - 60) });
     setTip(true);
   };
 
-  const utilColor = util===null?S.muted:util>=95?S.red:util>=75?S.blue:util>=60?S.green:S.muted;
+  if(isEmpty) return (
+    <div style={{height:36,display:'flex',alignItems:'center',justifyContent:'center',
+      background:'#F8FAFC',border:`1px solid ${S.border}`,borderRadius:2}}>
+      <span style={{fontSize:9,color:'#CBD5E1'}}>—</span>
+    </div>
+  );
 
   return (
-    <div ref={cellRef} style={{position:'relative',minHeight:34}} onMouseEnter={onEnter} onMouseLeave={()=>setTip(false)}>
-      {/* Bar */}
-      <div style={{height:20,borderRadius:3,overflow:'hidden',border:`1px solid ${S.borderM}`,display:'flex',background:isEmpty?'#F8FAFC':S.white,cursor:isEmpty?'default':'pointer'}}>
-        {isEmpty
-          ? <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center'}}><span style={{fontSize:9,color:S.muted}}>—</span></div>
-          : segments.map((sg,i) => (
-              <div key={i} style={{
-                width:`${(sg.h/totalHrs)*100}%`, minWidth: sg.h>0?3:0,
-                background: sg.isOoo ? '#CBD5E1' : cCol(sg.client).bar,
-                flexShrink:0, opacity: 0.88,
-              }}/>
-            ))
-        }
+    <div style={{position:'relative'}} onMouseEnter={onEnter} onMouseLeave={()=>setTip(false)}>
+      <div style={{
+        height:36, borderRadius:2, border:`1px solid ${col.bar}20`,
+        background: col.bg,
+        display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+        cursor:'pointer', gap:1, padding:'2px 4px',
+      }}>
+        <span style={{fontSize:12, fontWeight:700, color:col.text, fontVariantNumeric:'tabular-nums', lineHeight:1}}>
+          {total % 1 === 0 ? total : total.toFixed(1)}h
+        </span>
+        {clients.length > 1 && (
+          <div style={{display:'flex', gap:2, marginTop:1}}>
+            {clients.slice(0,4).map(([cl],i) => (
+              <div key={i} style={{width:6,height:3,borderRadius:1,background:cCol(cl).bar,opacity:.7}}/>
+            ))}
+          </div>
+        )}
       </div>
-      {/* Hours + util below */}
-      {!isEmpty && (
-        <div style={{display:'flex',justifyContent:'space-between',marginTop:2,paddingInline:1}}>
-          <span style={{fontSize:9,color:S.slateL,fontVariantNumeric:'tabular-nums'}}>{totalHrs.toFixed(0)}h</span>
-          {util!==null && <span style={{fontSize:9,fontWeight:700,color:utilColor,fontVariantNumeric:'tabular-nums'}}>{Math.round(util)}%</span>}
-        </div>
-      )}
-
-      {/* Floating tooltip */}
-      {tip && !isEmpty && (
-        <div style={{position:'fixed',top:pos.top-window.scrollY,left:pos.left,
-          background:S.navy,color:'#fff',borderRadius:5,padding:'8px 11px',
-          fontSize:11,zIndex:9999,minWidth:170,maxWidth:230,pointerEvents:'none',
-          boxShadow:'0 4px 18px rgba(0,0,0,.4)',lineHeight:1.55}}>
-          <div style={{fontWeight:700,fontSize:12,color:S.sky,marginBottom:2}}>{name}</div>
-          <div style={{fontSize:10,color:'rgba(255,255,255,.5)',marginBottom:7}}>{weekLabel}</div>
-          {segments.filter(sg=>sg.h>0).map((sg,i)=>(
-            <div key={i} style={{display:'flex',alignItems:'center',gap:7,marginBottom:4}}>
-              <div style={{width:9,height:9,borderRadius:2,background:sg.isOoo?'#CBD5E1':cCol(sg.client).bar,flexShrink:0,border:'1px solid rgba(255,255,255,.2)'}}/>
-              <span style={{flex:1,color:'rgba(255,255,255,.88)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{sg.isOoo?'OOO':sg.client}</span>
-              <span style={{color:S.sky,fontWeight:600,fontVariantNumeric:'tabular-nums',flexShrink:0}}>{sg.h.toFixed(1)}h</span>
+      {tip && (
+        <div style={{position:'fixed', top:tipPos.top - window.scrollY, left:tipPos.left,
+          background:S.navy, color:'#fff', borderRadius:5, padding:'8px 11px',
+          fontSize:11, zIndex:9999, minWidth:160, maxWidth:220, pointerEvents:'none',
+          boxShadow:'0 4px 18px rgba(0,0,0,.35)', lineHeight:1.55}}>
+          <div style={{fontWeight:700, fontSize:12, color:S.sky, marginBottom:2}}>{name}</div>
+          <div style={{fontSize:10, color:'rgba(255,255,255,.5)', marginBottom:6}}>{dayLabel}</div>
+          {clients.map(([cl,h],i) => (
+            <div key={i} style={{display:'flex', alignItems:'center', gap:7, marginBottom:3}}>
+              <div style={{width:8,height:8,borderRadius:2,background:cCol(cl).bar,flexShrink:0}}/>
+              <span style={{flex:1,color:'rgba(255,255,255,.85)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{cl}</span>
+              <span style={{color:S.sky,fontWeight:600,fontVariantNumeric:'tabular-nums',flexShrink:0}}>{h.toFixed(1)}h</span>
             </div>
           ))}
-          <div style={{borderTop:'1px solid rgba(255,255,255,.15)',marginTop:5,paddingTop:5,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-            <span style={{color:'rgba(255,255,255,.5)',fontSize:10}}>Total: {totalHrs.toFixed(1)}h</span>
-            {util!==null&&<span style={{fontWeight:700,fontSize:11,color:util>=95?'#FCA5A5':util>=75?'#93C5FD':util>=60?'#86EFAC':'rgba(255,255,255,.45)'}}>{Math.round(util)}% util</span>}
+          <div style={{borderTop:'1px solid rgba(255,255,255,.15)',marginTop:5,paddingTop:5,fontSize:10,color:'rgba(255,255,255,.5)'}}>
+            Total: {total.toFixed(1)}h
           </div>
         </div>
       )}
     </div>
   );
-};
+}
 
-// ── DASHBOARD PAGE — bar chart overview + click-to-expand detail ──
-function DashboardPage({ clientGroups, totalBillHrs, pSearch, setPSearch, pClient, setPClient,
-  pType, setPType, pSort, setPSort, allClients, hasFilters, downloadDashboard }) {
 
-  const [selectedClient, setSelectedClient] = useState(null);
-
-  // Build bar chart data — one bar per client, sorted by hours
-  const chartData = clientGroups.map(cg => ({
-    client: cg.client,
-    hours:  parseFloat(cg.total.toFixed(1)),
-    projs:  cg.projs,
-    total:  cg.total,
-  }));
-
-  const handleBarClick = (data) => {
-    if(!data) return;
-    const client = data.activePayload?.[0]?.payload?.client || data.client;
-    setSelectedClient(prev => prev===client ? null : client);
+// ── DATE RANGE PICKER ──
+function DateRangePicker({ dateRange, setDateRange, allDays, minDate, maxDate, calOpen, setCalOpen, calHover, setCalHover }) {
+  const today = new Date();
+  const [viewYear,  setViewYear]  = useState(dateRange.end?new Date(dateRange.end+'T12:00:00').getFullYear():today.getFullYear());
+  const [viewMonth, setViewMonth] = useState(dateRange.end?new Date(dateRange.end+'T12:00:00').getMonth():today.getMonth());
+  const prev=()=>{if(viewMonth===0){setViewMonth(11);setViewYear(y=>y-1);}else setViewMonth(m=>m-1);};
+  const next=()=>{if(viewMonth===11){setViewMonth(0);setViewYear(y=>y+1);}else setViewMonth(m=>m+1);};
+  const MO=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const DO=['Su','Mo','Tu','We','Th','Fr','Sa'];
+  const mkCells=(yr,mo)=>{const f=new Date(yr,mo,1).getDay(),l=new Date(yr,mo+1,0).getDate(),a=[];for(let i=0;i<f;i++)a.push(null);for(let d=1;d<=l;d++)a.push(d);return a;};
+  const toKey=(yr,mo,d)=>`${yr}-${String(mo+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  const inR=k=>{const{start,end}=dateRange;return start&&end&&k>start&&k<end;};
+  const inH=k=>{if(!dateRange.start||dateRange.end||!calHover)return false;const lo=dateRange.start<calHover?dateRange.start:calHover,hi=dateRange.start<calHover?calHover:dateRange.start;return k>lo&&k<hi;};
+  const click=k=>{
+    if(!allDays.includes(k))return;
+    const{start,end}=dateRange;
+    if(!start||(start&&end)){setDateRange({start:k,end:''});}
+    else{if(k===start){setDateRange({start:'',end:''});return;}const lo=k<start?k:start,hi=k<start?start:k;setDateRange({start:lo,end:hi});setCalOpen(false);}
   };
+  const fmt=d=>{if(!d)return'';const dt=new Date(d+'T12:00:00');return dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'});};
+  const lbl=()=>{const{start,end}=dateRange;if(!start&&!end)return'All dates';if(start&&end)return`${fmt(start)} – ${fmt(end)}`;return start?`From ${fmt(start)}`:`Until ${fmt(end)}`;};
+  const todK=toKey(today.getFullYear(),today.getMonth(),today.getDate());
+  const renderMo=(yr,mo)=>(
+    <div style={{minWidth:200}}>
+      <div style={{textAlign:'center',fontSize:12,fontWeight:600,color:S.ink,marginBottom:8}}>{MO[mo]} {yr}</div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:2}}>
+        {DO.map(d=><div key={d} style={{fontSize:9,fontWeight:700,color:S.muted,textAlign:'center',padding:'2px 0'}}>{d}</div>)}
+        {mkCells(yr,mo).map((day,ci)=>{
+          if(!day)return<div key={ci}/>;
+          const k=toKey(yr,mo,day),has=allDays.includes(k);
+          const isS=k===dateRange.start,isE=k===dateRange.end,mid=inR(k)||inH(k),isHE=!dateRange.end&&k===calHover&&has;
+          const wknd=new Date(k+'T12:00:00').getDay()%6===0;
+          let bg='transparent',col=has?(wknd?S.muted:S.ink):'#D1D5DB',fw=400,br=4;
+          if(isS||isE){bg=S.blue;col='#fff';fw=700;}
+          else if(isHE){bg='#93C5FD';col=S.navy;}
+          else if(mid){bg='#DBEAFE';col=S.blue;br=0;}
+          return(
+            <div key={ci} onClick={()=>click(k)} onMouseEnter={()=>setCalHover(k)} onMouseLeave={()=>setCalHover(null)}
+              style={{textAlign:'center',padding:'5px 2px',fontSize:11,borderRadius:br,background:bg,color:col,fontWeight:fw,
+                cursor:has?'pointer':'default',boxShadow:k===todK&&!isS&&!isE?`inset 0 0 0 1px ${S.borderM}`:'none',
+                opacity:has?1:0.3,userSelect:'none',transition:'background .08s'}}>
+              {day}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+  const m2=viewMonth===11?0:viewMonth+1,y2=viewMonth===11?viewYear+1:viewYear;
+  const now=new Date(),iso=d=>d.toISOString().slice(0,10);
+  const mon0=()=>{const d=new Date(now),dw=now.getDay()||7;d.setDate(now.getDate()-(dw-1));return d;};
+  const ps=(s,e)=>{setDateRange({start:s,end:e});setCalOpen(false);};
+  return(
+    <div className="wdd" style={{position:'relative',flexShrink:0}}>
+      <button onClick={()=>setCalOpen(v=>!v)} style={{height:28,padding:'0 8px 0 10px',fontSize:12,
+        border:`1px solid ${dateRange.start?S.blue:S.border}`,borderRadius:4,
+        background:dateRange.start?'#EBF4FB':S.white,color:dateRange.start?S.blue:S.ink,
+        cursor:'pointer',display:'flex',alignItems:'center',gap:5,outline:'none',minWidth:170,fontWeight:dateRange.start?600:400}}>
+        <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1,textAlign:'left',fontSize:12}}>{lbl()}</span>
+        {dateRange.start&&<span onClick={e=>{e.stopPropagation();setDateRange({start:'',end:''});setCalOpen(false);}} style={{display:'flex',alignItems:'center',cursor:'pointer',color:S.muted,flexShrink:0,padding:2}}><X size={10}/></span>}
+        <ChevronDown size={11} style={{flexShrink:0,transform:calOpen?'rotate(180deg)':'none',transition:'.15s'}}/>
+      </button>
+      {calOpen&&(
+        <div style={{position:'absolute',top:'calc(100% + 6px)',right:0,background:S.white,
+          border:`1px solid ${S.border}`,borderRadius:8,boxShadow:'0 8px 32px rgba(0,0,0,.15)',zIndex:200,padding:14,userSelect:'none',minWidth:460}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+            <button onClick={prev} style={{background:'none',border:'none',cursor:'pointer',color:S.slate,padding:'2px 10px',fontSize:18}}>&#8249;</button>
+            <span style={{fontSize:11,color:S.muted}}>
+              {!dateRange.start&&'Click start date'}
+              {dateRange.start&&!dateRange.end&&<span style={{color:S.blue,fontWeight:500}}>Click end date</span>}
+              {dateRange.start&&dateRange.end&&<span style={{color:S.green,fontWeight:600}}>✓ {lbl()}</span>}
+            </span>
+            <button onClick={next} style={{background:'none',border:'none',cursor:'pointer',color:S.slate,padding:'2px 10px',fontSize:18}}>&#8250;</button>
+          </div>
+          <div style={{display:'flex',gap:24}}>{renderMo(viewYear,viewMonth)}{renderMo(y2,m2)}</div>
+          <div style={{borderTop:`1px solid ${S.border}`,marginTop:10,paddingTop:8,display:'flex',gap:6,flexWrap:'wrap'}}>
+            {[
+              ['This week', ()=>{const m=mon0(),f=new Date(m);f.setDate(m.getDate()+4);ps(iso(m),iso(f));}],
+              ['Last week', ()=>{const m=mon0(),lm=new Date(m);lm.setDate(m.getDate()-7);const lf=new Date(lm);lf.setDate(lm.getDate()+4);ps(iso(lm),iso(lf));}],
+              ['Last 30d',  ()=>{const a=new Date(now);a.setDate(now.getDate()-30);ps(iso(a),iso(now));}],
+              ['This month',()=>{ps(`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`,iso(now));}],
+              ['All data',  ()=>{ps(minDate,maxDate);}],
+            ].map(([lb,fn])=>(
+              <button key={lb} onClick={fn} style={{padding:'3px 10px',fontSize:11,fontWeight:500,border:`1px solid ${S.border}`,borderRadius:4,background:S.cloud,color:S.slate,cursor:'pointer'}}>{lb}</button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
-  const selectedGroup = clientGroups.find(cg => cg.client===selectedClient);
-
-  const CHART_H = Math.max(280, chartData.length * 32 + 60);
-
-  // Custom bar label showing hours
-  const BarLabel = (props) => {
-    const { x, y, width, height, value } = props;
-    if(width < 28) return null;
-    return (
-      <text x={x+width+6} y={y+height/2+1} fill={S.slateL} fontSize={11}
-        dominantBaseline="middle" fontFamily="Inter,sans-serif" fontVariantNumeric="tabular-nums">
-        {value}h
-      </text>
-    );
-  };
-
-  return (
+// ── DASHBOARD PAGE ──
+function DashboardPage({ clientGroups, totalBillHrs, pSearch, setPSearch, pClient, setPClient, pType, setPType, pSort, setPSort, allClients, hasFilters, downloadDashboard }) {
+  const [selClient, setSelClient] = useState(null);
+  const chartData = clientGroups.map(cg=>({client:cg.client,hours:parseFloat(cg.total.toFixed(1)),projs:cg.projs,total:cg.total}));
+  const selGroup = clientGroups.find(cg=>cg.client===selClient);
+  const CHART_H = Math.max(220, chartData.length*30+40);
+  return(
     <div>
       {/* Toolbar */}
-      <div style={{display:'flex',alignItems:'center',flexWrap:'wrap',gap:7,
-        padding:'9px 14px',marginBottom:14,borderRadius:5,background:S.white,border:`1px solid ${S.border}`}}>
+      <div style={{display:'flex',alignItems:'center',flexWrap:'wrap',gap:7,padding:'9px 14px',marginBottom:14,borderRadius:5,background:S.white,border:`1px solid ${S.border}`}}>
         <div style={{position:'relative',flexShrink:0}}>
           <Search size={12} color={S.muted} style={{position:'absolute',left:7,top:'50%',transform:'translateY(-50%)',pointerEvents:'none'}}/>
           <input value={pSearch} onChange={e=>setPSearch(e.target.value)} placeholder="Search projects…"
-            style={{height:28,paddingLeft:25,paddingRight:pSearch?22:7,width:195,fontSize:12,
-              border:`1px solid ${S.border}`,borderRadius:4,background:S.white,color:S.ink,outline:'none',boxSizing:'border-box'}}/>
-          {pSearch&&<button onClick={()=>setPSearch('')} style={{position:'absolute',right:5,top:'50%',transform:'translateY(-50%)',
-            background:'none',border:'none',cursor:'pointer',color:S.muted,display:'flex',alignItems:'center',padding:0}}><X size={11}/></button>}
+            style={{height:28,paddingLeft:25,paddingRight:pSearch?22:7,width:195,fontSize:12,border:`1px solid ${S.border}`,borderRadius:4,background:S.white,color:S.ink,outline:'none',boxSizing:'border-box'}}/>
+          {pSearch&&<button onClick={()=>setPSearch('')} style={{position:'absolute',right:5,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:S.muted,display:'flex',alignItems:'center',padding:0}}><X size={11}/></button>}
         </div>
-        <select value={pClient} onChange={e=>{setPClient(e.target.value);setSelectedClient(e.target.value==='all'?null:e.target.value);}}
-          style={{height:28,padding:'0 7px',fontSize:12,minWidth:130,
-            border:`1px solid ${pClient!=='all'?S.blue:S.border}`,borderRadius:4,
-            background:S.white,color:S.ink,cursor:'pointer',outline:'none',fontWeight:pClient!=='all'?600:400}}>
-          <option value="all">All clients</option>
-          {allClients.map(c=><option key={c} value={c}>{c}</option>)}
+        <select value={pClient} onChange={e=>{setPClient(e.target.value);setSelClient(e.target.value==='all'?null:e.target.value);}} style={{height:28,padding:'0 7px',fontSize:12,minWidth:130,border:`1px solid ${pClient!=='all'?S.blue:S.border}`,borderRadius:4,background:S.white,color:S.ink,cursor:'pointer',outline:'none',fontWeight:pClient!=='all'?600:400}}>
+          <option value="all">All clients</option>{allClients.map(c=><option key={c} value={c}>{c}</option>)}
         </select>
-        <select value={pType} onChange={e=>setPType(e.target.value)}
-          style={{height:28,padding:'0 7px',fontSize:12,
-            border:`1px solid ${pType!=='all'?S.blue:S.border}`,borderRadius:4,
-            background:S.white,color:S.ink,cursor:'pointer',outline:'none',fontWeight:pType!=='all'?600:400}}>
-          <option value="all">All types</option>
-          <option value="billable">Billable</option>
-          <option value="internal-bd">Internal / BD</option>
+        <select value={pType} onChange={e=>setPType(e.target.value)} style={{height:28,padding:'0 7px',fontSize:12,border:`1px solid ${pType!=='all'?S.blue:S.border}`,borderRadius:4,background:S.white,color:S.ink,cursor:'pointer',outline:'none',fontWeight:pType!=='all'?600:400}}>
+          <option value="all">All types</option><option value="billable">Billable</option><option value="internal-bd">Internal / BD</option>
         </select>
-        <select value={pSort.k+'-'+pSort.d} onChange={e=>{const[k,d]=e.target.value.split('-');setPSort({k,d});}}
-          style={{height:28,padding:'0 7px',fontSize:12,border:`1px solid ${S.border}`,borderRadius:4,
-            background:S.white,color:S.ink,cursor:'pointer',outline:'none'}}>
-          <option value="hours-desc">Hours ↓</option>
-          <option value="hours-asc">Hours ↑</option>
-          <option value="name-asc">Name A–Z</option>
+        <select value={pSort.k+'-'+pSort.d} onChange={e=>{const[k,d]=e.target.value.split('-');setPSort({k,d});}} style={{height:28,padding:'0 7px',fontSize:12,border:`1px solid ${S.border}`,borderRadius:4,background:S.white,color:S.ink,cursor:'pointer',outline:'none'}}>
+          <option value="hours-desc">Hours ↓</option><option value="hours-asc">Hours ↑</option><option value="name-asc">Name A–Z</option>
         </select>
-        {hasFilters&&<button onClick={()=>{setPSearch('');setPClient('all');setPType('all');setSelectedClient(null);}}
-          style={{height:28,padding:'0 9px',fontSize:11,fontWeight:500,border:'1px solid #FECACA',borderRadius:4,
-            background:'#FEF2F2',color:S.red,cursor:'pointer',display:'flex',alignItems:'center',gap:3}}>
-          <X size={11}/>Clear
-        </button>}
+        {hasFilters&&<button onClick={()=>{setPSearch('');setPClient('all');setPType('all');setSelClient(null);}} style={{height:28,padding:'0 9px',fontSize:11,fontWeight:500,border:'1px solid #FECACA',borderRadius:4,background:'#FEF2F2',color:S.red,cursor:'pointer',display:'flex',alignItems:'center',gap:3}}><X size={11}/>Clear</button>}
         <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:8}}>
-          <span style={{fontSize:11,color:S.muted,whiteSpace:'nowrap'}}>
-            {clientGroups.reduce((s,g)=>s+g.projs.length,0)} projects · {clientGroups.length} clients
-          </span>
-          <button onClick={downloadDashboard}
-            style={{height:28,padding:'0 9px',fontSize:11,border:`1px solid ${S.border}`,borderRadius:4,
-              background:S.white,color:S.slate,cursor:'pointer',display:'flex',alignItems:'center',gap:4,outline:'none'}}>
-            <Download size={11}/> CSV
-          </button>
+          <span style={{fontSize:11,color:S.muted,whiteSpace:'nowrap'}}>{clientGroups.reduce((s,g)=>s+g.projs.length,0)} projects · {clientGroups.length} clients</span>
+          <button onClick={downloadDashboard} style={{height:28,padding:'0 9px',fontSize:11,border:`1px solid ${S.border}`,borderRadius:4,background:S.white,color:S.slate,cursor:'pointer',display:'flex',alignItems:'center',gap:4,outline:'none'}}><Download size={11}/> CSV</button>
         </div>
       </div>
 
-      {clientGroups.length===0&&(
-        <div style={{padding:'60px 16px',textAlign:'center',color:S.muted,background:S.white,borderRadius:5,border:`1px solid ${S.border}`}}>
-          No projects match filters
-        </div>
-      )}
+      {clientGroups.length===0&&<div style={{padding:'60px 16px',textAlign:'center',color:S.muted,background:S.white,borderRadius:5,border:`1px solid ${S.border}`}}>No projects match filters</div>}
 
       {clientGroups.length>0&&(
-        <div style={{display:'grid',gridTemplateColumns:selectedGroup?'1fr 1fr':'1fr',gap:14,alignItems:'start'}}>
-
-          {/* ── LEFT: Horizontal bar chart ── */}
-          <div style={{background:S.white,border:`1px solid ${S.border}`,borderRadius:5,overflow:'hidden'}}>
-            <div style={{padding:'10px 16px',borderBottom:`1px solid ${S.border}`,background:S.cloud,
-              display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+        <div>
+          {/* ── COLUMN CHART on top ── */}
+          <div style={{background:S.white,border:`1px solid ${S.border}`,borderRadius:5,overflow:'hidden',marginBottom:14}}>
+            <div style={{padding:'10px 16px',borderBottom:`1px solid ${S.border}`,background:S.cloud,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
               <span style={{fontSize:12,fontWeight:600,color:S.navy}}>Hours by Client</span>
-              <span style={{fontSize:11,color:S.muted}}>Click a bar to see project detail</span>
+              <span style={{fontSize:11,color:S.muted}}>Click a bar to expand projects below</span>
             </div>
-            <div style={{padding:'12px 8px 8px 0',overflowX:'hidden'}}>
+            <div style={{padding:'16px 16px 8px',overflowX:'auto'}}>
               <ResponsiveContainer width="100%" height={CHART_H}>
-                <BarChart
-                  data={chartData}
-                  layout="vertical"
-                  margin={{top:4, right:60, bottom:4, left:8}}
-                  barCategoryGap="22%"
-                  onClick={handleBarClick}
-                  style={{cursor:'pointer'}}
-                >
-                  <CartesianGrid strokeDasharray="2 2" horizontal={false} stroke={S.border}/>
-                  <XAxis type="number" tick={{fontSize:10,fill:S.muted}} tickLine={false} axisLine={false}/>
-                  <YAxis type="category" dataKey="client" width={130}
+                <BarChart data={chartData} margin={{top:16,right:16,bottom:60,left:8}} barCategoryGap="25%"
+                  onClick={d=>{if(!d?.activePayload)return;const cl=d.activePayload[0]?.payload?.client;setSelClient(p=>p===cl?null:cl);}}>
+                  <CartesianGrid strokeDasharray="2 2" vertical={false} stroke={S.border}/>
+                  <XAxis dataKey="client"
                     tick={({x,y,payload})=>(
                       <g transform={`translate(${x},${y})`}>
-                        <rect x={-130} y={-9} width={8} height={18} rx={2}
-                          fill={selectedClient===payload.value?cCol(payload.value).bar:cCol(payload.value).bar}
-                          opacity={selectedClient&&selectedClient!==payload.value?0.35:1}/>
-                        <text x={-116} y={0} dy={4} fontSize={11} fill={selectedClient===payload.value?S.navy:S.ink}
-                          fontFamily="Inter,sans-serif" fontWeight={selectedClient===payload.value?700:400}
-                          textAnchor="start">
-                          {payload.value.length>16?payload.value.slice(0,15)+'…':payload.value}
+                        <text x={0} y={0} dy={8} fontSize={11} fill={selClient===payload.value?S.navy:S.ink}
+                          fontFamily="Inter,sans-serif" fontWeight={selClient===payload.value?700:400}
+                          textAnchor="end" transform="rotate(-35)">
+                          {payload.value.length>14?payload.value.slice(0,13)+'…':payload.value}
                         </text>
                       </g>
                     )}
-                    tickLine={false} axisLine={false}
-                  />
+                    tickLine={false} axisLine={false} interval={0}/>
+                  <YAxis tick={{fontSize:10,fill:S.muted}} tickLine={false} axisLine={false}/>
                   <RTooltip
                     cursor={{fill:'rgba(20,116,196,.06)'}}
                     content={({active,payload})=>{
-                      if(!active||!payload?.length) return null;
+                      if(!active||!payload?.length)return null;
                       const d=payload[0].payload;
                       return(
-                        <div style={{background:S.navy,border:'none',borderRadius:5,padding:'8px 12px',fontSize:11,
-                          boxShadow:'0 4px 16px rgba(0,0,0,.3)'}}>
-                          <div style={{fontWeight:700,color:S.sky,marginBottom:4}}>{d.client}</div>
-                          <div style={{color:'rgba(255,255,255,.85)'}}>{d.hours}h across {d.projs.length} projects</div>
-                          <div style={{color:'rgba(255,255,255,.5)',fontSize:10,marginTop:2}}>Click to expand ↓</div>
+                        <div style={{background:S.navy,borderRadius:5,padding:'8px 12px',fontSize:11,boxShadow:'0 4px 16px rgba(0,0,0,.3)'}}>
+                          <div style={{fontWeight:700,color:S.sky,marginBottom:3}}>{d.client}</div>
+                          <div style={{color:'rgba(255,255,255,.85)'}}>{d.hours}h · {d.projs.length} projects</div>
+                          <div style={{color:'rgba(255,255,255,.45)',fontSize:10,marginTop:2}}>Click to {selClient===d.client?'close':'expand'} ↓</div>
                         </div>
                       );
-                    }}
-                  />
-                  <Bar dataKey="hours" radius={[0,3,3,0]} maxBarSize={22} label={<BarLabel/>}>
+                    }}/>
+                  <Bar dataKey="hours" radius={[3,3,0,0]} maxBarSize={48}>
                     {chartData.map((entry,i)=>(
                       <Cell key={i}
                         fill={cCol(entry.client).bar}
-                        opacity={selectedClient && selectedClient!==entry.client ? 0.3 : 0.88}
-                        stroke={selectedClient===entry.client ? cCol(entry.client).bar : 'none'}
-                        strokeWidth={selectedClient===entry.client ? 2 : 0}
+                        opacity={selClient&&selClient!==entry.client?0.3:0.9}
+                        cursor="pointer"
                       />
                     ))}
                   </Bar>
@@ -396,75 +417,44 @@ function DashboardPage({ clientGroups, totalBillHrs, pSearch, setPSearch, pClien
             </div>
           </div>
 
-          {/* ── RIGHT: Project detail panel ── */}
-          {selectedGroup&&(
-            <div style={{background:S.white,border:`1px solid ${S.border}`,borderRadius:5,overflow:'hidden',
-              borderTop:`3px solid ${cCol(selectedGroup.client).bar}`}}>
-              <div style={{padding:'10px 14px',borderBottom:`1px solid ${S.border}`,
-                background:cCol(selectedGroup.client).bg,
-                display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          {/* ── PROJECT DETAIL below chart ── */}
+          {selGroup&&(
+            <div style={{background:S.white,border:`1px solid ${S.border}`,borderRadius:5,overflow:'hidden',borderTop:`3px solid ${cCol(selGroup.client).bar}`}}>
+              <div style={{padding:'10px 14px',borderBottom:`1px solid ${S.border}`,background:cCol(selGroup.client).bg,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
                 <div style={{display:'flex',alignItems:'center',gap:8}}>
-                  <div style={{width:9,height:9,borderRadius:2,background:cCol(selectedGroup.client).bar,flexShrink:0}}/>
-                  <span style={{fontSize:13,fontWeight:700,color:cCol(selectedGroup.client).text}}>{selectedGroup.client}</span>
-                  <span style={{fontSize:11,color:S.slateL}}>{selectedGroup.projs.length} projects · {selectedGroup.total.toFixed(1)}h</span>
+                  <div style={{width:9,height:9,borderRadius:2,background:cCol(selGroup.client).bar,flexShrink:0}}/>
+                  <span style={{fontSize:13,fontWeight:700,color:cCol(selGroup.client).text}}>{selGroup.client}</span>
+                  <span style={{fontSize:11,color:S.slateL}}>{selGroup.projs.length} projects · {selGroup.total.toFixed(1)}h</span>
                 </div>
-                <button onClick={()=>setSelectedClient(null)}
-                  style={{background:'none',border:'none',cursor:'pointer',color:S.muted,display:'flex',alignItems:'center',padding:2}}>
-                  <X size={14}/>
-                </button>
+                <button onClick={()=>setSelClient(null)} style={{background:'none',border:'none',cursor:'pointer',color:S.muted,display:'flex',alignItems:'center',padding:2}}><X size={14}/></button>
               </div>
-
-              {/* Project rows */}
               <table style={{width:'100%',borderCollapse:'collapse',tableLayout:'fixed'}}>
-                <colgroup>
-                  <col/>{/* project name */}
-                  <col style={{width:54}}/>{/* hours */}
-                  <col style={{width:40}}/>{/* % */}
-                </colgroup>
+                <colgroup><col/><col style={{width:54}}/><col style={{width:40}}/></colgroup>
                 <thead>
                   <tr style={{borderBottom:`1px solid ${S.border}`}}>
-                    <th style={{padding:'6px 14px',fontSize:10,fontWeight:700,textTransform:'uppercase',
-                      letterSpacing:'.05em',color:S.muted,textAlign:'left',background:S.cloud}}>Project</th>
-                    <th style={{padding:'6px 8px',fontSize:10,fontWeight:700,textTransform:'uppercase',
-                      letterSpacing:'.05em',color:S.muted,textAlign:'right',background:S.cloud}}>Hrs</th>
-                    <th style={{padding:'6px 8px',fontSize:10,fontWeight:700,textTransform:'uppercase',
-                      letterSpacing:'.05em',color:S.muted,textAlign:'right',background:S.cloud}}>%</th>
+                    {['Project','Hrs','%'].map((h,i)=>(
+                      <th key={i} style={{padding:'6px 14px',fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'.05em',color:S.muted,textAlign:i>0?'right':'left',background:S.cloud}}>{h}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {selectedGroup.projs.map((p,pi)=>{
-                    const mems = Object.entries(p.mems).sort(([,a],[,b])=>b-a);
-                    const isBill = p.cat==='Billable';
+                  {selGroup.projs.map((p,pi)=>{
+                    const mems=Object.entries(p.mems).sort(([,a],[,b])=>b-a);
+                    const isBill=p.cat==='Billable';
                     return(
                       <React.Fragment key={pi}>
-                        <tr style={{background:pi%2===0?S.white:'#FAFBFC',
-                          borderBottom:`1px solid #EEF1F6`}}>
-                          <td style={{padding:'6px 14px',fontSize:12,color:S.ink,
-                            overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis',maxWidth:0}}
-                            title={p.name}>
-                            {p.name}
-                          </td>
-                          <td style={{padding:'6px 8px',textAlign:'right',fontWeight:600,
-                            fontSize:13,color:S.ink,fontVariantNumeric:'tabular-nums',whiteSpace:'nowrap'}}>
-                            {p.hrs.toFixed(1)}
-                          </td>
-                          <td style={{padding:'6px 8px',textAlign:'right',fontSize:11,
-                            color:S.muted,fontVariantNumeric:'tabular-nums',whiteSpace:'nowrap'}}>
-                            {isBill?pctFmt(p.hrs,totalBillHrs):'—'}
-                          </td>
+                        <tr style={{background:pi%2===0?S.white:'#FAFBFC',borderBottom:'none'}}>
+                          <td style={{padding:'6px 14px',fontSize:12,color:S.ink,overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis',maxWidth:0}} title={p.name}>{p.name}</td>
+                          <td style={{padding:'6px 8px',textAlign:'right',fontWeight:600,fontSize:13,color:S.ink,fontVariantNumeric:'tabular-nums',whiteSpace:'nowrap'}}>{p.hrs.toFixed(1)}</td>
+                          <td style={{padding:'6px 8px',textAlign:'right',fontSize:11,color:S.muted,fontVariantNumeric:'tabular-nums',whiteSpace:'nowrap'}}>{isBill?pctFmt(p.hrs,totalBillHrs):'—'}</td>
                         </tr>
-                        {/* Members row */}
-                        <tr style={{background:pi%2===0?S.white:'#FAFBFC',
-                          borderBottom:pi<selectedGroup.projs.length-1?`1px solid #EEF1F6`:'none'}}>
-                          <td colSpan={3} style={{padding:'0 14px 7px',paddingTop:0}}>
+                        <tr style={{background:pi%2===0?S.white:'#FAFBFC',borderBottom:`1px solid #EEF1F6`}}>
+                          <td colSpan={3} style={{padding:'0 14px 8px'}}>
                             <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
                               {mems.map(([n,h],mi)=>(
-                                <span key={mi} style={{display:'inline-flex',alignItems:'center',gap:3,
-                                  background:S.cloud,border:`1px solid ${S.border}`,
-                                  borderRadius:3,padding:'2px 7px',fontSize:11,whiteSpace:'nowrap'}}>
+                                <span key={mi} style={{display:'inline-flex',alignItems:'center',gap:3,background:S.cloud,border:`1px solid ${S.border}`,borderRadius:3,padding:'2px 7px',fontSize:11,whiteSpace:'nowrap'}}>
                                   <span style={{color:S.ink,fontWeight:500}}>{n.split(' ')[0]}</span>
-                                  <span style={{color:cCol(selectedGroup.client).bar,fontWeight:600,
-                                    fontVariantNumeric:'tabular-nums'}}>{h.toFixed(0)}h</span>
+                                  <span style={{color:cCol(selGroup.client).bar,fontWeight:600,fontVariantNumeric:'tabular-nums'}}>{h.toFixed(0)}h</span>
                                 </span>
                               ))}
                             </div>
@@ -504,7 +494,7 @@ export default function App() {
   const [pSort,     setPSort]     = useState({k:'hours',d:'desc'});
 
   // Gantt filter
-  const [gClient,   setGClient]   = useState('all');
+  const [gClients,  setGClients]  = useState([]);  // [] = all, else array of selected client names
 
   // Team
   const [tSearch,   setTSearch]   = useState('');
@@ -651,27 +641,39 @@ export default function App() {
   const ganttData = useMemo(() => {
     const allNames = Object.keys(members).sort();
     const {start,end} = dateRange;
-    if(!allNames.length || (!start && !end)) return {names:[],days:[],grid:{}};
-    const daySet = new Set();
-    rows.forEach(r => {
-      const d = normDate(r.local_date);
-      if(!d) return;
-      if(start && d < start) return;
-      if(end   && d > end)   return;
-      daySet.add(d);
-    });
-    // Sort days chronologically
-    const sortedDays = [...daySet].sort((a,b) => new Date(a)-new Date(b));
-    if(!sortedDays.length) return {names:[],days:[],grid:{}};
+    if(!allNames.length || (!start && !end)) return {names:[],days:[],grid:{},colTotals:{},rowTotals:{}};
 
-    // Build grid: grid[name][dateStr] = { clients:{}, ooo:0, total:0 }
+    // Generate ALL weekdays in the range (no gaps, no skipped days)
+    const weekdays = [];
+    const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const DOW_NAMES   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const [sy,sm,sd] = start.split('-').map(Number);
+    const [ey,em,ed] = end.split('-').map(Number);
+    let cur = new Date(sy,sm-1,sd);
+    const endDt = new Date(ey,em-1,ed);
+    while(cur <= endDt) {
+      const dow = cur.getDay();
+      if(dow !== 0 && dow !== 6) { // skip Sat(6) and Sun(0)
+        const key = `${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,'0')}-${String(cur.getDate()).padStart(2,'0')}`;
+        weekdays.push({
+          key,
+          dow: DOW_NAMES[dow],
+          label: `${MONTH_NAMES[cur.getMonth()]} ${cur.getDate()}`,
+          weekKey: mondayKey(key),
+        });
+      }
+      cur.setDate(cur.getDate()+1);
+    }
+    if(!weekdays.length) return {names:[],days:[],grid:{},colTotals:{},rowTotals:{}};
+
+    // Build grid — every person × every weekday, initialized to empty
     const grid = {};
     allNames.forEach(n => {
       grid[n] = {};
-      sortedDays.forEach(d => { grid[n][d] = {clients:{},ooo:0,total:0}; });
+      weekdays.forEach(d => { grid[n][d.key] = {clients:{},total:0}; });
     });
 
-    // Scan rows — each row is already one person+day+jobcode
+    // Fill from rows — skip OOO/PTO, apply client filter
     rows.forEach(r => {
       const name = `${(r.fname||'').trim()} ${(r.lname||'').trim()}`.trim();
       const hrs = parseFloat(r.hours)||0;
@@ -682,59 +684,31 @@ export default function App() {
       if(teamF==='cds'&&!isCDS) return;
       if(teamF==='tas'&& isCDS) return;
       const cat = catOf(jc), client = normalizeClient(jc);
-      if(cat==='OOO') {
-        grid[name][dateStr].ooo += hrs;
-      } else {
-        if(gClient!=='all' && client!==gClient) return;
-        grid[name][dateStr].clients[client] = (grid[name][dateStr].clients[client]||0)+hrs;
-        grid[name][dateStr].total += hrs;
-      }
+      if(cat==='OOO') return; // hide OOO/PTO completely from gantt
+      if(gClients.length>0 && !gClients.includes(client)) return;
+      grid[name][dateStr].clients[client] = (grid[name][dateStr].clients[client]||0)+hrs;
+      grid[name][dateStr].total += hrs;
     });
 
-    // Compute util per cell (8h day = 100% capacity; OOO reduces capacity)
-    Object.values(grid).forEach(pg => {
-      Object.values(pg).forEach(cell => {
-        const dayCapacity = 8 - cell.ooo;
-        cell.util = dayCapacity>0
-          ? (cell.total/dayCapacity)*100
-          : cell.total>0 ? 100 : null;
-      });
-    });
+    // Column totals (per day) and row totals (per person)
+    const colTotals = {};
+    weekdays.forEach(d => { colTotals[d.key] = allNames.reduce((s,n)=>s+(grid[n][d.key]?.total||0),0); });
+    const rowTotals = {};
+    allNames.forEach(n => { rowTotals[n] = weekdays.reduce((s,d)=>s+(grid[n][d.key]?.total||0),0); });
 
-    // Build day meta for column headers
-    const dayMeta = sortedDays.map(d => {
-      const dt = new Date(d);
-      const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-      const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      return {
-        key: d,
-        dow: dayNames[dt.getDay()],
-        label: `${monthNames[dt.getMonth()]} ${dt.getDate()}`,
-        isWeekend: dt.getDay()===0||dt.getDay()===6,
-        weekKey: mondayKey(d),
-      };
-    });
-
-    const filteredNames = gClient==='all'
-      ? allNames
-      : allNames.filter(n => sortedDays.some(d => grid[n][d].total>0));
-
-    return { names:filteredNames, days:dayMeta, grid };
-  }, [rows, members, dateRange, teamF, gClient]);
+    return { names:allNames, days:weekdays, grid, colTotals, rowTotals };
+  }, [rows, members, dateRange, teamF, gClients]);
 
   // ── GANTT CSV DOWNLOAD ──
   const downloadGantt = () => {
     if(!ganttData.names.length) return;
-    const header = ['Person', ...ganttData.days.map(d=>`${d.dow} ${d.label}`)];
-    const dataRows = ganttData.names.map(name => {
-      const cells = ganttData.days.map(d => {
-        const cell = ganttData.grid[name]?.[d.key];
-        if(!cell || cell.total===0) return '';
-        return `${cell.total.toFixed(1)}h`;
-      });
-      return [name, ...cells];
+    const header = ['Person',...ganttData.days.map(d=>`${d.dow} ${d.label}`),'TOTAL'];
+    const dataRows = ganttData.names.map(name=>{
+      const cells=ganttData.days.map(d=>{const cell=ganttData.grid[name]?.[d.key];return(!cell||cell.total===0)?'':cell.total.toFixed(1)+'h';});
+      return [name,...cells,(ganttData.rowTotals[name]||0).toFixed(1)+'h'];
     });
-    downloadCSV(`resource-grid-${new Date().toISOString().slice(0,10)}.csv`, [header, ...dataRows]);
+    const tot=['TOTAL',...ganttData.days.map(d=>(ganttData.colTotals[d.key]||0).toFixed(1)+'h'),''];
+    downloadCSV(`resource-grid-${(dateRange.start||'')}-${(dateRange.end||'')}.csv`,[header,...dataRows,tot]);
   };
 
   // Dashboard CSV download
@@ -780,113 +754,6 @@ export default function App() {
     {id:'exceptions',icon:<AlertTriangle size={15}/>,   label:'Exceptions'},
   ];
 
-  // ── DATE RANGE PICKER ──
-  const DateRangePicker = () => {
-    const today = new Date();
-    const [viewYear, setViewYear] = useState(today.getFullYear());
-    const [viewMonth, setViewMonth] = useState(today.getMonth());
-    const prevMonth = () => { if(viewMonth===0){setViewMonth(11);setViewYear(y=>y-1);}else setViewMonth(m=>m-1); };
-    const nextMonth = () => { if(viewMonth===11){setViewMonth(0);setViewYear(y=>y+1);}else setViewMonth(m=>m+1); };
-    const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-    const DAYS = ['Su','Mo','Tu','We','Th','Fr','Sa'];
-    const buildCells = (yr,mo) => {
-      const first = new Date(yr,mo,1).getDay();
-      const last  = new Date(yr,mo+1,0).getDate();
-      const cells = [];
-      for(let i=0;i<first;i++) cells.push(null);
-      for(let d=1;d<=last;d++) cells.push(d);
-      return cells;
-    };
-    const toKey = (yr,mo,d) => `${yr}-${String(mo+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const inRange = k => { const {start,end}=dateRange; return start&&end&&k>start&&k<end; };
-    const inHover = k => { if(!dateRange.start||dateRange.end||!calHover) return false; const lo=dateRange.start<calHover?dateRange.start:calHover, hi=dateRange.start<calHover?calHover:dateRange.start; return k>lo&&k<hi; };
-    const handleClick = k => {
-      if(!allDays.includes(k)) return;
-      const {start,end} = dateRange;
-      if(!start||(start&&end)) { setDateRange({start:k,end:''}); }
-      else { if(k===start){setDateRange({start:'',end:''});return;} const lo=k<start?k:start,hi=k<start?start:k; setDateRange({start:lo,end:hi}); setCalOpen(false); }
-    };
-    const renderMonth = (yr,mo) => {
-      const cells = buildCells(yr,mo);
-      return (
-        <div style={{minWidth:196}}>
-          <div style={{textAlign:'center',fontSize:12,fontWeight:600,color:S.ink,marginBottom:8,padding:'0 2px'}}>{MONTHS[mo]} {yr}</div>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:2}}>
-            {DAYS.map(d=><div key={d} style={{fontSize:9,fontWeight:700,color:S.muted,textAlign:'center',padding:'2px 0'}}>{d}</div>)}
-            {cells.map((day,ci)=>{
-              if(!day) return <div key={ci}/>;
-              const k=toKey(yr,mo,day);
-              const hasDat=allDays.includes(k);
-              const isS=k===dateRange.start, isE=k===dateRange.end;
-              const mid=inRange(k)||inHover(k);
-              const isHE=!dateRange.end&&k===calHover&&hasDat;
-              const isTod=k===today.toISOString().slice(0,10);
-              const isWknd=new Date(k).getDay()===0||new Date(k).getDay()===6;
-              let bg='transparent',col=hasDat?(isWknd?S.muted:S.ink):'#CBD5E1',fw=400,br=4;
-              if(isS||isE)    {bg=S.blue;col='#fff';fw=700;}
-              else if(isHE)   {bg='#93C5FD';col=S.navy;}
-              else if(mid)    {bg='#DBEAFE';col=S.blue;br=0;}
-              return (
-                <div key={ci} onClick={()=>handleClick(k)}
-                  onMouseEnter={()=>setCalHover(k)} onMouseLeave={()=>setCalHover(null)}
-                  style={{textAlign:'center',padding:'4px 2px',fontSize:11,borderRadius:br,
-                    background:bg,color:col,fontWeight:fw,
-                    cursor:hasDat?'pointer':'default',
-                    boxShadow:isTod&&!isS&&!isE?`inset 0 0 0 1px ${S.borderM}`:'none',
-                    opacity:hasDat?1:0.25,userSelect:'none',transition:'background .08s'}}>
-                  {day}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      );
-    };
-    const m2=viewMonth===11?0:viewMonth+1, y2=viewMonth===11?viewYear+1:viewYear;
-    return (
-      <div className="wdd" style={{position:'relative',flexShrink:0}}>
-        <button onClick={()=>setCalOpen(v=>!v)}
-          style={{height:28,padding:'0 8px 0 10px',fontSize:12,
-            border:`1px solid ${dateRange.start?S.blue:S.border}`,borderRadius:4,
-            background:dateRange.start?'#EBF4FB':S.white,
-            color:dateRange.start?S.blue:S.ink,cursor:'pointer',
-            display:'flex',alignItems:'center',gap:5,outline:'none',minWidth:170,maxWidth:260,
-            fontWeight:dateRange.start?600:400}}>
-          <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1,textAlign:'left',fontSize:12}}>{rangeLabel()}</span>
-          {dateRange.start&&<span onClick={e=>{e.stopPropagation();setDateRange({start:'',end:''});}}
-            style={{display:'flex',alignItems:'center',cursor:'pointer',color:S.muted,flexShrink:0,padding:2}}><X size={10}/></span>}
-          <ChevronDown size={11} style={{flexShrink:0,transform:calOpen?'rotate(180deg)':'none',transition:'.15s'}}/>
-        </button>
-        {calOpen&&(
-          <div style={{position:'absolute',top:'calc(100% + 6px)',right:0,background:S.white,
-            border:`1px solid ${S.border}`,borderRadius:8,
-            boxShadow:'0 8px 32px rgba(0,0,0,.15)',zIndex:200,padding:14,userSelect:'none',minWidth:440}}>
-            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
-              <button onClick={prevMonth} style={{background:'none',border:'none',cursor:'pointer',color:S.slate,padding:'2px 8px',borderRadius:3,fontSize:16,lineHeight:1}}>‹</button>
-              <div style={{fontSize:11,color:S.muted}}>
-                {!dateRange.start&&!dateRange.end&&'Click a start date'}
-                {dateRange.start&&!dateRange.end&&<span style={{color:S.blue,fontWeight:500}}>Now click an end date</span>}
-                {dateRange.start&&dateRange.end&&<span style={{color:S.green,fontWeight:600}}>✓ {rangeLabel()}</span>}
-              </div>
-              <button onClick={nextMonth} style={{background:'none',border:'none',cursor:'pointer',color:S.slate,padding:'2px 8px',borderRadius:3,fontSize:16,lineHeight:1}}>›</button>
-            </div>
-            <div style={{display:'flex',gap:20}}>{renderMonth(viewYear,viewMonth)}{renderMonth(y2,m2)}</div>
-            <div style={{borderTop:`1px solid ${S.border}`,marginTop:10,paddingTop:8,display:'flex',gap:6,flexWrap:'wrap'}}>
-              {[
-                ['This week',()=>{const n=new Date(),dw=n.getDay()||7,m=new Date(n);m.setDate(n.getDate()-(dw-1));const f=new Date(m);f.setDate(m.getDate()+4);setDateRange({start:m.toISOString().slice(0,10),end:f.toISOString().slice(0,10)});setCalOpen(false);}],
-                ['Last week',()=>{const n=new Date(),dw=n.getDay()||7,m=new Date(n);m.setDate(n.getDate()-(dw-1));const lm=new Date(m);lm.setDate(m.getDate()-7);const lf=new Date(lm);lf.setDate(lm.getDate()+4);setDateRange({start:lm.toISOString().slice(0,10),end:lf.toISOString().slice(0,10)});setCalOpen(false);}],
-                ['Last 30d',()=>{const n=new Date(),a=new Date();a.setDate(n.getDate()-30);setDateRange({start:a.toISOString().slice(0,10),end:n.toISOString().slice(0,10)});setCalOpen(false);}],
-                ['This month',()=>{const n=new Date();const s=`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-01`;setDateRange({start:s,end:n.toISOString().slice(0,10)});setCalOpen(false);}],
-                ['All data',()=>{setDateRange({start:minDate,end:maxDate});setCalOpen(false);}],
-              ].map(([lbl,fn])=>(
-                <button key={lbl} onClick={fn} style={{padding:'3px 9px',fontSize:11,fontWeight:500,border:`1px solid ${S.border}`,borderRadius:4,background:S.cloud,color:S.slate,cursor:'pointer'}}>{lbl}</button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
 
   // ── LOADING / ERROR ──
   if(loading) return (
@@ -982,7 +849,7 @@ export default function App() {
             {/* Week picker */}
             <div style={{display:'flex',alignItems:'center',gap:5}}>
               <span style={{fontSize:11,color:S.muted,fontWeight:500,whiteSpace:'nowrap'}}>Date range</span>
-              <DateRangePicker/>
+              <DateRangePicker dateRange={dateRange} setDateRange={setDateRange} allDays={allDays} minDate={minDate} maxDate={maxDate} calOpen={calOpen} setCalOpen={setCalOpen} calHover={calHover} setCalHover={setCalHover}/>
             </div>
 
             <div style={{width:1,height:16,background:S.border}}/>
@@ -1149,126 +1016,144 @@ export default function App() {
           {/* ══════════ RESOURCE GRID ══════════ */}
           {page==='gantt'&&(
             <div style={{background:S.white,border:`1px solid ${S.border}`,borderRadius:5,overflow:'hidden'}}>
+
               {/* Toolbar */}
-              <div style={{padding:'9px 14px',borderBottom:`1px solid ${S.border}`,background:S.cloud,
+              <div style={{padding:'10px 14px',borderBottom:`1px solid ${S.border}`,background:S.cloud,
                 display:'flex',alignItems:'center',flexWrap:'wrap',gap:8,justifyContent:'space-between'}}>
                 <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
-                  <select value={gClient} onChange={e=>setGClient(e.target.value)}
-                    style={{height:28,padding:'0 7px',fontSize:12,minWidth:140,
-                      border:`1px solid ${gClient!=='all'?S.blue:S.border}`,borderRadius:4,
-                      background:S.white,color:S.ink,cursor:'pointer',outline:'none',fontWeight:gClient!=='all'?600:400}}>
-                    <option value="all">All clients</option>
-                    {allClients.filter(c=>c!=='OOO').map(c=><option key={c} value={c}>{c}</option>)}
-                  </select>
-                  {gClient!=='all'&&(
-                    <button onClick={()=>setGClient('all')}
-                      style={{height:28,padding:'0 9px',fontSize:11,fontWeight:500,border:'1px solid #FECACA',borderRadius:4,background:'#FEF2F2',color:S.red,cursor:'pointer',display:'flex',alignItems:'center',gap:3}}>
-                      <X size={11}/>Clear
-                    </button>
-                  )}
-                  {/* Active-client legend */}
-                  <div style={{display:'flex',flexWrap:'wrap',gap:'3px 10px',marginLeft:4}}>
-                    {[...new Set(
-                      ganttData.names.flatMap(n =>
-                        ganttData.days.flatMap(d => Object.keys(ganttData.grid[n]?.[d.key]?.clients||{}))
-                      )
-                    )].map(c=>(
-                      <div key={c} style={{display:'flex',alignItems:'center',gap:3}}>
-                        <div style={{width:9,height:9,borderRadius:2,background:cCol(c).bar,flexShrink:0}}/>
-                        <span style={{fontSize:10,color:S.slateL}}>{c}</span>
-                      </div>
-                    ))}
+                  {/* Multi-select client filter — checkbox pills */}
+                  <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+                    <span style={{fontSize:11,color:S.slateL,fontWeight:500,flexShrink:0}}>Show clients:</span>
+                    {allClients.filter(c=>c!=='OOO').map(cl=>{
+                      const on=gClients.includes(cl);
+                      const col=cCol(cl);
+                      return(
+                        <button key={cl} onClick={()=>setGClients(p=>on?p.filter(x=>x!==cl):[...p,cl])}
+                          style={{height:24,padding:'0 8px',fontSize:11,fontWeight:on?700:400,
+                            border:`1px solid ${on?col.bar:S.border}`,borderRadius:12,cursor:'pointer',
+                            background:on?col.bg:S.white,color:on?col.text:S.slateL,
+                            display:'flex',alignItems:'center',gap:4,transition:'all .12s',whiteSpace:'nowrap'}}>
+                          {on&&<div style={{width:6,height:6,borderRadius:'50%',background:col.bar,flexShrink:0}}/>}
+                          {cl}
+                        </button>
+                      );
+                    })}
+                    {gClients.length>0&&(
+                      <button onClick={()=>setGClients([])}
+                        style={{height:24,padding:'0 8px',fontSize:11,border:'1px solid #FECACA',borderRadius:12,
+                          background:'#FEF2F2',color:S.red,cursor:'pointer',display:'flex',alignItems:'center',gap:3}}>
+                        <X size={10}/>All
+                      </button>
+                    )}
                   </div>
                 </div>
                 <div style={{display:'flex',alignItems:'center',gap:8,flexShrink:0}}>
                   <span style={{fontSize:11,color:S.muted}}>{ganttData.names.length} people · {ganttData.days.length} days</span>
                   <button onClick={downloadGantt}
-                    style={{height:28,padding:'0 9px',fontSize:11,border:`1px solid ${S.border}`,borderRadius:4,background:S.white,color:S.slate,cursor:'pointer',display:'flex',alignItems:'center',gap:4,outline:'none'}}>
+                    style={{height:28,padding:'0 9px',fontSize:11,border:`1px solid ${S.border}`,borderRadius:4,
+                      background:S.white,color:S.slate,cursor:'pointer',display:'flex',alignItems:'center',gap:4,outline:'none'}}>
                     <Download size={11}/> CSV
                   </button>
                 </div>
               </div>
 
-              {ganttData.names.length===0&&(
+              {(!dateRange.start||!dateRange.end)&&(
                 <div style={{padding:'48px 16px',textAlign:'center',color:S.muted}}>
-                  No data for selected period. Select weeks using the Period picker above.
+                  Select a date range above to view the resource grid.
                 </div>
               )}
 
-              {ganttData.names.length>0&&(
-                <div style={{overflowX:'auto'}}>
-                  <table style={{borderCollapse:'collapse',tableLayout:'fixed',minWidth:'100%'}}>
+              {dateRange.start&&dateRange.end&&(
+                <div style={{overflowX:'auto',overflowY:'auto',maxHeight:'calc(100vh - 200px)'}}>
+                  <table style={{borderCollapse:'collapse',tableLayout:'fixed'}}>
                     <colgroup>
-                      <col style={{width:174,minWidth:150}}/>
-                      {ganttData.days.map(d=><col key={d.key} style={{minWidth:d.isWeekend?28:52,width:d.isWeekend?28:52}}/>)}
+                      <col style={{width:170,minWidth:160}}/>
+                      {ganttData.days.map(d=><col key={d.key} style={{width:80,minWidth:76}}/>)}
+                      <col style={{width:72}}/>
                     </colgroup>
-                    <thead>
-                      {/* Month/week separator row */}
+                    <thead style={{position:'sticky',top:0,zIndex:4}}>
+                      {/* Week band row */}
                       <tr style={{background:S.cloud}}>
-                        <th style={{...TH(false,16),position:'sticky',left:0,zIndex:3,background:S.cloud,borderBottom:'none'}}/>
-                        {(() => {
-                          // Group consecutive days by week for a "week band" header
-                          const bands = [];
-                          ganttData.days.forEach(d => {
-                            const last = bands[bands.length-1];
-                            if(last && last.weekKey===d.weekKey) { last.count++; last.endLabel=d.label; }
-                            else bands.push({weekKey:d.weekKey, label:d.label, endLabel:d.label, count:1});
-                          });
+                        <th style={{background:S.cloud,borderBottom:`1px solid ${S.borderM}`,position:'sticky',left:0,zIndex:5}}/>
+                        {(()=>{
+                          const bands=[];
+                          ganttData.days.forEach(d=>{const last=bands[bands.length-1];if(last&&last.wk===d.weekKey){last.n++;}else bands.push({wk:d.weekKey,label:d.label,n:1});});
                           return bands.map((b,i)=>(
-                            <th key={i} colSpan={b.count}
-                              style={{padding:'3px 4px',fontSize:9,fontWeight:700,color:S.slate,
-                                textAlign:'center',background:S.cloud,
-                                borderBottom:`1px solid ${S.borderM}`,
-                                borderLeft:`1px solid ${S.borderM}`,whiteSpace:'nowrap'}}>
-                              {b.label}{b.count>1?` – ${b.endLabel}`:''}
+                            <th key={i} colSpan={b.n} style={{padding:'4px 6px',fontSize:10,fontWeight:700,color:S.slate,
+                              textAlign:'center',background:S.cloud,borderBottom:`1px solid ${S.borderM}`,
+                              borderLeft:`2px solid ${S.borderM}`,whiteSpace:'nowrap'}}>
+                              {b.label.replace(' ','\u00a0')} ({b.n}d)
                             </th>
                           ));
                         })()}
+                        <th style={{background:S.cloud,borderBottom:`1px solid ${S.borderM}`,borderLeft:`2px solid ${S.borderM}`}}/>
                       </tr>
                       {/* Day header row */}
-                      <tr style={{borderBottom:`2px solid ${S.borderM}`}}>
-                        <th style={{...TH(false,16),position:'sticky',left:0,zIndex:3,background:S.cloud}}>Person</th>
+                      <tr style={{background:S.cloud,borderBottom:`2px solid ${S.borderM}`}}>
+                        <th style={{...TH(false,16),position:'sticky',left:0,zIndex:5,background:S.cloud,top:0}}>Person</th>
                         {ganttData.days.map(d=>(
-                          <th key={d.key}
-                            style={{...TH(false,2),padding:'4px 2px',fontSize:9,
-                              background:d.isWeekend?'#F0F0F4':S.cloud,
-                              textAlign:'center',lineHeight:1.2,
-                              borderLeft:`1px solid ${S.border}`,
-                              color:d.isWeekend?S.muted:S.slate}}>
-                            <div style={{fontWeight:600}}>{d.dow}</div>
-                            {!d.isWeekend&&<div style={{fontWeight:400,fontSize:8,color:S.muted}}>{d.label.split(' ')[1]}</div>}
+                          <th key={d.key} style={{padding:'6px 4px',fontSize:10,fontWeight:600,
+                            background:S.cloud,textAlign:'center',
+                            borderLeft:`1px solid ${S.border}`,color:S.slate,whiteSpace:'nowrap',
+                            borderBottom:'none'}}>
+                            <div>{d.dow}</div>
+                            <div style={{fontSize:9,fontWeight:400,color:S.muted}}>{d.label.split(' ')[1]}</div>
                           </th>
                         ))}
+                        <th style={{padding:'6px 8px',fontSize:10,fontWeight:700,textTransform:'uppercase',
+                          letterSpacing:'.05em',color:S.muted,background:S.cloud,textAlign:'right',
+                          borderLeft:`2px solid ${S.borderM}`,whiteSpace:'nowrap'}}>Total</th>
                       </tr>
                     </thead>
                     <tbody>
                       {ganttData.names.map((name,i)=>(
                         <tr key={i} style={{borderBottom:`1px solid ${S.border}`,background:i%2===1?S.cloud:S.white}}>
-                          <td style={{padding:'4px 16px',fontSize:12,fontWeight:500,color:S.ink,
+                          {/* Sticky name cell */}
+                          <td style={{padding:'6px 16px',fontSize:12,fontWeight:500,color:S.ink,
                             whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',
                             position:'sticky',left:0,zIndex:1,
                             background:i%2===1?S.cloud:S.white,
-                            borderBottom:`1px solid ${S.border}`}}>
+                            borderBottom:`1px solid ${S.border}`,minHeight:50}}>
                             {name}
                           </td>
+                          {/* Day cells */}
                           {ganttData.days.map(d=>{
-                            const cell = ganttData.grid[name]?.[d.key]||{clients:{},ooo:0,total:0,util:null};
-                            if(d.isWeekend){
-                              // Weekend — just a shaded cell, no bar
-                              return <td key={d.key} style={{background:'#F0F0F4',borderLeft:`1px solid ${S.border}`,borderBottom:`1px solid ${S.border}`}}/>;
-                            }
-                            const segments = Object.entries(cell.clients)
-                              .map(([client,h])=>({client,h}))
-                              .sort((a,b)=>b.h-a.h);
-                            if(cell.ooo>0) segments.push({client:'OOO',h:cell.ooo,isOoo:true});
+                            const cell=ganttData.grid[name]?.[d.key]||{clients:{},total:0};
                             return(
-                              <td key={d.key} style={{padding:'3px 3px',borderBottom:`1px solid ${S.border}`,borderLeft:`1px solid ${S.border}`,verticalAlign:'top'}}>
-                                <GanttCell segments={segments} util={cell.util} name={name} weekLabel={`${d.dow} ${d.label}`}/>
+                              <td key={d.key} style={{padding:'5px 5px',borderBottom:`1px solid ${S.border}`,
+                                borderLeft:`1px solid ${S.border}`,verticalAlign:'middle',minWidth:76}}>
+                                <GanttCell dayData={cell} name={name} dayLabel={`${d.dow} ${d.label}`}/>
                               </td>
                             );
                           })}
+                          {/* Row total */}
+                          <td style={{padding:'6px 10px',textAlign:'right',fontSize:12,fontWeight:700,
+                            color:S.ink,fontVariantNumeric:'tabular-nums',whiteSpace:'nowrap',
+                            borderLeft:`2px solid ${S.borderM}`,borderBottom:`1px solid ${S.border}`,
+                            background:i%2===1?S.cloud:S.white}}>
+                            {(ganttData.rowTotals[name]||0).toFixed(1)}h
+                          </td>
                         </tr>
                       ))}
+                      {/* Column totals row */}
+                      <tr style={{background:'#EEF2F8',borderTop:`2px solid ${S.borderM}`,position:'sticky',bottom:0,zIndex:2}}>
+                        <td style={{padding:'7px 16px',fontSize:11,fontWeight:700,color:S.navy,
+                          position:'sticky',left:0,background:'#EEF2F8',zIndex:3}}>Total</td>
+                        {ganttData.days.map(d=>{
+                          const t=ganttData.colTotals[d.key]||0;
+                          return(
+                            <td key={d.key} style={{padding:'7px 5px',textAlign:'center',fontSize:11,fontWeight:600,
+                              color:t>0?S.blue:S.muted,fontVariantNumeric:'tabular-nums',
+                              borderLeft:`1px solid ${S.border}`}}>
+                              {t>0?t.toFixed(0)+'h':''}
+                            </td>
+                          );
+                        })}
+                        <td style={{padding:'7px 10px',textAlign:'right',fontSize:12,fontWeight:700,
+                          color:S.navy,fontVariantNumeric:'tabular-nums',borderLeft:`2px solid ${S.borderM}`}}>
+                          {ganttData.names.reduce((s,n)=>s+(ganttData.rowTotals[n]||0),0).toFixed(1)}h
+                        </td>
+                      </tr>
                     </tbody>
                   </table>
                 </div>
